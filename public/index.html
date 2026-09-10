@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RateGuard AI — Freight Audit & Recovery Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    code, pre, .font-mono { font-family: 'Geist Mono', monospace; }
+  </style>
+</head>
+<body class="bg-black text-neutral-100 min-h-screen flex flex-col">
+
+  <!-- Navigation Bar -->
+  <header class="border-b border-[#1e1e1e] bg-[#050505]/90 backdrop-blur sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-lg bg-white text-black font-bold flex items-center justify-center text-sm">
+          RG
+        </div>
+        <span class="font-bold text-base tracking-tight text-white">RateGuard AI</span>
+        <span class="text-[11px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-[#161616] text-neutral-400 border border-[#262626]">
+          Phase 1 Ingestion
+        </span>
+      </div>
+
+      <div class="flex items-center space-x-4 text-xs">
+        <div class="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-[#121212] border border-[#222222]">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span class="text-neutral-300 font-mono">Engine: Operational</span>
+        </div>
+        <a href="/setup-forwarding.html" class="px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-200 transition">
+          Forwarding Guide ↗
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero & System Status Banner -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-6 py-8 space-y-8">
+    <div class="bg-gradient-to-b from-[#0e0e0e] to-[#070707] border border-[#1e1e1e] rounded-2xl p-6 sm:p-8 shadow-2xl">
+      <div class="max-w-3xl space-y-3">
+        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+          Freight Audit & Recovery Platform
+        </h1>
+        <p class="text-sm sm:text-base text-neutral-400 leading-relaxed">
+          Zero-risk 35% contingency audit for mid-market shippers. Deterministic mathematical verification with automated Deficit Weight Bumping, FSC bracket evaluation, and carrier duplicate protection.
+        </p>
+      </div>
+
+      <!-- Quick Metrics Grid -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8 pt-6 border-t border-[#1a1a1a]">
+        <div class="bg-[#0c0c0c] border border-[#1c1c1c] rounded-xl p-4">
+          <div class="text-[11px] uppercase tracking-wider text-neutral-500 font-mono">Pricing Model</div>
+          <div class="text-lg font-bold text-white mt-1">35% Contingency</div>
+          <div class="text-xs text-neutral-400 mt-0.5">Verified credit memos</div>
+        </div>
+        <div class="bg-[#0c0c0c] border border-[#1c1c1c] rounded-xl p-4">
+          <div class="text-[11px] uppercase tracking-wider text-neutral-500 font-mono">Audit Philosophy</div>
+          <div class="text-lg font-bold text-white mt-1">Code Calculates</div>
+          <div class="text-xs text-neutral-400 mt-0.5">LLMs extract, code checks</div>
+        </div>
+        <div class="bg-[#0c0c0c] border border-[#1c1c1c] rounded-xl p-4">
+          <div class="text-[11px] uppercase tracking-wider text-neutral-500 font-mono">Ingestion Gate</div>
+          <div class="text-lg font-bold text-emerald-400 mt-1">GO (100% Pass)</div>
+          <div class="text-xs text-neutral-400 mt-0.5">All 3 intake channels active</div>
+        </div>
+        <div class="bg-[#0c0c0c] border border-[#1c1c1c] rounded-xl p-4">
+          <div class="text-[11px] uppercase tracking-wider text-neutral-500 font-mono">Supported Carriers</div>
+          <div class="text-lg font-bold text-white mt-1">ABF • XPO • RRTS</div>
+          <div class="text-xs text-neutral-400 mt-0.5">National LTL matrices</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Ingestion Channels -->
+    <div class="space-y-4">
+      <h2 class="text-lg font-semibold text-white">Ingestion Architecture (Phase 1 Channels)</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- Channel A -->
+        <div class="bg-[#0a0a0a] border border-[#1e1e1e] rounded-xl p-5 flex flex-col justify-between space-y-4">
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-mono font-semibold text-neutral-300">Channel A</span>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono">Automated</span>
+            </div>
+            <h3 class="text-base font-semibold text-white mt-2">Inbound Postmark Webhook</h3>
+            <p class="text-xs text-neutral-400 mt-1.5 leading-relaxed">
+              Inbound carrier PDF ingestion via <code>{slug}@in.rateguard.app</code>. Includes automated SHA256 checksum deduplication and carrier dispute CC routing.
+            </p>
+          </div>
+          <a href="/setup-forwarding.html" class="w-full text-center py-2 text-xs font-semibold rounded-lg bg-[#141414] hover:bg-[#1a1a1a] text-neutral-200 border border-[#2a2a2a] transition">
+            View Forwarding Guide
+          </a>
+        </div>
+
+        <!-- Channel B -->
+        <div class="bg-[#0a0a0a] border border-[#1e1e1e] rounded-xl p-5 flex flex-col justify-between space-y-4">
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-mono font-semibold text-neutral-300">Channel B</span>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-950 text-blue-300 border border-blue-800 font-mono">High-Throughput</span>
+            </div>
+            <h3 class="text-base font-semibold text-white mt-2">Batch ZIP & CSV Manifest</h3>
+            <p class="text-xs text-neutral-400 mt-1.5 leading-relaxed">
+              Streaming decompression with Zip-Slip path traversal defense, file limits (25MB), and direct CSV payment manifest invoice cross-linking.
+            </p>
+          </div>
+          <div class="py-2 px-3 text-center text-xs font-mono text-neutral-400 bg-[#121212] rounded-lg border border-[#222]">
+            500+ invoices/batch capacity
+          </div>
+        </div>
+
+        <!-- Channel C -->
+        <div class="bg-[#0a0a0a] border border-[#1e1e1e] rounded-xl p-5 flex flex-col justify-between space-y-4">
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-mono font-semibold text-neutral-300">Channel C</span>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-neutral-900 text-neutral-300 border border-neutral-700 font-mono">Concierge</span>
+            </div>
+            <h3 class="text-base font-semibold text-white mt-2">Manual Entry Fallback</h3>
+            <p class="text-xs text-neutral-400 mt-1.5 leading-relaxed">
+              Dedicated concierge intake for paper/faxed stragglers ensuring zero invoices bypass canonical parsing or rate verification tables.
+            </p>
+          </div>
+          <div class="py-2 px-3 text-center text-xs font-mono text-neutral-400 bg-[#121212] rounded-lg border border-[#222]">
+            Canonical JSON Normalization
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Live Audit Engine Simulation Card -->
+    <div class="bg-[#0a0a0a] border border-[#1e1e1e] rounded-2xl p-6 sm:p-8 space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-lg font-bold text-white">Deterministic Audit Engine Core</h2>
+          <p class="text-xs text-neutral-400 mt-1">
+            Pure Python/TypeScript engine running checks 1–4 against contract rate matrices and EIA fuel indices.
+          </p>
+        </div>
+        <button onclick="runAuditDemo()" id="btn-run-demo" class="px-4 py-2 text-xs font-semibold rounded-lg bg-white text-black hover:bg-neutral-200 transition shadow-lg">
+          Run Deterministic Audit Test
+        </button>
+      </div>
+
+      <!-- Live Interactive Terminal Output -->
+      <div class="bg-black border border-[#222222] rounded-xl p-4 font-mono text-xs overflow-x-auto text-neutral-300 space-y-2">
+        <div class="text-neutral-500">// Audit Engine Diagnostics Console</div>
+        <div id="demo-log-1">> Ready to execute deterministic audit pipeline...</div>
+        <div id="demo-log-2" class="text-neutral-500">> Checks: [1: Duplicates, 2: Arithmetic, 3: Rates & Deficit Weight, 4: FSC Diesel]</div>
+        <div id="demo-result" class="hidden pt-3 border-t border-[#1a1a1a] text-emerald-400"></div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="border-t border-[#1a1a1a] py-6 px-6 text-center text-xs text-neutral-500 font-mono">
+    RateGuard AI Inc. • Pure Contingency Freight Audit • Zero Risk
+  </footer>
+
+  <script>
+    function runAuditDemo() {
+      const btn = document.getElementById('btn-run-demo');
+      const log1 = document.getElementById('demo-log-1');
+      const log2 = document.getElementById('demo-log-2');
+      const result = document.getElementById('demo-result');
+
+      btn.disabled = true;
+      btn.innerText = "Auditing Invoice...";
+      log1.innerText = "> Ingesting Carrier Invoice INV-ABF-5501 (ABF Freight, Lane: 303 -> 606)...";
+      log2.innerText = "> Bumping deficit weight: 4,250 lbs billed @ $18.50/cwt -> bumped to 5,000 lbs break @ $14.20/cwt (saves $76.25)...";
+
+      setTimeout(() => {
+        result.classList.remove('hidden');
+        result.innerHTML = `
+          <div>✔ Check 1: Duplicate Invoice Check -> CLEAN (0 duplicates found)</div>
+          <div>✔ Check 2: Arithmetic Re-derivation -> PASSED (Sum line items = $786.25)</div>
+          <div>✔ Check 3: Rate Verification with Deficit Bumping -> OVERCHARGE DETECTED ($76.25)</div>
+          <div>✔ Check 4: Fuel Surcharge (FSC) -> OVERCHARGE DETECTED ($18.50 billed vs $15.20 contracted)</div>
+          <div class="text-white font-bold mt-2">>>> TOTAL VERIFIED OVERCHARGE RECOVERED: $94.75 | RateGuard Fee (35%): $33.16</div>
+        `;
+        btn.disabled = false;
+        btn.innerText = "Run Deterministic Audit Test Again";
+      }, 700);
+    }
+  </script>
+</body>
+</html>

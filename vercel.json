@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "outputDirectory": "public",
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/setup-forwarding",
+      "destination": "/setup-forwarding.html"
+    }
+  ]
+}
