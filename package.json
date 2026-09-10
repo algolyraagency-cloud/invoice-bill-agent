@@ -1,0 +1,14 @@
+{
+  "name": "rateguard-ai",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter @rateguard/web dev",
+    "build": "pnpm --filter @rateguard/web build",
+    "test:engine": "python -m pytest packages/audit-engine/tests/test_audit_engine.py -v",
+    "migrate": "python infra/migrate.py"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}

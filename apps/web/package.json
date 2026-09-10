@@ -1,0 +1,13 @@
+{
+  "name": "@rateguard/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'Next.js 15 Web Portal placeholder ready for Phase 4/5'",
+    "build": "echo 'Build placeholder ready'"
+  },
+  "dependencies": {
+    "@rateguard/schemas": "workspace:*",
+    "@supabase/supabase-js": "^2.45.4"
+  }
+}

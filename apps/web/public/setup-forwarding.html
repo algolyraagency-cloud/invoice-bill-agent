@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RateGuard AI — Email Forwarding Setup Guide</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #1a1a1a;
+      background-color: #f8fafc;
+      margin: 0;
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 780px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      border: 1px solid #e2e8f0;
+    }
+    h1 {
+      font-size: 26px;
+      margin-top: 0;
+      color: #0f172a;
+    }
+    .badge {
+      display: inline-block;
+      background: #e0f2fe;
+      color: #0369a1;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+    .address-card {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .address-card code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 16px;
+      color: #38bdf8;
+    }
+    .copy-btn {
+      background: #38bdf8;
+      color: #0f172a;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .step-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+      background: #ffffff;
+    }
+    .step-card h3 {
+      margin-top: 0;
+      color: #1e293b;
+    }
+    ol {
+      padding-left: 20px;
+    }
+    li {
+      margin-bottom: 10px;
+    }
+    .carrier-list {
+      background: #f1f5f9;
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <span class="badge">ONBOARDING GUIDE (FR-1.4)</span>
+    <h1>Connect Your Freight Invoices in 2 Minutes</h1>
+    <p>RateGuard AI audits carrier invoices automatically by parsing PDF attachments sent directly from your freight carriers. Follow these simple steps to configure automated email forwarding.</p>
+
+    <h2>1. Your Inbound Audit Address</h2>
+    <p>Every invoice forwarded to this address is instantly ingested, decrypted, and audited against your contracted rate matrices.</p>
+    
+    <div class="address-card">
+      <div>
+        <small style="color: #94a3b8; display: block;">UNIQUE AUDIT INBOX</small>
+        <code id="inbound-addr">acme-parts@in.rateguard.app</code>
+      </div>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('acme-parts@in.rateguard.app'); alert('Copied audit address!');">Copy Address</button>
+    </div>
+
+    <h2>2. Dedicated Carrier Dispute CC Address</h2>
+    <p>When sending carrier billing disputes, CC our tracking alias. Our system automatically links the carrier's reply and detects credit memos:</p>
+    <div class="address-card">
+      <div>
+        <small style="color: #94a3b8; display: block;">DISPUTE RECOVERY TRACKING</small>
+        <code id="dispute-addr">disputes+acme-parts@in.rateguard.app</code>
+      </div>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('disputes+acme-parts@in.rateguard.app'); alert('Copied dispute CC address!');">Copy CC</button>
+    </div>
+
+    <h2>3. Setup Forwarding Rules</h2>
+
+    <div class="step-card">
+      <h3>Microsoft Outlook 365 (Web or Desktop)</h3>
+      <ol>
+        <li>Go to <strong>Settings</strong> (gear icon) &gt; <strong>Mail</strong> &gt; <strong>Rules</strong>.</li>
+        <li>Click <strong>Add new rule</strong> and name it <em>"Forward LTL Carrier Invoices to RateGuard"</em>.</li>
+        <li>Under <strong>Add a condition</strong>, select <strong>Sender address includes</strong> and paste your top carrier domains:
+          <div class="carrier-list">@abf.com, @xpo.com, @rrts.com, @odfl.com, @saia.com, @estes-express.com</div>
+        </li>
+        <li>Under <strong>Add an action</strong>, select <strong>Forward to</strong> and enter <code>{your-slug}@in.rateguard.app</code>.</li>
+        <li>Check <strong>Stop processing more rules</strong> and click <strong>Save</strong>.</li>
+      </ol>
+    </div>
+
+    <div class="step-card">
+      <h3>Google Workspace / Gmail</h3>
+      <ol>
+        <li>Go to <strong>Settings</strong> &gt; <strong>Filters and Blocked Addresses</strong> &gt; <strong>Create a new filter</strong>.</li>
+        <li>In the <strong>From</strong> field, enter: <code>(@abf.com OR @xpo.com OR @rrts.com OR @odfl.com)</code>.</li>
+        <li>Click <strong>Create filter</strong>, check <strong>Forward it to:</strong>, and select your RateGuard inbound address.</li>
+        <li>Click <strong>Create filter</strong> to activate.</li>
+      </ol>
+    </div>
+  </div>
+</body>
+</html>
