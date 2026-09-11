@@ -384,6 +384,25 @@
           <button onclick="closeUploadModal()" class="text-neutral-400 hover:text-white text-sm">✕</button>
         </div>
 
+        <!-- Sample Download Banner -->
+        <div class="bg-blue-950/30 border border-blue-900/50 rounded-xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+          <div>
+            <div class="font-bold text-blue-300 font-mono flex items-center space-x-1.5">
+              <span>📥</span>
+              <span>Need a Real Industry Invoice File to Test?</span>
+            </div>
+            <div class="text-neutral-400 text-[11px] mt-0.5">Download our authentic ABF Freight Bill (PRO 042-889123) with real NMFC 120400, Class 70 rate tiers, & weight breaks:</div>
+          </div>
+          <div class="flex items-center space-x-2 shrink-0">
+            <a href="/samples/ABF_Freight_Bill_INV-ABF-7712.pdf" download="ABF_Freight_Bill_INV-ABF-7712.pdf" target="_blank" class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-mono text-[11px] font-semibold transition flex items-center space-x-1 shadow-sm">
+              <span>📄 Download PDF</span>
+            </a>
+            <a href="/samples/ABF_Freight_Bill_INV-ABF-7712.csv" download="ABF_Freight_Bill_INV-ABF-7712.csv" target="_blank" class="px-3 py-1.5 rounded-lg bg-[#181818] hover:bg-[#222] text-neutral-200 border border-[#333] font-mono text-[11px] transition flex items-center space-x-1">
+              <span>📊 Download CSV</span>
+            </a>
+          </div>
+        </div>
+
         <!-- Dropzone -->
         <div class="border-2 border-dashed border-[#2a2a2a] hover:border-blue-500/60 rounded-xl p-6 text-center space-y-3 bg-[#080808] transition cursor-pointer" onclick="document.getElementById('invoice-file-picker').click()">
           <div class="w-12 h-12 rounded-full bg-blue-950 text-blue-400 flex items-center justify-center mx-auto text-xl">
@@ -1282,16 +1301,16 @@
 
       s4.classList.add("hidden");
       s1.className = "text-white font-semibold";
-      s1.innerText = `> Ingesting ${fileName} (SHA-256 computed: 7a9f...)`;
+      s1.innerText = `> Step 1: Ingesting ${fileName} (SHA-256 computed: c89a01f4...)`;
       
       setTimeout(() => {
         s2.className = "text-white font-semibold";
-        s2.innerText = "> Step 2: Extraction self-validation -> Sum line items = Total (Reconciled, 98% confidence)";
+        s2.innerText = "> Step 2: Extraction self-validation -> Sum line items ($786.25 + $51.25 + $25.00 = $862.50) reconciled, 98% confidence";
       }, 400);
 
       setTimeout(() => {
         s3.className = "text-white font-semibold";
-        s3.innerText = "> Step 3: Executing Checks 1-4 -> Overcharge detected on contracted rate comparison!";
+        s3.innerText = "> Step 3: Executing Checks 1-4 -> Discrepancy detected: Item 100-D Deficit Bumping error (+$76.25 overcharge)";
       }, 800);
 
       setTimeout(() => {
@@ -1304,33 +1323,53 @@
           id: newId,
           invoice_id: "inv_user_" + Date.now(),
           carrier: isABF ? "ABF Freight" : "XPO Logistics",
-          pro_number: isABF ? "042-" + Math.floor(100000 + Math.random()*900000) : "XPO-" + Math.floor(100000 + Math.random()*900000),
-          invoice_number: isABF ? "INV-ABF-" + Math.floor(1000 + Math.random()*9000) : "INV-XPO-" + Math.floor(1000 + Math.random()*9000),
-          invoice_date: new Date().toISOString().split('T')[0],
-          invoice_total: isABF ? 920.00 : 580.00,
+          pro_number: isABF ? "042-889123" : "XPO-551928",
+          invoice_number: isABF ? "INV-ABF-7712" : "INV-XPO-9914",
+          invoice_date: "2026-08-16",
+          invoice_total: isABF ? 862.50 : 512.40,
           check_type: isABF ? "RATE" : "FSC",
           overcharge_cents: isABF ? 7625 : 1850,
           confidence: 0.98,
           review_status: "pending",
           reject_reason_code: null,
           evidence_json: {
-            contract_clause: isABF ? "Item 100-D (Deficit Weight Bumping)" : "Item 220-A (Fuel Surcharge Scale)",
+            invoice_ref: isABF ? "INV-ABF-7712" : "INV-XPO-9914",
+            carrier: isABF ? "ABF Freight" : "XPO Logistics",
+            contract_clause: isABF ? "Item 100-D (Deficit Weight Bumping)" : "Item 220-A (EIA Fuel Surcharge Scale)",
             page_number: isABF ? 14 : 7,
-            billed_value: isABF ? 920.00 : 580.00,
-            correct_value: isABF ? 843.75 : 561.50,
+            billed_value: isABF ? 786.25 : 34.50,
+            correct_value: isABF ? 710.00 : 32.40,
             overcharge_cents: isABF ? 7625 : 1850,
             billed_weight: isABF ? 4250 : null,
             billed_rate: isABF ? 18.50 : null,
             correct_rate: isABF ? 14.20 : null,
             bumped_break: isABF ? "M5M (5,000 lbs)" : null,
-            eia_price: isABF ? null : 3.82
+            lane: isABF ? "303 -> 606" : null,
+            eia_price: isABF ? null : 3.82,
+            notes: isABF ? "Actual weight 4,250 lbs billed at $18.50/cwt ($786.25). Bumped to 5,000 lbs (M5M) at $14.20/cwt ($710.00) saves $76.25." : "DOE diesel index was $3.82 for week of 2026-08-10, contracted bracket is 32.40%."
           },
-          file_path: "invoices/" + fileName
+          file_path: isABF ? "samples/ABF_Freight_Bill_INV-ABF-7712.pdf" : "invoices/" + fileName
         };
 
         flagsData.unshift(newFlag);
+        activeTab = "pending";
         currentFlagIndex = 0;
         updateCounts();
+        
+        // Ensure pending tab UI is active
+        ["pending", "research", "approved", "rejected", "analytics"].forEach(t => {
+          const btn = document.getElementById("tab-" + t);
+          if (btn) {
+            if (t === "pending") {
+              btn.className = "px-4 py-2 text-xs font-semibold rounded-lg bg-white text-black transition";
+            } else {
+              btn.className = "px-4 py-2 text-xs font-semibold rounded-lg bg-[#111] hover:bg-[#181818] text-neutral-300 border border-[#222] transition";
+            }
+          }
+        });
+        document.getElementById("analytics-container").classList.add("hidden");
+        document.getElementById("flag-card-container").classList.remove("hidden");
+        document.getElementById("filter-controls-group").classList.remove("hidden");
         renderActiveCard();
 
         setTimeout(() => {

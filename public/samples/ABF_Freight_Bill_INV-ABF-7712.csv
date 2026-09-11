@@ -1,0 +1,2 @@
+Carrier,InvoiceNumber,ProNumber,InvoiceDate,ShipperName,OriginZip,ConsigneeName,DestZip,BillOfLading,PurchaseOrder,HandlingUnits,FreightClass,BilledWeightLbs,RateTier,LinehaulAmount,FuelSurchargeAmount,AccessorialAmount,InvoiceTotalAmount
+ABF Freight,INV-ABF-7712,042-889123,2026-08-16,Acme Industrial Supply LLC,60632,Great Lakes Assembly Corp,48203,BOL-882190,PO-2026-9041,4 Pallets,70,4250,"M2M (2,000#)",786.25,51.25,25.00,862.50
