@@ -104,7 +104,7 @@ def test_check_duplicates_found(sample_invoice):
         carrier="ABF Freight",
         pro_number="042-998812",
         invoice_number="INV-1002",  # Different invoice #, same PRO
-        invoice_date="2026-08-17",
+        invoice_date="2026-08-10",  # Billed earlier (Aug 10), so sample_invoice (Aug 15) is the duplicate rebill
         origin_zip="60601",
         dest_zip="75001",
         billed_weight=450.0,

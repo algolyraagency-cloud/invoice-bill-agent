@@ -1,0 +1,131 @@
+{
+  "carrier": "Roadrunner",
+  "contract": {
+    "carrier": "Roadrunner",
+    "contract_id": "cntr-rr-golden",
+    "effective_dates": {
+      "start": "2026-01-01",
+      "end": "2026-12-31"
+    },
+    "discount_pct": 55.0,
+    "absolute_min_charge": 80.0,
+    "rates": [
+      {
+        "origin_zip_prefix": "900",
+        "dest_zip_prefix": "850",
+        "weight_break": "L5C",
+        "min_weight": 0.0,
+        "rate": 40.0,
+        "min_charge": 80.0,
+        "deficit_weight_eligible": true,
+        "effective_date_start": "2026-01-01",
+        "effective_date_end": "2026-12-31"
+      },
+      {
+        "origin_zip_prefix": "900",
+        "dest_zip_prefix": "850",
+        "weight_break": "M5C",
+        "min_weight": 500.0,
+        "rate": 34.0,
+        "min_charge": 80.0,
+        "deficit_weight_eligible": true,
+        "effective_date_start": "2026-01-01",
+        "effective_date_end": "2026-12-31"
+      },
+      {
+        "origin_zip_prefix": "900",
+        "dest_zip_prefix": "850",
+        "weight_break": "M1M",
+        "min_weight": 1000.0,
+        "rate": 28.0,
+        "min_charge": 80.0,
+        "deficit_weight_eligible": true,
+        "effective_date_start": "2026-01-01",
+        "effective_date_end": "2026-12-31"
+      }
+    ]
+  },
+  "fsc_tables": [
+    {
+      "carrier": "Roadrunner",
+      "month": "2026-08",
+      "min_diesel_price": 3.8,
+      "max_diesel_price": 3.899,
+      "fsc_pct": 31.5
+    }
+  ],
+  "eia_diesel_price": 3.85,
+  "cases": [
+    {
+      "id": "RR-001-CLEAN",
+      "description": "Clean standard shipment Los Angeles to Phoenix (1100 lbs, M1M tier, correct 31.5% FSC)",
+      "planted_errors": [],
+      "expected_flags": [],
+      "invoice": {
+        "carrier": "Roadrunner",
+        "pro_number": "552-1100301",
+        "invoice_number": "INV-RR-301",
+        "invoice_date": "2026-08-18",
+        "origin_zip": "90001",
+        "dest_zip": "85001",
+        "billed_weight": 1100.0,
+        "billed_class": 70.0,
+        "line_items": [
+          { "description": "Base Linehaul Freight", "amount": 138.6 },
+          { "description": "Fuel Surcharge", "amount": 43.66 }
+        ],
+        "fsc_amount": 43.66,
+        "fsc_pct": 31.5,
+        "invoice_total": 182.26
+      }
+    },
+    {
+      "id": "RR-002-ARITH-MISMATCH",
+      "description": "Planted error: Invoice total billed is $250.00 but sum of line items is $210.00 ($40 overcharge)",
+      "planted_errors": ["ARITH"],
+      "expected_flags": [
+        { "check_type": "ARITH", "min_overcharge_cents": 3900, "max_overcharge_cents": 4100 }
+      ],
+      "invoice": {
+        "carrier": "Roadrunner",
+        "pro_number": "552-1100302",
+        "invoice_number": "INV-RR-302",
+        "invoice_date": "2026-08-19",
+        "origin_zip": "90001",
+        "dest_zip": "85001",
+        "billed_weight": 1200.0,
+        "billed_class": 70.0,
+        "line_items": [
+          { "description": "Base Linehaul Freight", "amount": 151.2 },
+          { "description": "Fuel Surcharge", "amount": 47.63 },
+          { "description": "Notification Fee", "amount": 11.17 }
+        ],
+        "invoice_total": 250.0
+      }
+    },
+    {
+      "id": "RR-003-FSC-SCALE",
+      "description": "Planted error: Carrier billed 35.0% FSC instead of contracted 31.5% scale",
+      "planted_errors": ["FSC"],
+      "expected_flags": [
+        { "check_type": "FSC", "min_overcharge_cents": 400, "max_overcharge_cents": 700 }
+      ],
+      "invoice": {
+        "carrier": "Roadrunner",
+        "pro_number": "552-1100303",
+        "invoice_number": "INV-RR-303",
+        "invoice_date": "2026-08-20",
+        "origin_zip": "90001",
+        "dest_zip": "85001",
+        "billed_weight": 1000.0,
+        "line_items": [
+          { "description": "Base Linehaul Freight", "amount": 126.0 },
+          { "description": "Fuel Surcharge", "amount": 44.1 }
+        ],
+        "fsc_amount": 44.1,
+        "fsc_pct": 35.0,
+        "invoice_total": 170.1
+      }
+    }
+  ]
+}

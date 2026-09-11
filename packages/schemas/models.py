@@ -90,3 +90,75 @@ class CreditMemo(BaseModel):
     kind: str = Field(default="credit_memo", description="credit_memo or refund_check")
     verification_status: str = Field(default="pending", description="pending, verified, rejected")
     detected_via: str = Field(default="stream", description="stream, forwarded, manual")
+
+
+class ExtractionCheckDetail(BaseModel):
+    check_name: str
+    passed: bool
+    billed_value: Optional[float] = None
+    calculated_value: Optional[float] = None
+    discrepancy: Optional[float] = None
+    message: str
+
+
+class InvoiceValidationResult(BaseModel):
+    invoice_number: str
+    carrier: str
+    is_valid: bool
+    composite_confidence: float = Field(..., ge=0.0, le=1.0)
+    needs_calibration_queue: bool
+    arithmetic_sum_match: bool
+    linehaul_fsc_accessorial_match: bool
+    checks: List[ExtractionCheckDetail] = Field(default_factory=list)
+    reconciliation_notes: List[str] = Field(default_factory=list)
+
+
+class ContractSanityIssue(BaseModel):
+    issue_type: str = Field(..., description="duplicate_lane, monotonicity_violation, overlapping_breaks, missing_fsc_month, min_charge_anomaly")
+    severity: str = Field(default="error", description="error or warning")
+    details: Dict[str, Any] = Field(default_factory=dict)
+    message: str
+
+
+class SpotCheckItem(BaseModel):
+    sample_index: int
+    origin_zip_prefix: str
+    dest_zip_prefix: str
+    weight_break: str
+    matrix_rate: float
+    matrix_min_charge: float
+    page_ref_hint: Optional[str] = None
+
+
+class SpotVerificationResult(BaseModel):
+    sample_index: int
+    matched: bool
+    actual_page_rate: Optional[float] = None
+    reviewer_notes: Optional[str] = None
+
+
+class ContractValidationResult(BaseModel):
+    contract_id: Optional[str] = None
+    carrier: str
+    is_valid: bool
+    status: str = Field(default="valid", description="valid, warning, rejected")
+    total_lanes_checked: int = 0
+    issues: List[ContractSanityIssue] = Field(default_factory=list)
+    spot_checks: List[SpotCheckItem] = Field(default_factory=list)
+    spot_verification_passed: Optional[bool] = None
+    contract_validation_json: Dict[str, Any] = Field(default_factory=dict)
+
+
+class CalibrationMetric(BaseModel):
+    category: str = Field(..., description="check_type, carrier, or overall")
+    name: str
+    total_cases: int = 0
+    true_positives: int = 0
+    false_positives: int = 0
+    false_negatives: int = 0
+    true_negatives: int = 0
+    precision: float = 0.0
+    recall: float = 0.0
+    f1_score: float = 0.0
+    gate_passed: bool = False
+

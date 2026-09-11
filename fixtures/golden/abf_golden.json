@@ -1,0 +1,227 @@
+{
+  "carrier": "ABF Freight",
+  "contract": {
+    "carrier": "ABF Freight",
+    "contract_id": "cntr-abf-golden",
+    "effective_dates": {
+      "start": "2026-01-01",
+      "end": "2026-12-31"
+    },
+    "discount_pct": 65.0,
+    "absolute_min_charge": 85.0,
+    "rates": [
+      {
+        "origin_zip_prefix": "606",
+        "dest_zip_prefix": "482",
+        "weight_break": "L5C",
+        "min_weight": 0.0,
+        "rate": 45.0,
+        "min_charge": 85.0,
+        "deficit_weight_eligible": true,
+        "effective_date_start": "2026-01-01",
+        "effective_date_end": "2026-12-31"
+      },
+      {
+        "origin_zip_prefix": "606",
+        "dest_zip_prefix": "482",
+        "weight_break": "M5C",
+        "min_weight": 500.0,
+        "rate": 38.0,
+        "min_charge": 85.0,
+        "deficit_weight_eligible": true,
+        "effective_date_start": "2026-01-01",
+        "effective_date_end": "2026-12-31"
+      },
+      {
+        "origin_zip_prefix": "606",
+        "dest_zip_prefix": "482",
+        "weight_break": "M1M",
+        "min_weight": 1000.0,
+        "rate": 30.0,
+        "min_charge": 85.0,
+        "deficit_weight_eligible": true,
+        "effective_date_start": "2026-01-01",
+        "effective_date_end": "2026-12-31"
+      },
+      {
+        "origin_zip_prefix": "606",
+        "dest_zip_prefix": "482",
+        "weight_break": "M2M",
+        "min_weight": 2000.0,
+        "rate": 24.0,
+        "min_charge": 85.0,
+        "deficit_weight_eligible": true,
+        "effective_date_start": "2026-01-01",
+        "effective_date_end": "2026-12-31"
+      },
+      {
+        "origin_zip_prefix": "606",
+        "dest_zip_prefix": "482",
+        "weight_break": "M5M",
+        "min_weight": 5000.0,
+        "rate": 18.0,
+        "min_charge": 85.0,
+        "deficit_weight_eligible": true,
+        "effective_date_start": "2026-01-01",
+        "effective_date_end": "2026-12-31"
+      }
+    ]
+  },
+  "fsc_tables": [
+    {
+      "carrier": "ABF Freight",
+      "month": "2026-08",
+      "min_diesel_price": 3.8,
+      "max_diesel_price": 3.899,
+      "fsc_pct": 33.5
+    },
+    {
+      "carrier": "ABF Freight",
+      "month": "2026-07",
+      "min_diesel_price": 3.75,
+      "max_diesel_price": 3.799,
+      "fsc_pct": 32.5
+    }
+  ],
+  "eia_diesel_price": 3.85,
+  "cases": [
+    {
+      "id": "ABF-001-CLEAN",
+      "description": "Clean standard shipment Chicago to Detroit (1200 lbs, M1M tier, correct 33.5% FSC)",
+      "planted_errors": [],
+      "expected_flags": [],
+      "invoice": {
+        "carrier": "ABF Freight",
+        "pro_number": "042-8800101",
+        "invoice_number": "INV-ABF-101",
+        "invoice_date": "2026-08-12",
+        "origin_zip": "60601",
+        "dest_zip": "48201",
+        "billed_weight": 1200.0,
+        "billed_class": 70.0,
+        "line_items": [
+          { "description": "Base Linehaul Freight", "charge_code": "400", "amount": 126.0 },
+          { "description": "Fuel Surcharge", "charge_code": "FSC", "amount": 42.21 }
+        ],
+        "fsc_amount": 42.21,
+        "fsc_pct": 33.5,
+        "invoice_total": 168.21
+      }
+    },
+    {
+      "id": "ABF-002-ARITH-DRIFT",
+      "description": "Planted error: Line item sum mismatch ($20.00 arithmetic drift)",
+      "planted_errors": ["ARITH"],
+      "expected_flags": [
+        { "check_type": "ARITH", "min_overcharge_cents": 1900, "max_overcharge_cents": 2100 }
+      ],
+      "invoice": {
+        "carrier": "ABF Freight",
+        "pro_number": "042-8800102",
+        "invoice_number": "INV-ABF-102",
+        "invoice_date": "2026-08-14",
+        "origin_zip": "60601",
+        "dest_zip": "48201",
+        "billed_weight": 700.0,
+        "billed_class": 70.0,
+        "line_items": [
+          { "description": "Base Linehaul Freight", "charge_code": "400", "amount": 93.10 },
+          { "description": "Fuel Surcharge", "charge_code": "FSC", "amount": 31.19 }
+        ],
+        "fsc_amount": 31.19,
+        "fsc_pct": 33.5,
+        "invoice_total": 144.29
+      }
+    },
+    {
+      "id": "ABF-003-FSC-OVERCHARGE",
+      "description": "Planted error: Carrier billed 38.0% FSC instead of contracted 33.5% scale",
+      "planted_errors": ["FSC"],
+      "expected_flags": [
+        { "check_type": "FSC", "min_overcharge_cents": 500, "max_overcharge_cents": 800 }
+      ],
+      "invoice": {
+        "carrier": "ABF Freight",
+        "pro_number": "042-8800103",
+        "invoice_number": "INV-ABF-103",
+        "invoice_date": "2026-08-15",
+        "origin_zip": "60601",
+        "dest_zip": "48201",
+        "billed_weight": 1500.0,
+        "line_items": [
+          { "description": "Base Linehaul Freight", "charge_code": "400", "amount": 157.5 },
+          { "description": "Fuel Surcharge", "charge_code": "FSC", "amount": 59.85 }
+        ],
+        "fsc_amount": 59.85,
+        "fsc_pct": 38.0,
+        "invoice_total": 217.35
+      }
+    },
+    {
+      "id": "ABF-004-DEFICIT-WEIGHT",
+      "description": "Planted error: Unapplied deficit weight bumping (1800 lbs @ $30/cwt = $189.00 net vs 2000 lbs bumped @ $24/cwt = $168.00 net)",
+      "planted_errors": ["RATE"],
+      "expected_flags": [
+        { "check_type": "RATE", "min_overcharge_cents": 2000, "max_overcharge_cents": 2200 }
+      ],
+      "invoice": {
+        "carrier": "ABF Freight",
+        "pro_number": "042-8800104",
+        "invoice_number": "INV-ABF-104",
+        "invoice_date": "2026-08-16",
+        "origin_zip": "60601",
+        "dest_zip": "48201",
+        "billed_weight": 1800.0,
+        "line_items": [
+          { "description": "Base Linehaul Freight", "charge_code": "400", "amount": 189.0 },
+          { "description": "Fuel Surcharge", "charge_code": "FSC", "amount": 63.32 }
+        ],
+        "fsc_amount": 63.32,
+        "fsc_pct": 33.5,
+        "invoice_total": 252.32
+      }
+    },
+    {
+      "id": "ABF-005-DUPLICATE-ORIGINAL",
+      "description": "Original shipment for duplicate pair",
+      "planted_errors": [],
+      "expected_flags": [],
+      "invoice": {
+        "carrier": "ABF Freight",
+        "pro_number": "042-9990055",
+        "invoice_number": "INV-ABF-105-A",
+        "invoice_date": "2026-08-01",
+        "origin_zip": "60601",
+        "dest_zip": "48201",
+        "billed_weight": 2200.0,
+        "line_items": [
+          { "description": "Base Linehaul Freight", "amount": 184.8 },
+          { "description": "Fuel Surcharge", "amount": 61.91 }
+        ],
+        "invoice_total": 246.71
+      }
+    },
+    {
+      "id": "ABF-006-DUPLICATE-REBILL",
+      "description": "Planted error: Duplicate rebill of PRO #042-9990055 within 10 days with identical total",
+      "planted_errors": ["DUP"],
+      "expected_flags": [
+        { "check_type": "DUP", "min_overcharge_cents": 24000, "max_overcharge_cents": 25000 }
+      ],
+      "invoice": {
+        "carrier": "ABF Freight",
+        "pro_number": "042-9990055",
+        "invoice_number": "INV-ABF-105-B",
+        "invoice_date": "2026-08-10",
+        "origin_zip": "60601",
+        "dest_zip": "48201",
+        "billed_weight": 2200.0,
+        "line_items": [
+          { "description": "Base Linehaul Freight", "amount": 184.8 },
+          { "description": "Fuel Surcharge", "amount": 61.91 }
+        ],
+        "invoice_total": 246.71
+      }
+    }
+  ]
+}

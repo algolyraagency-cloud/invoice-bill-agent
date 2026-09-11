@@ -1,0 +1,424 @@
+{
+  "commit_sha": "a63c2609115707e377804f5e79fe4de0240c3c2c",
+  "golden_set_version": "v1.0.0",
+  "total_invoices_audited": 14,
+  "gate_passed": true,
+  "overall": {
+    "precision": 100.0,
+    "recall": 100.0,
+    "f1": 100.0,
+    "tp": 9,
+    "fp": 0,
+    "fn": 0,
+    "tn": 47
+  },
+  "checks": {
+    "DUP": {
+      "precision": 100.0,
+      "recall": 100.0,
+      "f1": 100.0,
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "tn": 12
+    },
+    "RATE": {
+      "precision": 100.0,
+      "recall": 100.0,
+      "f1": 100.0,
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "tn": 12
+    },
+    "FSC": {
+      "precision": 100.0,
+      "recall": 100.0,
+      "f1": 100.0,
+      "tp": 3,
+      "fp": 0,
+      "fn": 0,
+      "tn": 11
+    },
+    "ARITH": {
+      "precision": 100.0,
+      "recall": 100.0,
+      "f1": 100.0,
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "tn": 12
+    }
+  },
+  "carriers": {
+    "ABF Freight": {
+      "precision": 100.0,
+      "recall": 100.0,
+      "f1": 100.0,
+      "tp": 4,
+      "fp": 0,
+      "fn": 0,
+      "tn": 20
+    },
+    "Roadrunner": {
+      "precision": 100.0,
+      "recall": 100.0,
+      "f1": 100.0,
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "tn": 10
+    },
+    "XPO Logistics": {
+      "precision": 100.0,
+      "recall": 100.0,
+      "f1": 100.0,
+      "tp": 3,
+      "fp": 0,
+      "fn": 0,
+      "tn": 17
+    }
+  },
+  "cases": [
+    {
+      "case_id": "ABF-001-CLEAN",
+      "carrier": "ABF Freight",
+      "confidence": 1.0,
+      "validation_passed": true,
+      "planted_errors": [],
+      "flagged_checks": [],
+      "flags": []
+    },
+    {
+      "case_id": "ABF-002-ARITH-DRIFT",
+      "carrier": "ABF Freight",
+      "confidence": 0.5,
+      "validation_passed": false,
+      "planted_errors": [
+        "ARITH"
+      ],
+      "flagged_checks": [
+        "ARITH"
+      ],
+      "flags": [
+        {
+          "invoice_id": null,
+          "check_type": "ARITH",
+          "overcharge_cents": 2000,
+          "confidence": 1.0,
+          "evidence_json": {
+            "invoice_ref": "INV-ABF-102",
+            "carrier": "ABF Freight",
+            "contract_clause": "Standard Invoice Reconciliation Rule",
+            "billed_value": 144.29,
+            "correct_value": 124.29,
+            "discrepancy": 20.0,
+            "note": "Sum of line items ($124.29) does not match total billed ($144.29)"
+          },
+          "review_status": "pending",
+          "reject_reason_code": null
+        }
+      ]
+    },
+    {
+      "case_id": "ABF-003-FSC-OVERCHARGE",
+      "carrier": "ABF Freight",
+      "confidence": 1.0,
+      "validation_passed": true,
+      "planted_errors": [
+        "FSC"
+      ],
+      "flagged_checks": [
+        "FSC"
+      ],
+      "flags": [
+        {
+          "invoice_id": null,
+          "check_type": "FSC",
+          "overcharge_cents": 709,
+          "confidence": 0.96,
+          "evidence_json": {
+            "invoice_ref": "INV-ABF-103",
+            "carrier": "ABF Freight",
+            "contract_clause": "Item 220-A (Fuel Surcharge Scale)",
+            "billed_fsc_pct": 38.0,
+            "correct_fsc_pct": 33.5,
+            "billed_value": 59.85,
+            "correct_value": 52.76,
+            "diesel_benchmark": 3.85,
+            "note": "Carrier billed 38.0% FSC; contract scale authorizes 33.5%"
+          },
+          "review_status": "pending",
+          "reject_reason_code": null
+        }
+      ]
+    },
+    {
+      "case_id": "ABF-004-DEFICIT-WEIGHT",
+      "carrier": "ABF Freight",
+      "confidence": 1.0,
+      "validation_passed": true,
+      "planted_errors": [
+        "RATE"
+      ],
+      "flagged_checks": [
+        "RATE"
+      ],
+      "flags": [
+        {
+          "invoice_id": null,
+          "check_type": "RATE",
+          "overcharge_cents": 2100,
+          "confidence": 0.95,
+          "evidence_json": {
+            "invoice_ref": "INV-ABF-104",
+            "carrier": "ABF Freight",
+            "contract_clause": "Item 100 \u2014 Base Linehaul Rates & Deficit Weight Rule",
+            "origin_zip": "60601",
+            "dest_zip": "48201",
+            "billed_weight": 1800.0,
+            "rated_weight": 2000.0,
+            "billed_value": 189.0,
+            "correct_value": 168.0,
+            "deficit_weight_applied": true,
+            "note": "Deficit weight rating not applied: Contract rate is $168.00 (billed $189.00)"
+          },
+          "review_status": "pending",
+          "reject_reason_code": null
+        }
+      ]
+    },
+    {
+      "case_id": "ABF-005-DUPLICATE-ORIGINAL",
+      "carrier": "ABF Freight",
+      "confidence": 1.0,
+      "validation_passed": true,
+      "planted_errors": [],
+      "flagged_checks": [],
+      "flags": []
+    },
+    {
+      "case_id": "ABF-006-DUPLICATE-REBILL",
+      "carrier": "ABF Freight",
+      "confidence": 1.0,
+      "validation_passed": true,
+      "planted_errors": [
+        "DUP"
+      ],
+      "flagged_checks": [
+        "DUP"
+      ],
+      "flags": [
+        {
+          "invoice_id": null,
+          "check_type": "DUP",
+          "overcharge_cents": 24671,
+          "confidence": 0.98,
+          "evidence_json": {
+            "invoice_ref": "INV-ABF-105-B",
+            "carrier": "ABF Freight",
+            "pro_number": "042-9990055",
+            "duplicate_of_invoice": "INV-ABF-105-A",
+            "duplicate_of_date": "2026-08-01",
+            "billed_value": 246.71,
+            "correct_value": 0.0,
+            "note": "Duplicate billing of PRO #042-9990055 originally billed on 2026-08-01 (Inv #INV-ABF-105-A)"
+          },
+          "review_status": "pending",
+          "reject_reason_code": null
+        }
+      ]
+    },
+    {
+      "case_id": "RR-001-CLEAN",
+      "carrier": "Roadrunner",
+      "confidence": 1.0,
+      "validation_passed": true,
+      "planted_errors": [],
+      "flagged_checks": [],
+      "flags": []
+    },
+    {
+      "case_id": "RR-002-ARITH-MISMATCH",
+      "carrier": "Roadrunner",
+      "confidence": 0.5,
+      "validation_passed": false,
+      "planted_errors": [
+        "ARITH"
+      ],
+      "flagged_checks": [
+        "ARITH"
+      ],
+      "flags": [
+        {
+          "invoice_id": null,
+          "check_type": "ARITH",
+          "overcharge_cents": 4000,
+          "confidence": 1.0,
+          "evidence_json": {
+            "invoice_ref": "INV-RR-302",
+            "carrier": "Roadrunner",
+            "contract_clause": "Standard Invoice Reconciliation Rule",
+            "billed_value": 250.0,
+            "correct_value": 210.0,
+            "discrepancy": 40.0,
+            "note": "Sum of line items ($210.00) does not match total billed ($250.00)"
+          },
+          "review_status": "pending",
+          "reject_reason_code": null
+        }
+      ]
+    },
+    {
+      "case_id": "RR-003-FSC-SCALE",
+      "carrier": "Roadrunner",
+      "confidence": 1.0,
+      "validation_passed": true,
+      "planted_errors": [
+        "FSC"
+      ],
+      "flagged_checks": [
+        "FSC"
+      ],
+      "flags": [
+        {
+          "invoice_id": null,
+          "check_type": "FSC",
+          "overcharge_cents": 441,
+          "confidence": 0.96,
+          "evidence_json": {
+            "invoice_ref": "INV-RR-303",
+            "carrier": "Roadrunner",
+            "contract_clause": "Item 220-A (Fuel Surcharge Scale)",
+            "billed_fsc_pct": 35.0,
+            "correct_fsc_pct": 31.5,
+            "billed_value": 44.1,
+            "correct_value": 39.69,
+            "diesel_benchmark": 3.85,
+            "note": "Carrier billed 35.0% FSC; contract scale authorizes 31.5%"
+          },
+          "review_status": "pending",
+          "reject_reason_code": null
+        }
+      ]
+    },
+    {
+      "case_id": "XPO-001-CLEAN",
+      "carrier": "XPO Logistics",
+      "confidence": 1.0,
+      "validation_passed": true,
+      "planted_errors": [],
+      "flagged_checks": [],
+      "flags": []
+    },
+    {
+      "case_id": "XPO-002-RATE-OVERCHARGE",
+      "carrier": "XPO Logistics",
+      "confidence": 1.0,
+      "validation_passed": true,
+      "planted_errors": [
+        "RATE"
+      ],
+      "flagged_checks": [
+        "RATE"
+      ],
+      "flags": [
+        {
+          "invoice_id": null,
+          "check_type": "RATE",
+          "overcharge_cents": 8400,
+          "confidence": 0.95,
+          "evidence_json": {
+            "invoice_ref": "INV-XPO-202",
+            "carrier": "XPO Logistics",
+            "contract_clause": "Item 100 \u2014 Base Linehaul Rates & Deficit Weight Rule",
+            "origin_zip": "30301",
+            "dest_zip": "75201",
+            "billed_weight": 1400.0,
+            "rated_weight": 1400.0,
+            "billed_value": 280.0,
+            "correct_value": 196.0,
+            "deficit_weight_applied": false,
+            "note": "Billed lane rate exceeds contract tariff: Contract rate is $196.00 (billed $280.00)"
+          },
+          "review_status": "pending",
+          "reject_reason_code": null
+        }
+      ]
+    },
+    {
+      "case_id": "XPO-003-FSC-MISMATCH",
+      "carrier": "XPO Logistics",
+      "confidence": 1.0,
+      "validation_passed": true,
+      "planted_errors": [
+        "FSC"
+      ],
+      "flagged_checks": [
+        "FSC"
+      ],
+      "flags": [
+        {
+          "invoice_id": null,
+          "check_type": "FSC",
+          "overcharge_cents": 735,
+          "confidence": 0.96,
+          "evidence_json": {
+            "invoice_ref": "INV-XPO-203",
+            "carrier": "XPO Logistics",
+            "contract_clause": "Item 220-A (Fuel Surcharge Scale)",
+            "billed_fsc_pct": 36.5,
+            "correct_fsc_pct": 33.0,
+            "billed_value": 76.65,
+            "correct_value": 69.3,
+            "diesel_benchmark": 3.85,
+            "note": "Carrier billed 36.5% FSC; contract scale authorizes 33.0%"
+          },
+          "review_status": "pending",
+          "reject_reason_code": null
+        }
+      ]
+    },
+    {
+      "case_id": "XPO-004-ORIGINAL",
+      "carrier": "XPO Logistics",
+      "confidence": 1.0,
+      "validation_passed": true,
+      "planted_errors": [],
+      "flagged_checks": [],
+      "flags": []
+    },
+    {
+      "case_id": "XPO-005-DUPLICATE",
+      "carrier": "XPO Logistics",
+      "confidence": 1.0,
+      "validation_passed": true,
+      "planted_errors": [
+        "DUP"
+      ],
+      "flagged_checks": [
+        "DUP"
+      ],
+      "flags": [
+        {
+          "invoice_id": null,
+          "check_type": "DUP",
+          "overcharge_cents": 31282,
+          "confidence": 0.98,
+          "evidence_json": {
+            "invoice_ref": "INV-XPO-204-B",
+            "carrier": "XPO Logistics",
+            "pro_number": "781-9990333",
+            "duplicate_of_invoice": "INV-XPO-204-A",
+            "duplicate_of_date": "2026-08-05",
+            "billed_value": 312.82,
+            "correct_value": 0.0,
+            "note": "Duplicate billing of PRO #781-9990333 originally billed on 2026-08-05 (Inv #INV-XPO-204-A)"
+          },
+          "review_status": "pending",
+          "reject_reason_code": null
+        }
+      ]
+    }
+  ]
+}

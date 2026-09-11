@@ -1,0 +1,192 @@
+{
+  "carrier": "XPO Logistics",
+  "contract": {
+    "carrier": "XPO Logistics",
+    "contract_id": "cntr-xpo-golden",
+    "effective_dates": {
+      "start": "2026-01-01",
+      "end": "2026-12-31"
+    },
+    "discount_pct": 60.0,
+    "absolute_min_charge": 90.0,
+    "rates": [
+      {
+        "origin_zip_prefix": "303",
+        "dest_zip_prefix": "752",
+        "weight_break": "L5C",
+        "min_weight": 0.0,
+        "rate": 50.0,
+        "min_charge": 90.0,
+        "deficit_weight_eligible": true,
+        "effective_date_start": "2026-01-01",
+        "effective_date_end": "2026-12-31"
+      },
+      {
+        "origin_zip_prefix": "303",
+        "dest_zip_prefix": "752",
+        "weight_break": "M5C",
+        "min_weight": 500.0,
+        "rate": 42.0,
+        "min_charge": 90.0,
+        "deficit_weight_eligible": true,
+        "effective_date_start": "2026-01-01",
+        "effective_date_end": "2026-12-31"
+      },
+      {
+        "origin_zip_prefix": "303",
+        "dest_zip_prefix": "752",
+        "weight_break": "M1M",
+        "min_weight": 1000.0,
+        "rate": 35.0,
+        "min_charge": 90.0,
+        "deficit_weight_eligible": true,
+        "effective_date_start": "2026-01-01",
+        "effective_date_end": "2026-12-31"
+      },
+      {
+        "origin_zip_prefix": "303",
+        "dest_zip_prefix": "752",
+        "weight_break": "M2M",
+        "min_weight": 2000.0,
+        "rate": 28.0,
+        "min_charge": 90.0,
+        "deficit_weight_eligible": true,
+        "effective_date_start": "2026-01-01",
+        "effective_date_end": "2026-12-31"
+      }
+    ]
+  },
+  "fsc_tables": [
+    {
+      "carrier": "XPO Logistics",
+      "month": "2026-08",
+      "min_diesel_price": 3.8,
+      "max_diesel_price": 3.899,
+      "fsc_pct": 33.0
+    },
+    {
+      "carrier": "XPO Logistics",
+      "month": "2026-07",
+      "min_diesel_price": 3.75,
+      "max_diesel_price": 3.799,
+      "fsc_pct": 32.4
+    }
+  ],
+  "eia_diesel_price": 3.85,
+  "cases": [
+    {
+      "id": "XPO-001-CLEAN",
+      "description": "Clean standard shipment Atlanta to Dallas (1400 lbs, M1M tier, correct 33.0% FSC)",
+      "planted_errors": [],
+      "expected_flags": [],
+      "invoice": {
+        "carrier": "XPO Logistics",
+        "pro_number": "781-4400201",
+        "invoice_number": "INV-XPO-201",
+        "invoice_date": "2026-08-11",
+        "origin_zip": "30301",
+        "dest_zip": "75201",
+        "billed_weight": 1400.0,
+        "billed_class": 70.0,
+        "line_items": [
+          { "description": "Linehaul Base Freight", "charge_code": "LH", "amount": 196.0 },
+          { "description": "Fuel Surcharge", "charge_code": "FSC", "amount": 64.68 }
+        ],
+        "fsc_amount": 64.68,
+        "fsc_pct": 33.0,
+        "invoice_total": 260.68
+      }
+    },
+    {
+      "id": "XPO-002-RATE-OVERCHARGE",
+      "description": "Planted error: Carrier billed base rate of $280.00 instead of contracted $196.00 ($84 overcharge)",
+      "planted_errors": ["RATE"],
+      "expected_flags": [
+        { "check_type": "RATE", "min_overcharge_cents": 8000, "max_overcharge_cents": 8800 }
+      ],
+      "invoice": {
+        "carrier": "XPO Logistics",
+        "pro_number": "781-4400202",
+        "invoice_number": "INV-XPO-202",
+        "invoice_date": "2026-08-13",
+        "origin_zip": "30301",
+        "dest_zip": "75201",
+        "billed_weight": 1400.0,
+        "billed_class": 70.0,
+        "line_items": [
+          { "description": "Linehaul Base Freight", "charge_code": "LH", "amount": 280.0 },
+          { "description": "Fuel Surcharge", "charge_code": "FSC", "amount": 92.4 }
+        ],
+        "fsc_amount": 92.4,
+        "fsc_pct": 33.0,
+        "invoice_total": 372.4
+      }
+    },
+    {
+      "id": "XPO-003-FSC-MISMATCH",
+      "description": "Planted error: Carrier billed 36.5% FSC instead of contracted 33.0% bracket ($7.35 overcharge)",
+      "planted_errors": ["FSC"],
+      "expected_flags": [
+        { "check_type": "FSC", "min_overcharge_cents": 700, "max_overcharge_cents": 900 }
+      ],
+      "invoice": {
+        "carrier": "XPO Logistics",
+        "pro_number": "781-4400203",
+        "invoice_number": "INV-XPO-203",
+        "invoice_date": "2026-08-15",
+        "origin_zip": "30301",
+        "dest_zip": "75201",
+        "billed_weight": 1500.0,
+        "line_items": [
+          { "description": "Linehaul Base Freight", "charge_code": "LH", "amount": 210.0 },
+          { "description": "Fuel Surcharge", "charge_code": "FSC", "amount": 76.65 }
+        ],
+        "fsc_amount": 76.65,
+        "fsc_pct": 36.5,
+        "invoice_total": 286.65
+      }
+    },
+    {
+      "id": "XPO-004-ORIGINAL",
+      "description": "Original shipment PRO for XPO duplicate detection",
+      "planted_errors": [],
+      "expected_flags": [],
+      "invoice": {
+        "carrier": "XPO Logistics",
+        "pro_number": "781-9990333",
+        "invoice_number": "INV-XPO-204-A",
+        "invoice_date": "2026-08-05",
+        "origin_zip": "30301",
+        "dest_zip": "75201",
+        "billed_weight": 2100.0,
+        "line_items": [
+          { "description": "Linehaul Base Freight", "amount": 235.2 },
+          { "description": "Fuel Surcharge", "amount": 77.62 }
+        ],
+        "invoice_total": 312.82
+      }
+    },
+    {
+      "id": "XPO-005-DUPLICATE",
+      "description": "Planted error: Duplicate invoice of PRO #781-9990333",
+      "planted_errors": ["DUP"],
+      "expected_flags": [
+        { "check_type": "DUP", "min_overcharge_cents": 31000, "max_overcharge_cents": 32000 }
+      ],
+      "invoice": {
+        "carrier": "XPO Logistics",
+        "pro_number": "781-9990333",
+        "invoice_number": "INV-XPO-204-B",
+        "invoice_date": "2026-08-12",
+        "origin_zip": "30301",
+        "dest_zip": "75201",
+        "billed_weight": 2100.0,
+        "line_items": [
+          { "description": "Linehaul Base Freight", "amount": 235.2 },
+          { "description": "Fuel Surcharge", "amount": 77.62 }
+        ],
+        "invoice_total": 312.82
+      }
+    }
+  ]
+}

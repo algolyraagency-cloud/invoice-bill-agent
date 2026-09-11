@@ -75,6 +75,83 @@ export const CreditMemoSchema = z.object({
   detected_via: z.enum(['stream', 'forwarded', 'manual']).default('stream'),
 });
 
+export const ExtractionCheckDetailSchema = z.object({
+  check_name: z.string(),
+  passed: z.boolean(),
+  billed_value: z.number().optional().nullable(),
+  calculated_value: z.number().optional().nullable(),
+  discrepancy: z.number().optional().nullable(),
+  message: z.string(),
+});
+
+export const InvoiceValidationResultSchema = z.object({
+  invoice_number: z.string(),
+  carrier: z.string(),
+  is_valid: z.boolean(),
+  composite_confidence: z.number().min(0).max(1),
+  needs_calibration_queue: z.boolean(),
+  arithmetic_sum_match: z.boolean(),
+  linehaul_fsc_accessorial_match: z.boolean(),
+  checks: z.array(ExtractionCheckDetailSchema).default([]),
+  reconciliation_notes: z.array(z.string()).default([]),
+});
+
+export const ContractSanityIssueSchema = z.object({
+  issue_type: z.enum([
+    'duplicate_lane',
+    'monotonicity_violation',
+    'overlapping_breaks',
+    'missing_fsc_month',
+    'min_charge_anomaly'
+  ]),
+  severity: z.enum(['error', 'warning']).default('error'),
+  details: z.record(z.any()).default({}),
+  message: z.string(),
+});
+
+export const SpotCheckItemSchema = z.object({
+  sample_index: z.number().int(),
+  origin_zip_prefix: z.string(),
+  dest_zip_prefix: z.string(),
+  weight_break: z.string(),
+  matrix_rate: z.number(),
+  matrix_min_charge: z.number(),
+  page_ref_hint: z.string().optional().nullable(),
+});
+
+export const SpotVerificationResultSchema = z.object({
+  sample_index: z.number().int(),
+  matched: z.boolean(),
+  actual_page_rate: z.number().optional().nullable(),
+  reviewer_notes: z.string().optional().nullable(),
+});
+
+export const ContractValidationResultSchema = z.object({
+  contract_id: z.string().optional().nullable(),
+  carrier: z.string(),
+  is_valid: z.boolean(),
+  status: z.enum(['valid', 'warning', 'rejected']).default('valid'),
+  total_lanes_checked: z.number().int().default(0),
+  issues: z.array(ContractSanityIssueSchema).default([]),
+  spot_checks: z.array(SpotCheckItemSchema).default([]),
+  spot_verification_passed: z.boolean().optional().nullable(),
+  contract_validation_json: z.record(z.any()).default({}),
+});
+
+export const CalibrationMetricSchema = z.object({
+  category: z.enum(['check_type', 'carrier', 'overall']),
+  name: z.string(),
+  total_cases: z.number().int().default(0),
+  true_positives: z.number().int().default(0),
+  false_positives: z.number().int().default(0),
+  false_negatives: z.number().int().default(0),
+  true_negatives: z.number().int().default(0),
+  precision: z.number().default(0),
+  recall: z.number().default(0),
+  f1_score: z.number().default(0),
+  gate_passed: z.boolean().default(false),
+});
+
 export type LineItem = z.infer<typeof LineItemSchema>;
 export type Accessorial = z.infer<typeof AccessorialSchema>;
 export type InvoiceJSON = z.infer<typeof InvoiceJSONSchema>;
@@ -82,3 +159,11 @@ export type RateMatrixRow = z.infer<typeof RateMatrixRowSchema>;
 export type RateMatrixJSON = z.infer<typeof RateMatrixJSONSchema>;
 export type Flag = z.infer<typeof FlagSchema>;
 export type CreditMemo = z.infer<typeof CreditMemoSchema>;
+export type ExtractionCheckDetail = z.infer<typeof ExtractionCheckDetailSchema>;
+export type InvoiceValidationResult = z.infer<typeof InvoiceValidationResultSchema>;
+export type ContractSanityIssue = z.infer<typeof ContractSanityIssueSchema>;
+export type SpotCheckItem = z.infer<typeof SpotCheckItemSchema>;
+export type SpotVerificationResult = z.infer<typeof SpotVerificationResultSchema>;
+export type ContractValidationResult = z.infer<typeof ContractValidationResultSchema>;
+export type CalibrationMetric = z.infer<typeof CalibrationMetricSchema>;
+

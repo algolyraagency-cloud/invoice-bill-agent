@@ -1,9 +1,9 @@
 # RateGuard AI — Engineering Memory & Context Handoff
 **Document:** `memory.md`  
-**Current Milestone:** Phase 1 Complete (Week 1 Ingestion Phase Gate = GO)  
-**Target:** Ready for Week 2 (Phase 2.0: Validation Layer, Parsers, Golden Harness)  
-**Repository:** `https://github.com/algolyraagency-cloud/invoice-bill-agent`  
-**Default Branch:** `main` (Latest commit: `3f3c8a3`)
+**Current Milestone:** Phase 2 Complete (Validation Layer, Parsers, Golden Harness, FSC Engine = GO)  
+**Target:** Ready for Phase 3 (Audit Engine End-to-End Wiring & Pipeline Orchestration)  
+**Repository:** `https://github.com/algolyraagency-cloud/invoice-bill-agent.git`  
+**Default Branch:** `main`
 
 ---
 
@@ -189,12 +189,46 @@ c:/Users/krish/Downloads/LTL startup/
 
 ---
 
-## 7. Next Immediate Tasks (Week 2 Roadmap)
+## 7. Completed Phase 2.0 & Next Immediate Tasks
 
-When starting a new session, the immediate next step is **Phase 2.0 (Validation Layer, Calibration Harness & Golden Dataset)**:
-1. **Phase 2.0.1 (Extraction Self-Validation):** Deterministic re-derivation of line items ($\sum == \text{total}$) before entering the audit engine.
-2. **Phase 2.0.2 (Contract Sanity Suite):** Sanity checks on parsed rate matrices (non-monotonic rates, missing FSC months, spot-verification protocol).
-3. **Phase 2.0.3 (Calibration Harness & Golden Dataset):** Setup `fixtures/golden/` with human-labeled benchmark invoices and `scripts/calibrate.py` to enforce the $\ge 90\%$ precision / $\ge 80\%$ recall gate before Phase 3.
-4. **Phase 2.1 (Invoice Parser):** Docling text extraction + Instructor Pydantic response models for ABF, XPO, and Roadrunner.
-5. **Phase 2.2 (Contract Parser):** 20–40 page contract extraction into `RateMatrixJSON`.
-6. **Phase 2.3 (FSC Ingestion):** Automated EIA index and carrier scale synchronizer.
+### Phase 2.0: Validation Layer, Calibration Harness & Golden Dataset (COMPLETE)
+* **Phase 2.0.1 (Extraction Self-Validation):** Deterministic re-derivation of line items ($\sum == \text{total}$), component coherence (linehaul + FSC + accessorials), penny rounding tolerance, composite confidence scoring, and routing to calibration queue if $\text{confidence} < 0.85$ or arithmetic fails (`packages/audit-engine/validation.py`).
+* **Phase 2.0.2 (Contract Sanity Suite):** Deterministic checks on parsed rate matrices (non-monotonic rates, duplicate lanes, overlapping weight breaks, missing FSC months, negative/zero rate anomalies) and N=5 stratified spot-verification protocol (`validate_contract_matrix`).
+* **Phase 2.0.3 (Calibration Harness & Golden Dataset):** `fixtures/golden/` benchmarks for ABF Freight, XPO Logistics, and Roadrunner with ground truth and planted errors. Scoreboard script `scripts/calibrate.py` running in CI and verifying the $\ge 90\%$ Precision / $\ge 80\%$ Recall gate.
+  * **Scoreboard Result:** **100.0% Precision | 100.0% Recall | F1: 100.0** across all 4 checks (DUP, RATE, FSC, ARITH) and all top-3 carriers.
+  * **Decision:** **GATE PASSED [GO FOR PHASE 3]**.
+* **Phase 2.0.4 (Reason-Code Taxonomy v1):** Standardized 8-code taxonomy enforced via `validate_rejection_reason_code`.
+* **Automated Test Suite:** 29/29 tests green (0.33s).
+
+### Phase 2.1: Invoice Parser (COMPLETE)
+* **Extraction Engine (`apps/worker/invoice_parser.py`):** Converts raw invoice text/PDFs into canonical `InvoiceJSON` schemas using Instructor-wrapped structured outputs.
+* **Carrier Context Injections:** Tailored format hints for ABF Freight (9-digit PRO `XXX-XXXXXX`), XPO Logistics (10-digit PRO, linehaul vs FSC), and Roadrunner (BOL vs PRO#, MC floor).
+* **Budget Guard & Parse Cache:** Keyed by `sha256(content + prompt_version)` guaranteeing $0.00 LLM spend on re-scans.
+* **Phase 2.0 Self-Validation Loop:** Deterministically re-checks arithmetic sums; mismatches automatically trigger self-correction retry or mark `status = 'parse_failed'` for the calibration queue.
+* **DB Persistence:** `persist_parsed_invoice` updating canonical records in Supabase.
+
+### Phase 2.2: Contract Parser (COMPLETE)
+* **Quality Ladder Parsing (`apps/worker/contract_parser.py`):** Extracts 20–40 page contract PDFs and documents into `RateMatrixJSON`:
+  * **Rung A:** Clean signed master pricing agreements (matrix tables, AMC, blanket/lane discount, FSC schedule).
+  * **Rung B:** Unstructured email negotiations and quote attachments.
+  * **Rung C:** Base tariff reference with claimed discount notes.
+* **Phase 2.0 Sanity Suite & Spot-Verification:** Runs monotonicity checks, weight break integrity, duplicate lane detection, and generates $N=5$ stratified spot checks.
+* **DB Materialization:** `persist_parsed_contract` updates `contracts` and materializes individual lane rows into the `rate_matrices` table with effective date windowing.
+
+### Phase 2.3: FSC Table Ingestion & Verification Engine (COMPLETE)
+* **Deterministic Lookup Engine (`packages/audit-engine/fsc.py`):** `get_fsc(carrier, shipment_date)` returns exactly one verified value for any invoice date in scope with full evidence metadata.
+* **EIA Benchmark Windowing:** Resolves shipment dates to official Monday DOE/EIA On-Highway Diesel price averages.
+* **Bracket & Monthly Scale Mapping:** Accurately maps diesel benchmark brackets and monthly tariff tables for ABF Freight, XPO Logistics, and Roadrunner.
+* **Scale Synchronizer (`apps/worker/fsc_ingestion.py`):** Validates monotonicity, checks for overlapping brackets, and seeds baseline scales.
+
+### Full Test Suite Status
+* **46/46 Automated Tests Passing** (0.57s) across API, Worker, and Audit Engine.
+* **Scoreboard:** 100.0% Precision | 100.0% Recall | Decision: **GATE PASSED [GO FOR PHASE 3]**.
+
+### Next Immediate Task: Phase 3 (Audit Engine Wiring & Orchestration)
+1. **Phase 3.1:** Audit engine core flag generation with evidence references.
+2. **Phase 3.2:** Pipeline wiring in `pg-boss` (`parse-invoice` -> `run-audit-for-invoice` -> batch backfills).
+3. **Phase 3.3:** LLM cost guard & circuit breaker ($200/mo operating ceiling).
+
+
+

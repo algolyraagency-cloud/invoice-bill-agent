@@ -33,6 +33,12 @@ def check_duplicates(invoice: InvoiceJSON, all_invoices: List[InvoiceJSON]) -> L
 
         if same_carrier and same_pro:
             other_date = parse_date(other.invoice_date)
+            # Only flag as duplicate if the other invoice is the original (earlier date, or same date with lower invoice #)
+            # The prior/original invoice is never a duplicate of a future invoice.
+            is_subsequent = (inv_date > other_date) or (inv_date == other_date and invoice.invoice_number > other.invoice_number)
+            if not is_subsequent:
+                continue
+
             date_diff_days = abs((inv_date - other_date).days)
 
             # If same PRO number billed within 30 days or identical amount in ±3 days
@@ -177,8 +183,7 @@ def check_rates(invoice: InvoiceJSON, rate_matrix_versions: List[RateMatrixJSON]
     for i, row in enumerate(lane_rows):
         if weight >= row.min_weight:
             applicable_row = row
-            if i + 1 < len(lane_rows):
-                next_higher_row = lane_rows[i + 1]
+            next_higher_row = lane_rows[i + 1] if i + 1 < len(lane_rows) else None
         else:
             if next_higher_row is None:
                 next_higher_row = row
@@ -196,7 +201,7 @@ def check_rates(invoice: InvoiceJSON, rate_matrix_versions: List[RateMatrixJSON]
     bumped = False
     bumped_weight = weight
 
-    if applicable_row.deficit_weight_eligible and next_higher_row:
+    if applicable_row.deficit_weight_eligible and next_higher_row and next_higher_row.min_weight > weight:
         bumped_cwt = next_higher_row.min_weight / 100.0
         potential_bump_charge = next_higher_row.rate * bumped_cwt
         if potential_bump_charge < standard_charge:
