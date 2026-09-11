@@ -288,3 +288,86 @@ class MonthlyRetroReport(BaseModel):
     generated_at: str = Field(..., description="Generation timestamp ISO string")
 
 
+DisputeStatus = Literal["drafted", "sent", "responded", "credit_issued", "denied"]
+
+
+class RecoveryReportClaimItem(BaseModel):
+    flag_id: str = Field(..., description="Flag UUID")
+    invoice_id: str = Field(..., description="Invoice UUID")
+    pro_number: str = Field(..., description="Carrier PRO number")
+    invoice_number: str = Field(..., description="Invoice number")
+    invoice_date: str = Field(..., description="Invoice billing date")
+    carrier: str = Field(..., description="Carrier name e.g. ABF Freight")
+    check_type: str = Field(..., description="RATE, FSC, DUP, ARITH")
+    billed_amount: float = Field(..., description="Original billed dollars")
+    contract_amount: float = Field(..., description="Correct contract dollars")
+    overcharge_cents: int = Field(..., description="Overcharge in cents")
+    overcharge_dollars: float = Field(..., description="Overcharge in dollars")
+    contract_clause: str = Field(..., description="Cited contract clause or tariff rule")
+    evidence_summary: str = Field(..., description="Human-readable mathematical or factual proof")
+    page_number: Optional[int] = Field(None, description="Page number in contract or invoice")
+
+
+class RecoveryReportSummary(BaseModel):
+    report_id: str = Field(..., description="Unique report ID e.g. REP-202609-001")
+    customer_id: str = Field(..., description="Customer organization UUID")
+    customer_name: str = Field(..., description="Customer company name")
+    report_title: str = Field(default="Freight Audit & Recovery Report")
+    period_start: str = Field(..., description="Audit start date YYYY-MM-DD")
+    period_end: str = Field(..., description="Audit end date YYYY-MM-DD")
+    generated_at: str = Field(..., description="Generation timestamp ISO string")
+    total_invoices_audited: int = 0
+    total_flagged_invoices: int = 0
+    total_approved_claims: int = 0
+    total_recoverable_cents: int = 0
+    total_recoverable_dollars: float = 0.0
+    estimated_shipper_recovery_dollars: float = 0.0  # 65% share
+    contingency_fee_dollars: float = 0.0  # 35% fee
+    by_carrier: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
+    by_check_type: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
+    claims: List[RecoveryReportClaimItem] = Field(default_factory=list)
+
+
+class DisputeLetterItem(BaseModel):
+    dispute_id: str = Field(..., description="Dispute UUID e.g. DISP-2026-001")
+    flag_id: str = Field(..., description="Flag UUID")
+    invoice_id: str = Field(..., description="Invoice UUID")
+    customer_id: str = Field(..., description="Customer organization UUID")
+    customer_name: str = Field(..., description="Customer company name")
+    customer_slug: str = Field(..., description="Customer slug for dispute email routing")
+    carrier: str = Field(..., description="Carrier name")
+    carrier_dispute_email: str = Field(..., description="Carrier dispute contact email")
+    carrier_phone: Optional[str] = Field(None, description="Carrier billing phone")
+    invoice_number: str = Field(..., description="Invoice number")
+    pro_number: str = Field(..., description="PRO number")
+    invoice_date: str = Field(..., description="Invoice date")
+    billed_amount: float = Field(..., description="Billed total dollars")
+    contract_amount: float = Field(..., description="Correct contract total dollars")
+    overcharge_dollars: float = Field(..., description="Overcharge discrepancy dollars")
+    check_type: str = Field(..., description="Audit check category")
+    contract_clause: str = Field(..., description="Contract clause or tariff reference")
+    dispute_reason_text: str = Field(..., description="Detailed factual explanation")
+    evidence_details: Dict[str, Any] = Field(default_factory=dict)
+    status: DisputeStatus = Field(default="drafted")
+    letter_pdf_path: Optional[str] = None
+    mailto_link: str = Field(..., description="Pre-encoded mailto: link for 1-click launch")
+    email_subject: str = Field(..., description="Standard dispute subject line")
+    email_body_text: str = Field(..., description="Plain-text formatted letter body")
+    email_body_html: str = Field(..., description="HTML formatted letter body")
+    created_at: str = Field(..., description="Creation ISO string")
+    updated_at: str = Field(..., description="Last updated ISO string")
+
+
+class DisputeBatchPacket(BaseModel):
+    carrier: str = Field(..., description="Carrier name")
+    carrier_dispute_email: str = Field(..., description="Carrier dispute email")
+    customer_name: str = Field(..., description="Shipper organization name")
+    customer_slug: str = Field(..., description="Shipper slug for CC routing")
+    disputes_count: int = 0
+    total_disputed_dollars: float = 0.0
+    disputes: List[DisputeLetterItem] = Field(default_factory=list)
+    combined_mailto_link: str = Field(..., description="Consolidated mailto link")
+    created_at: str = Field(..., description="Creation timestamp")
+
+
+

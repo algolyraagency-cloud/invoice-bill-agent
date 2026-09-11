@@ -301,3 +301,91 @@ export type PrecisionReportItem = z.infer<typeof PrecisionReportItemSchema>;
 export type FeedbackTicket = z.infer<typeof FeedbackTicketSchema>;
 export type MonthlyRetroReport = z.infer<typeof MonthlyRetroReportSchema>;
 
+export const DisputeStatusSchema = z.enum(['drafted', 'sent', 'responded', 'credit_issued', 'denied']);
+
+export const RecoveryReportClaimItemSchema = z.object({
+  flag_id: z.string(),
+  invoice_id: z.string(),
+  pro_number: z.string(),
+  invoice_number: z.string(),
+  invoice_date: z.string(),
+  carrier: z.string(),
+  check_type: z.string(),
+  billed_amount: z.number(),
+  contract_amount: z.number(),
+  overcharge_cents: z.number().int(),
+  overcharge_dollars: z.number(),
+  contract_clause: z.string(),
+  evidence_summary: z.string(),
+  page_number: z.number().int().optional().nullable(),
+});
+
+export const RecoveryReportSummarySchema = z.object({
+  report_id: z.string(),
+  customer_id: z.string(),
+  customer_name: z.string(),
+  report_title: z.string().default('Freight Audit & Recovery Report'),
+  period_start: z.string(),
+  period_end: z.string(),
+  generated_at: z.string(),
+  total_invoices_audited: z.number().int().default(0),
+  total_flagged_invoices: z.number().int().default(0),
+  total_approved_claims: z.number().int().default(0),
+  total_recoverable_cents: z.number().int().default(0),
+  total_recoverable_dollars: z.number().default(0),
+  estimated_shipper_recovery_dollars: z.number().default(0),
+  contingency_fee_dollars: z.number().default(0),
+  by_carrier: z.record(z.record(z.any())).default({}),
+  by_check_type: z.record(z.record(z.any())).default({}),
+  claims: z.array(RecoveryReportClaimItemSchema).default([]),
+});
+
+export const DisputeLetterItemSchema = z.object({
+  dispute_id: z.string(),
+  flag_id: z.string(),
+  invoice_id: z.string(),
+  customer_id: z.string(),
+  customer_name: z.string(),
+  customer_slug: z.string(),
+  carrier: z.string(),
+  carrier_dispute_email: z.string(),
+  carrier_phone: z.string().optional().nullable(),
+  invoice_number: z.string(),
+  pro_number: z.string(),
+  invoice_date: z.string(),
+  billed_amount: z.number(),
+  contract_amount: z.number(),
+  overcharge_dollars: z.number(),
+  check_type: z.string(),
+  contract_clause: z.string(),
+  dispute_reason_text: z.string(),
+  evidence_details: z.record(z.any()).default({}),
+  status: DisputeStatusSchema.default('drafted'),
+  letter_pdf_path: z.string().optional().nullable(),
+  mailto_link: z.string(),
+  email_subject: z.string(),
+  email_body_text: z.string(),
+  email_body_html: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export const DisputeBatchPacketSchema = z.object({
+  carrier: z.string(),
+  carrier_dispute_email: z.string(),
+  customer_name: z.string(),
+  customer_slug: z.string(),
+  disputes_count: z.number().int().default(0),
+  total_disputed_dollars: z.number().default(0),
+  disputes: z.array(DisputeLetterItemSchema).default([]),
+  combined_mailto_link: z.string(),
+  created_at: z.string(),
+});
+
+export type DisputeStatus = z.infer<typeof DisputeStatusSchema>;
+export type RecoveryReportClaimItem = z.infer<typeof RecoveryReportClaimItemSchema>;
+export type RecoveryReportSummary = z.infer<typeof RecoveryReportSummarySchema>;
+export type DisputeLetterItem = z.infer<typeof DisputeLetterItemSchema>;
+export type DisputeBatchPacket = z.infer<typeof DisputeBatchPacketSchema>;
+
+
