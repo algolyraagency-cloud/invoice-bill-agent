@@ -1,5 +1,5 @@
 {
-  "commit_sha": "90dba0ea1e75dbdfe72ff4f9d98b21ee2e651f48",
+  "commit_sha": "2fddd19007359da0e4cdc0b73ee64ec9d80c8ddc",
   "golden_set_version": "v1.0.0",
   "total_invoices_audited": 14,
   "gate_passed": true,
@@ -110,9 +110,11 @@
             "invoice_ref": "INV-ABF-102",
             "carrier": "ABF Freight",
             "contract_clause": "Standard Invoice Reconciliation Rule",
+            "page_number": null,
             "billed_value": 144.29,
             "correct_value": 124.29,
             "discrepancy": 20.0,
+            "overcharge_cents": 2000,
             "note": "Sum of line items ($124.29) does not match total billed ($144.29)"
           },
           "review_status": "pending",
@@ -141,12 +143,14 @@
             "invoice_ref": "INV-ABF-103",
             "carrier": "ABF Freight",
             "contract_clause": "Item 220-A (Fuel Surcharge Scale)",
+            "page_number": 7,
             "billed_fsc_pct": 38.0,
             "correct_fsc_pct": 33.5,
             "billed_value": 59.85,
             "correct_value": 52.76,
+            "overcharge_cents": 709,
             "diesel_benchmark": 3.85,
-            "note": "Carrier billed 38.0% FSC; contract scale authorizes 33.5%"
+            "note": "Carrier billed 38.0% FSC ($59.85); contract scale authorizes 33.5% ($52.76)"
           },
           "review_status": "pending",
           "reject_reason_code": null
@@ -174,12 +178,15 @@
             "invoice_ref": "INV-ABF-104",
             "carrier": "ABF Freight",
             "contract_clause": "Item 100 \u2014 Base Linehaul Rates & Deficit Weight Rule",
+            "page_number": 4,
             "origin_zip": "60601",
             "dest_zip": "48201",
             "billed_weight": 1800.0,
             "rated_weight": 2000.0,
+            "billed_rate": 24.0,
             "billed_value": 189.0,
             "correct_value": 168.0,
+            "overcharge_cents": 2100,
             "deficit_weight_applied": true,
             "note": "Deficit weight rating not applied: Contract rate is $168.00 (billed $189.00)"
           },
@@ -217,11 +224,15 @@
           "evidence_json": {
             "invoice_ref": "INV-ABF-105-B",
             "carrier": "ABF Freight",
+            "contract_clause": "Rule 100-D (Duplicate Billing Prohibition)",
+            "page_number": null,
             "pro_number": "042-9990055",
+            "bol_number": null,
             "duplicate_of_invoice": "INV-ABF-105-A",
             "duplicate_of_date": "2026-08-01",
             "billed_value": 246.71,
             "correct_value": 0.0,
+            "overcharge_cents": 24671,
             "note": "Duplicate billing of PRO #042-9990055 originally billed on 2026-08-01 (Inv #INV-ABF-105-A)"
           },
           "review_status": "pending",
@@ -259,9 +270,11 @@
             "invoice_ref": "INV-RR-302",
             "carrier": "Roadrunner",
             "contract_clause": "Standard Invoice Reconciliation Rule",
+            "page_number": null,
             "billed_value": 250.0,
             "correct_value": 210.0,
             "discrepancy": 40.0,
+            "overcharge_cents": 4000,
             "note": "Sum of line items ($210.00) does not match total billed ($250.00)"
           },
           "review_status": "pending",
@@ -290,12 +303,14 @@
             "invoice_ref": "INV-RR-303",
             "carrier": "Roadrunner",
             "contract_clause": "Item 220-A (Fuel Surcharge Scale)",
+            "page_number": 7,
             "billed_fsc_pct": 35.0,
             "correct_fsc_pct": 31.5,
             "billed_value": 44.1,
             "correct_value": 39.69,
+            "overcharge_cents": 441,
             "diesel_benchmark": 3.85,
-            "note": "Carrier billed 35.0% FSC; contract scale authorizes 31.5%"
+            "note": "Carrier billed 35.0% FSC ($44.10); contract scale authorizes 31.5% ($39.69)"
           },
           "review_status": "pending",
           "reject_reason_code": null
@@ -332,12 +347,15 @@
             "invoice_ref": "INV-XPO-202",
             "carrier": "XPO Logistics",
             "contract_clause": "Item 100 \u2014 Base Linehaul Rates & Deficit Weight Rule",
+            "page_number": 4,
             "origin_zip": "30301",
             "dest_zip": "75201",
             "billed_weight": 1400.0,
             "rated_weight": 1400.0,
+            "billed_rate": 35.0,
             "billed_value": 280.0,
             "correct_value": 196.0,
+            "overcharge_cents": 8400,
             "deficit_weight_applied": false,
             "note": "Billed lane rate exceeds contract tariff: Contract rate is $196.00 (billed $280.00)"
           },
@@ -367,12 +385,14 @@
             "invoice_ref": "INV-XPO-203",
             "carrier": "XPO Logistics",
             "contract_clause": "Item 220-A (Fuel Surcharge Scale)",
+            "page_number": 7,
             "billed_fsc_pct": 36.5,
             "correct_fsc_pct": 33.0,
             "billed_value": 76.65,
             "correct_value": 69.3,
+            "overcharge_cents": 735,
             "diesel_benchmark": 3.85,
-            "note": "Carrier billed 36.5% FSC; contract scale authorizes 33.0%"
+            "note": "Carrier billed 36.5% FSC ($76.65); contract scale authorizes 33.0% ($69.30)"
           },
           "review_status": "pending",
           "reject_reason_code": null
@@ -408,11 +428,15 @@
           "evidence_json": {
             "invoice_ref": "INV-XPO-204-B",
             "carrier": "XPO Logistics",
+            "contract_clause": "Rule 100-D (Duplicate Billing Prohibition)",
+            "page_number": null,
             "pro_number": "781-9990333",
+            "bol_number": null,
             "duplicate_of_invoice": "INV-XPO-204-A",
             "duplicate_of_date": "2026-08-05",
             "billed_value": 312.82,
             "correct_value": 0.0,
+            "overcharge_cents": 31282,
             "note": "Duplicate billing of PRO #781-9990333 originally billed on 2026-08-05 (Inv #INV-XPO-204-A)"
           },
           "review_status": "pending",

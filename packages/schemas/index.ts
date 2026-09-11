@@ -13,6 +13,7 @@ export const AccessorialSchema = z.object({
 });
 
 export const InvoiceJSONSchema = z.object({
+  id: z.string().optional().nullable(),
   carrier: z.string(),
   pro_number: z.string(),
   invoice_number: z.string(),
@@ -26,6 +27,7 @@ export const InvoiceJSONSchema = z.object({
   fsc_amount: z.number().optional().nullable(),
   fsc_pct: z.number().optional().nullable(),
   invoice_total: z.number(),
+  bol_number: z.string().optional().nullable(),
   raw_text_hash: z.string().optional().nullable(),
 });
 
@@ -152,6 +154,29 @@ export const CalibrationMetricSchema = z.object({
   gate_passed: z.boolean().default(false),
 });
 
+export const AuditRunStatsSchema = z.object({
+  total_invoices_audited: z.number().int().default(0),
+  clean_invoices_count: z.number().int().default(0),
+  flagged_invoices_count: z.number().int().default(0),
+  total_flags_count: z.number().int().default(0),
+  total_overcharge_cents: z.number().int().default(0),
+  flags_by_check_type: z.record(z.number().int()).default({}),
+  flags_by_carrier: z.record(z.number().int()).default({}),
+  overcharge_by_check_type: z.record(z.number().int()).default({}),
+  duration_seconds: z.number().default(0),
+});
+
+export const AuditRunResultSchema = z.object({
+  audit_run_id: z.string(),
+  customer_id: z.string(),
+  scope: z.record(z.any()).default({}),
+  started_at: z.string(),
+  completed_at: z.string(),
+  stats: AuditRunStatsSchema,
+  flags_by_invoice: z.record(z.array(FlagSchema)).default({}),
+  all_flags: z.array(FlagSchema).default([]),
+});
+
 export type LineItem = z.infer<typeof LineItemSchema>;
 export type Accessorial = z.infer<typeof AccessorialSchema>;
 export type InvoiceJSON = z.infer<typeof InvoiceJSONSchema>;
@@ -166,4 +191,6 @@ export type SpotCheckItem = z.infer<typeof SpotCheckItemSchema>;
 export type SpotVerificationResult = z.infer<typeof SpotVerificationResultSchema>;
 export type ContractValidationResult = z.infer<typeof ContractValidationResultSchema>;
 export type CalibrationMetric = z.infer<typeof CalibrationMetricSchema>;
+export type AuditRunStats = z.infer<typeof AuditRunStatsSchema>;
+export type AuditRunResult = z.infer<typeof AuditRunResultSchema>;
 

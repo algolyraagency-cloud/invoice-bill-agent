@@ -20,6 +20,7 @@ class Accessorial(BaseModel):
 
 
 class InvoiceJSON(BaseModel):
+    id: Optional[str] = Field(None, description="Invoice unique ID")
     carrier: str = Field(..., description="Carrier name (e.g. ABF Freight, XPO Logistics, Roadrunner)")
     pro_number: str = Field(..., description="Carrier PRO tracking number")
     invoice_number: str = Field(..., description="Carrier invoice number")
@@ -33,6 +34,7 @@ class InvoiceJSON(BaseModel):
     fsc_amount: Optional[float] = Field(None, description="Fuel surcharge dollar amount")
     fsc_pct: Optional[float] = Field(None, description="Fuel surcharge percentage applied")
     invoice_total: float = Field(..., description="Total invoice amount billed by carrier")
+    bol_number: Optional[str] = Field(None, description="Bill of Lading tracking number")
     raw_text_hash: Optional[str] = Field(None, description="SHA256 of raw invoice document text")
 
 
@@ -161,4 +163,27 @@ class CalibrationMetric(BaseModel):
     recall: float = 0.0
     f1_score: float = 0.0
     gate_passed: bool = False
+
+
+class AuditRunStats(BaseModel):
+    total_invoices_audited: int = 0
+    clean_invoices_count: int = 0
+    flagged_invoices_count: int = 0
+    total_flags_count: int = 0
+    total_overcharge_cents: int = 0
+    flags_by_check_type: Dict[str, int] = Field(default_factory=dict)
+    flags_by_carrier: Dict[str, int] = Field(default_factory=dict)
+    overcharge_by_check_type: Dict[str, int] = Field(default_factory=dict)
+    duration_seconds: float = 0.0
+
+
+class AuditRunResult(BaseModel):
+    audit_run_id: str
+    customer_id: str
+    scope: Dict[str, Any] = Field(default_factory=dict)
+    started_at: str
+    completed_at: str
+    stats: AuditRunStats
+    flags_by_invoice: Dict[str, List[Flag]] = Field(default_factory=dict)
+    all_flags: List[Flag] = Field(default_factory=list)
 

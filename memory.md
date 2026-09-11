@@ -1,7 +1,7 @@
 # RateGuard AI — Engineering Memory & Context Handoff
 **Document:** `memory.md`  
-**Current Milestone:** Phase 2 Complete (Validation Layer, Parsers, Golden Harness, FSC Engine = GO)  
-**Target:** Ready for Phase 3 (Audit Engine End-to-End Wiring & Pipeline Orchestration)  
+**Current Milestone:** Phase 3 Complete (Audit Engine v1, Pipeline Wiring & LLM Cost Guard = GO)  
+**Target:** Ready for Phase 4 (Human Review Queue UI & Reason-Code Feedback Loop)  
 **Repository:** `https://github.com/algolyraagency-cloud/invoice-bill-agent.git`  
 **Default Branch:** `main`
 
@@ -221,14 +221,30 @@ c:/Users/krish/Downloads/LTL startup/
 * **Bracket & Monthly Scale Mapping:** Accurately maps diesel benchmark brackets and monthly tariff tables for ABF Freight, XPO Logistics, and Roadrunner.
 * **Scale Synchronizer (`apps/worker/fsc_ingestion.py`):** Validates monotonicity, checks for overlapping brackets, and seeds baseline scales.
 
-### Full Test Suite Status
-* **46/46 Automated Tests Passing** (0.57s) across API, Worker, and Audit Engine.
-* **Scoreboard:** 100.0% Precision | 100.0% Recall | Decision: **GATE PASSED [GO FOR PHASE 3]**.
+### Phase 3: Deterministic Audit Engine & Worker Pipeline (COMPLETE)
+* **Phase 3.1 (Audit Engine Core & Batch Orchestrator):**
+  * `packages/audit-engine/engine.py`: Enhanced with BOL duplicate matching, ±3-day identical amount window, chronological directionality, deficit weight rating ("As" weight bumping), 5-digit vs 3-digit prefix matching, AMC floor, contract discount, and net freight FSC base calculation.
+  * Standardized `evidence_json` citing exact carrier tariff clauses, document page numbers, and itemized overcharge cents.
+  * `packages/audit-engine/orchestrator.py`: Single-invoice audit (`audit_invoice`) and customer historical backfill batch runner (`audit_batch`), aggregating comprehensive `AuditRunStats` (clean vs flagged breakdown, category distribution, latency).
+* **Phase 3.2 (Pipeline Wiring & Worker Handlers):**
+  * `apps/worker/pipeline.py`: Event-driven queue handlers (`parse-invoice`, `run-audit-for-invoice`, `run-audit-batch`).
+  * Audit idempotency keys (`{invoice_id}:{check_type}`) preventing duplicate flags on re-audits.
+  * Dead-Letter Queue (`DeadLetterQueue`) capturing job exceptions, alerting internal team, and updating invoice status to `error`.
+  * Guarantees all invoices end in canonical terminal statuses: `audited`, `parse_failed`, or `error`.
+* **Phase 3.3 (LLM Cost Guard & Circuit Breaker):**
+  * `apps/worker/cost_guard.py`: Enforces PRD §9 $200/mo operating ceiling ($150/mo LLM cap).
+  * SHA-256 parse cache: Returns identical extraction results with $0.00 spend on re-scans.
+  * Model ladder: Cheap models (`gpt-4o-mini`) by default; escalates to flagship models (`gpt-4o`) only on validation failure.
+  * Monthly circuit breaker: Trips at configured threshold (tested at $0.01 in staging), dispatches alert callback, and raises `CircuitBreakerTrippedError` to halt external API spend.
 
-### Next Immediate Task: Phase 3 (Audit Engine Wiring & Orchestration)
-1. **Phase 3.1:** Audit engine core flag generation with evidence references.
-2. **Phase 3.2:** Pipeline wiring in `pg-boss` (`parse-invoice` -> `run-audit-for-invoice` -> batch backfills).
-3. **Phase 3.3:** LLM cost guard & circuit breaker ($200/mo operating ceiling).
+### Test Suite & Calibration Status
+* **60/60 Automated Unit & Integration Tests Passing** (0.42s) across `packages/audit-engine` and `apps/worker`.
+* **Calibration Scoreboard:** 100.0% Precision | 100.0% Recall | Decision: **GATE PASSED [GO FOR PHASE 4]**.
+
+### Next Immediate Tasks (Week 3 Roadmap): Phase 4 (Human Review Queue UI)
+1. **Phase 4.1:** Internal review UI at `/internal/review` (flag card with billed vs correct value, evidence links, 3 buttons: Approve, Reject, Needs Research).
+2. **Phase 4.2:** Rejection reason-code dropdown enforcement (taxonomy from Phase 2.0.4) and feedback loop for parser refinement.
+
 
 
 

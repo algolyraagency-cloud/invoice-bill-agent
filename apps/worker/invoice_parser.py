@@ -315,3 +315,8 @@ def persist_parsed_invoice(
         return response.data if hasattr(response, "data") else update_payload
 
     return update_payload
+
+
+# Alias for pipeline
+parse_invoice = parse_invoice_document
+
