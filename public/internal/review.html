@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RateGuard AI — Internal Review Queue (/internal/review)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    code, pre, .font-mono { font-family: 'Geist Mono', monospace; }
+    .kbd-shortcut {
+      background: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 11px;
+      font-family: 'Geist Mono', monospace;
+      color: #aaa;
+    }
+  </style>
+</head>
+<body class="bg-black text-neutral-100 min-h-screen flex flex-col selection:bg-neutral-800">
+
+  <!-- Header & Role Gate Banner -->
+  <header class="border-b border-[#1e1e1e] bg-[#050505]/95 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <a href="/" class="w-8 h-8 rounded-lg bg-white text-black font-bold flex items-center justify-center text-sm">
+          RG
+        </a>
+        <div class="flex items-center space-x-2">
+          <span class="font-bold text-base tracking-tight text-white">RateGuard AI</span>
+          <span class="text-neutral-500">/</span>
+          <span class="text-sm font-semibold text-neutral-300">Internal Review Queue</span>
+        </div>
+        <span class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
+          Phase 4.1
+        </span>
+      </div>
+
+      <!-- Reviewer & Role Identity -->
+      <div class="flex items-center space-x-4 text-xs">
+        <div class="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-[#111] border border-[#222]">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          <span class="text-neutral-400">Role:</span>
+          <span id="role-badge" class="font-mono text-emerald-400 font-semibold">internal_reviewer</span>
+        </div>
+        <div class="text-neutral-400 font-mono text-[11px]">
+          Reviewer: <span id="reviewer-id-display" class="text-white">rev_auditor_01</span>
+        </div>
+        <a href="/" class="px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 transition">
+          Exit Queue
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Metrics & Pacing Bar -->
+  <div class="bg-[#080808] border-b border-[#181818] px-6 py-3">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4 text-xs">
+      
+      <!-- Queue Counts -->
+      <div class="flex items-center space-x-6 font-mono">
+        <div class="flex items-center space-x-2">
+          <span class="text-neutral-400">Pending:</span>
+          <span id="stat-pending" class="px-2 py-0.5 rounded bg-blue-950 text-blue-400 font-bold border border-blue-800">0</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span class="text-neutral-400">Approved:</span>
+          <span id="stat-approved" class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 font-bold border border-emerald-800">0</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span class="text-neutral-400">Recoverable $:</span>
+          <span id="stat-recoverable" class="text-emerald-400 font-bold">$0.00</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span class="text-neutral-400">Rejected:</span>
+          <span id="stat-rejected" class="px-2 py-0.5 rounded bg-rose-950 text-rose-400 font-bold border border-rose-800">0</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span class="text-neutral-400">Research:</span>
+          <span id="stat-research" class="px-2 py-0.5 rounded bg-amber-950 text-amber-400 font-bold border border-amber-800">0</span>
+        </div>
+      </div>
+
+      <!-- Active Throughput Timer -->
+      <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-2 px-3 py-1 rounded bg-[#121212] border border-[#222]">
+          <span class="text-neutral-400 font-mono">Current Flag Timer:</span>
+          <span id="flag-timer" class="font-mono font-bold text-white text-sm">0.0s</span>
+          <span id="timer-pacing-badge" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
+            ≤30s Target
+          </span>
+        </div>
+        <div class="text-neutral-400 font-mono text-[11px]">
+          Avg Time: <span id="stat-avg-duration" class="text-white font-bold">--s</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Main Review Workspace -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-6 py-6 space-y-6">
+
+    <!-- Queue Tabs & Filters -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#1a1a1a] pb-4">
+      <div class="flex items-center space-x-2">
+        <button onclick="switchTab('pending')" id="tab-pending" class="px-4 py-2 text-xs font-semibold rounded-lg bg-white text-black transition">
+          Pending Review (<span id="tab-pending-cnt">0</span>)
+        </button>
+        <button onclick="switchTab('research')" id="tab-research" class="px-4 py-2 text-xs font-semibold rounded-lg bg-[#111] hover:bg-[#181818] text-neutral-300 border border-[#222] transition">
+          Needs Research (<span id="tab-research-cnt">0</span>)
+        </button>
+        <button onclick="switchTab('approved')" id="tab-approved" class="px-4 py-2 text-xs font-semibold rounded-lg bg-[#111] hover:bg-[#181818] text-neutral-300 border border-[#222] transition">
+          Approved (<span id="tab-approved-cnt">0</span>)
+        </button>
+        <button onclick="switchTab('rejected')" id="tab-rejected" class="px-4 py-2 text-xs font-semibold rounded-lg bg-[#111] hover:bg-[#181818] text-neutral-300 border border-[#222] transition">
+          Rejected (<span id="tab-rejected-cnt">0</span>)
+        </button>
+        <button onclick="switchTab('analytics')" id="tab-analytics" class="px-4 py-2 text-xs font-semibold rounded-lg bg-[#111] hover:bg-[#181818] text-purple-300 border border-purple-900/40 transition flex items-center space-x-1.5">
+          <span>📈 Precision & Feedback</span>
+        </button>
+      </div>
+
+      <!-- Filter Controls -->
+      <div id="filter-controls-group" class="flex items-center space-x-3 text-xs">
+        <label class="text-neutral-400 font-mono">Carrier:</label>
+        <select id="filter-carrier" onchange="applyFilters()" class="bg-[#111] border border-[#262626] rounded-lg px-3 py-1.5 text-neutral-200 focus:outline-none focus:border-neutral-500">
+          <option value="">All Carriers</option>
+          <option value="ABF Freight">ABF Freight</option>
+          <option value="XPO Logistics">XPO Logistics</option>
+          <option value="Roadrunner">Roadrunner</option>
+        </select>
+
+        <label class="text-neutral-400 font-mono">Check:</label>
+        <select id="filter-check" onchange="applyFilters()" class="bg-[#111] border border-[#262626] rounded-lg px-3 py-1.5 text-neutral-200 focus:outline-none focus:border-neutral-500">
+          <option value="">All Checks</option>
+          <option value="RATE">RATE (Deficit Bumping)</option>
+          <option value="FSC">FSC (Diesel Index)</option>
+          <option value="DUP">DUP (Duplicates)</option>
+          <option value="ARITH">ARITH (Sum Mismatch)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Active Flag Review Card -->
+    <div id="flag-card-container" class="space-y-6">
+      <!-- Card injected dynamically by JS -->
+    </div>
+
+    <!-- Analytics & Feedback Loop Container (Phase 4.2) -->
+    <div id="analytics-container" class="hidden space-y-6">
+      <!-- Injected dynamically by renderAnalytics() -->
+    </div>
+
+    <!-- Empty Queue State -->
+    <div id="empty-queue-state" class="hidden text-center py-20 border border-dashed border-[#222] rounded-2xl space-y-4">
+      <div class="w-12 h-12 rounded-full bg-emerald-950 text-emerald-400 flex items-center justify-center mx-auto text-xl font-bold">
+        ✓
+      </div>
+      <h3 class="text-lg font-bold text-white">Review Queue Clean</h3>
+      <p class="text-xs text-neutral-400 max-w-md mx-auto">
+        All flagged discrepancies in this category have been evaluated. CFO Recovery Reports and Dispute Packets are staged for generation.
+      </p>
+      <button onclick="resetDemoQueue()" class="px-4 py-2 text-xs font-semibold rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-neutral-200 transition">
+        Reload Sample Golden Set Flags
+      </button>
+    </div>
+
+    <!-- Research Resolution Drawer / Modal -->
+    <div id="research-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+      <div class="bg-[#0d0d0d] border border-[#262626] rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+        <div class="flex items-center justify-between border-b border-[#1f1f1f] pb-3">
+          <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+            <span class="text-amber-400">?</span>
+            <span>Needs Research Investigation</span>
+          </h3>
+          <button onclick="closeResearchModal()" class="text-neutral-400 hover:text-white text-sm">✕</button>
+        </div>
+        <p class="text-xs text-neutral-400 leading-relaxed">
+          Specify contract clauses, tariff exceptions, or line-item notes that require manual research.
+          <span class="text-amber-400 font-semibold">Nothing may die in research</span> — resolution will return this item to the queue.
+        </p>
+        <div class="space-y-2">
+          <label class="text-[11px] font-mono text-neutral-400">Mandatory Research Notes:</label>
+          <textarea id="research-notes-input" rows="3" placeholder="e.g. Verify Item 400 residential delivery tariff amendment signed July 2026..." class="w-full bg-black border border-[#2b2b2b] rounded-xl p-3 text-xs text-neutral-200 focus:outline-none focus:border-amber-500"></textarea>
+        </div>
+        <div class="flex items-center justify-end space-x-3 pt-2">
+          <button onclick="closeResearchModal()" class="px-4 py-2 text-xs rounded-lg bg-neutral-900 hover:bg-neutral-800 text-neutral-300 border border-neutral-800 transition">
+            Cancel
+          </button>
+          <button onclick="submitNeedsResearch()" class="px-4 py-2 text-xs font-semibold rounded-lg bg-amber-500 hover:bg-amber-400 text-black transition">
+            Save to Research Queue
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rejection Taxonomy Modal -->
+    <div id="reject-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+      <div class="bg-[#0d0d0d] border border-[#262626] rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+        <div class="flex items-center justify-between border-b border-[#1f1f1f] pb-3">
+          <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+            <span class="text-rose-400">✘</span>
+            <span>Reject Flag Discrepancy</span>
+          </h3>
+          <button onclick="closeRejectModal()" class="text-neutral-400 hover:text-white text-sm">✕</button>
+        </div>
+        <p class="text-xs text-neutral-400 leading-relaxed">
+          Rejections strictly require one of the 8 standardized reason codes (Phase 2.0.4 taxonomy). This directly drives parser feedback and calibration.
+        </p>
+
+        <div class="space-y-3">
+          <div>
+            <label class="text-[11px] font-mono text-neutral-400 block mb-1">Mandatory Reason Code <span class="text-rose-400">*</span></label>
+            <select id="reject-reason-select" class="w-full bg-black border border-[#2b2b2b] rounded-xl p-2.5 text-xs text-neutral-200 focus:outline-none focus:border-rose-500 font-mono">
+              <option value="">-- Select Reason Code --</option>
+              <option value="wrong-matrix-row">wrong-matrix-row (Incorrect tariff row or lane chosen)</option>
+              <option value="misread-pdf-field">misread-pdf-field (OCR/LLM misread numeric total/PRO)</option>
+              <option value="contract-exception-misapplied">contract-exception-misapplied (Valid exception misidentified)</option>
+              <option value="not-an-error">not-an-error (Carrier billed correctly per valid tariff)</option>
+              <option value="duplicate-false-positive">duplicate-false-positive (Legitimate separate shipments)</option>
+              <option value="fsc-table-wrong-month">fsc-table-wrong-month (Applied wrong monthly EIA fuel bracket)</option>
+              <option value="rate-effective-date-mismatch">rate-effective-date-mismatch (Outside contract effective window)</option>
+              <option value="other">other (Manual correction required)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="text-[11px] font-mono text-neutral-400 block mb-1">Audit Notes (Optional):</label>
+            <textarea id="reject-notes-input" rows="2" placeholder="Provide extra context for calibration engine..." class="w-full bg-black border border-[#2b2b2b] rounded-xl p-2.5 text-xs text-neutral-200 focus:outline-none focus:border-neutral-500"></textarea>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end space-x-3 pt-2">
+          <button onclick="closeRejectModal()" class="px-4 py-2 text-xs rounded-lg bg-neutral-900 hover:bg-neutral-800 text-neutral-300 border border-neutral-800 transition">
+            Cancel
+          </button>
+          <button onclick="submitRejection()" class="px-4 py-2 text-xs font-semibold rounded-lg bg-rose-600 hover:bg-rose-500 text-white transition">
+            Confirm Rejection
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Research Resolution Drawer / Action Modal -->
+    <div id="resolve-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+      <div class="bg-[#0d0d0d] border border-[#262626] rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+        <div class="flex items-center justify-between border-b border-[#1f1f1f] pb-3">
+          <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+            <span class="text-emerald-400">✓</span>
+            <span>Resolve Research Flag</span>
+          </h3>
+          <button onclick="closeResolveModal()" class="text-neutral-400 hover:text-white text-sm">✕</button>
+        </div>
+        <p class="text-xs text-neutral-400 leading-relaxed">
+          Review research findings and return flag to the active queue or finalize its status.
+        </p>
+
+        <div class="space-y-3">
+          <div>
+            <label class="text-[11px] font-mono text-neutral-400 block mb-1">Resolution Action <span class="text-emerald-400">*</span></label>
+            <select id="resolve-action-select" class="w-full bg-black border border-[#2b2b2b] rounded-xl p-2.5 text-xs text-neutral-200 focus:outline-none focus:border-emerald-500 font-mono">
+              <option value="pending">Return to Queue (review_status = 'pending')</option>
+              <option value="approved">Approve for Recovery (review_status = 'approved')</option>
+              <option value="rejected">Reject Flag (review_status = 'rejected')</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="text-[11px] font-mono text-neutral-400 block mb-1">Resolution Notes <span class="text-emerald-400">*</span></label>
+            <textarea id="resolve-notes-input" rows="2" placeholder="e.g. Confirmed Item 220 fuel surcharge index peg verified against contract p.7..." class="w-full bg-black border border-[#2b2b2b] rounded-xl p-2.5 text-xs text-neutral-200 focus:outline-none focus:border-neutral-500"></textarea>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end space-x-3 pt-2">
+          <button onclick="closeResolveModal()" class="px-4 py-2 text-xs rounded-lg bg-neutral-900 hover:bg-neutral-800 text-neutral-300 border border-neutral-800 transition">
+            Cancel
+          </button>
+          <button onclick="submitResolution()" class="px-4 py-2 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition">
+            Apply Resolution
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monthly Retro Report Modal (Phase 4.2) -->
+    <div id="retro-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+      <div class="bg-[#0d0d0d] border border-[#262626] rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl">
+        <div class="flex items-center justify-between border-b border-[#1f1f1f] pb-3">
+          <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+            <span class="text-purple-400">📋</span>
+            <span>Monthly Precision Retrospective Report (PRD §5.5 & §10)</span>
+          </h3>
+          <button onclick="closeRetroModal()" class="text-neutral-400 hover:text-white text-sm">✕</button>
+        </div>
+        <p class="text-xs text-neutral-400">
+          Generated post-review precision retrospective, reason-code rankings, and parser fix tickets formatted for engineering retro review.
+        </p>
+        <div class="relative">
+          <textarea id="retro-markdown-display" readonly rows="12" class="w-full bg-black border border-[#262626] rounded-xl p-3 font-mono text-[11px] text-neutral-300 focus:outline-none"></textarea>
+        </div>
+        <div class="flex items-center justify-between pt-2">
+          <span id="retro-copy-feedback" class="text-xs text-emerald-400 font-mono hidden">✓ Copied to clipboard!</span>
+          <div class="flex items-center space-x-3 ml-auto">
+            <button onclick="copyRetroMarkdown()" class="px-4 py-2 text-xs font-semibold rounded-lg bg-neutral-900 hover:bg-neutral-800 text-neutral-200 border border-neutral-700 transition">
+              Copy Markdown
+            </button>
+            <button onclick="closeRetroModal()" class="px-4 py-2 text-xs font-semibold rounded-lg bg-white text-black hover:bg-neutral-200 transition">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+  </main>
+
+  <!-- Keyboard Shortcuts Help Footer -->
+  <footer class="border-t border-[#181818] py-3 px-6 bg-[#050505] text-xs text-neutral-400 flex items-center justify-between">
+    <div class="flex items-center space-x-4">
+      <span class="font-mono text-neutral-500">Keyboard Controls:</span>
+      <span><span class="kbd-shortcut">A</span> Approve</span>
+      <span><span class="kbd-shortcut">R</span> Reject</span>
+      <span><span class="kbd-shortcut">S</span> Needs Research</span>
+      <span><span class="kbd-shortcut">→</span> Next Flag</span>
+      <span><span class="kbd-shortcut">←</span> Prev Flag</span>
+    </div>
+    <div class="font-mono text-[11px] text-neutral-500">
+      RateGuard AI • Zero LLM in Judgment Execution
+    </div>
+  </footer>
+
+  <script>
+    // State
+    const REVIEWER_ID = "rev_auditor_01";
+    let activeTab = "pending";
+    let currentFlagIndex = 0;
+    let timerInterval = null;
+    let timerSeconds = 0.0;
+    let sessionDurations = [];
+
+    // Sample golden flags initialized from Phase 2 / Phase 3 fixtures
+    let flagsData = [
+      {
+        id: "flag_abf_01",
+        invoice_id: "inv_abf_001",
+        carrier: "ABF Freight",
+        pro_number: "042-889123",
+        invoice_number: "INV-ABF-7712",
+        invoice_date: "2026-08-16",
+        invoice_total: 862.50,
+        check_type: "RATE",
+        overcharge_cents: 7625,
+        confidence: 0.98,
+        review_status: "pending",
+        reject_reason_code: null,
+        evidence_json: {
+          invoice_ref: "INV-ABF-7712",
+          carrier: "ABF Freight",
+          contract_clause: "Item 100-D (Deficit Weight Bumping)",
+          page_number: 14,
+          billed_weight: 4250,
+          billed_rate: 18.50,
+          billed_value: 786.25,
+          bumped_break: "M5M (5,000 lbs)",
+          correct_rate: 14.20,
+          correct_value: 710.00,
+          overcharge_cents: 7625,
+          lane: "303 -> 606"
+        },
+        file_path: "invoices/inv_abf_001.pdf"
+      },
+      {
+        id: "flag_xpo_02",
+        invoice_id: "inv_xpo_002",
+        carrier: "XPO Logistics",
+        pro_number: "XPO-551928",
+        invoice_number: "INV-XPO-9914",
+        invoice_date: "2026-08-18",
+        invoice_total: 512.40,
+        check_type: "FSC",
+        overcharge_cents: 1850,
+        confidence: 0.99,
+        review_status: "pending",
+        reject_reason_code: null,
+        evidence_json: {
+          invoice_ref: "INV-XPO-9914",
+          carrier: "XPO Logistics",
+          contract_clause: "Item 220-A (EIA Fuel Surcharge Scale)",
+          page_number: 7,
+          eia_price: 3.82,
+          billed_value: 34.50,
+          correct_value: 32.40,
+          overcharge_cents: 1850,
+          notes: "DOE diesel index was $3.82 for week of 2026-08-10, contracted bracket is 32.40%."
+        },
+        file_path: "invoices/inv_xpo_002.pdf"
+      },
+      {
+        id: "flag_rr_03",
+        invoice_id: "inv_rr_003",
+        carrier: "Roadrunner",
+        pro_number: "RR-771122",
+        invoice_number: "INV-RR-4401",
+        invoice_date: "2026-08-19",
+        invoice_total: 440.00,
+        check_type: "DUP",
+        overcharge_cents: 44000,
+        confidence: 1.0,
+        review_status: "pending",
+        reject_reason_code: null,
+        evidence_json: {
+          invoice_ref: "INV-RR-4401",
+          carrier: "Roadrunner",
+          contract_clause: "Rule 12 (Duplicate Invoice Defense)",
+          page_number: 3,
+          billed_value: 440.00,
+          correct_value: 0.00,
+          overcharge_cents: 44000,
+          duplicate_pro: "RR-771122",
+          original_invoice: "INV-RR-4398",
+          original_date: "2026-08-17"
+        },
+        file_path: "invoices/inv_rr_003.pdf"
+      },
+      {
+        id: "flag_abf_04",
+        invoice_id: "inv_abf_004",
+        carrier: "ABF Freight",
+        pro_number: "042-990441",
+        invoice_number: "INV-ABF-8819",
+        invoice_date: "2026-08-20",
+        invoice_total: 615.00,
+        check_type: "ARITH",
+        overcharge_cents: 1500,
+        confidence: 0.97,
+        review_status: "pending",
+        reject_reason_code: null,
+        evidence_json: {
+          invoice_ref: "INV-ABF-8819",
+          carrier: "ABF Freight",
+          contract_clause: "Reconciliation Check (Line Items Sum)",
+          page_number: 1,
+          billed_value: 615.00,
+          correct_value: 600.00,
+          overcharge_cents: 1500,
+          line_items_sum: 600.00
+        },
+        file_path: "invoices/inv_abf_004.pdf"
+      },
+      // Seeded pilot review data (Phase 4.2 feedback loop)
+      {
+        id: "flag_abf_p01",
+        invoice_id: "inv_abf_p01",
+        carrier: "ABF Freight",
+        pro_number: "042-101111",
+        invoice_number: "INV-ABF-1011",
+        invoice_date: "2026-08-01",
+        invoice_total: 950.00,
+        check_type: "RATE",
+        overcharge_cents: 8500,
+        confidence: 0.99,
+        review_status: "approved",
+        reject_reason_code: null,
+        evidence_json: { contract_clause: "Item 100-D", correct_value: 865.00 },
+        file_path: "invoices/inv_abf_p01.pdf"
+      },
+      {
+        id: "flag_abf_p02",
+        invoice_id: "inv_abf_p02",
+        carrier: "ABF Freight",
+        pro_number: "042-101112",
+        invoice_number: "INV-ABF-1012",
+        invoice_date: "2026-08-02",
+        invoice_total: 420.00,
+        check_type: "FSC",
+        overcharge_cents: 2200,
+        confidence: 0.98,
+        review_status: "approved",
+        reject_reason_code: null,
+        evidence_json: { contract_clause: "Item 220-A", correct_value: 398.00 },
+        file_path: "invoices/inv_abf_p02.pdf"
+      },
+      {
+        id: "flag_xpo_p03",
+        invoice_id: "inv_xpo_p03",
+        carrier: "XPO Logistics",
+        pro_number: "XPO-202201",
+        invoice_number: "INV-XPO-2021",
+        invoice_date: "2026-08-03",
+        invoice_total: 780.00,
+        check_type: "RATE",
+        overcharge_cents: 6400,
+        confidence: 0.97,
+        review_status: "approved",
+        reject_reason_code: null,
+        evidence_json: { contract_clause: "Tariff 100", correct_value: 716.00 },
+        file_path: "invoices/inv_xpo_p03.pdf"
+      },
+      {
+        id: "flag_xpo_p04",
+        invoice_id: "inv_xpo_p04",
+        carrier: "XPO Logistics",
+        pro_number: "XPO-202202",
+        invoice_number: "INV-XPO-2022",
+        invoice_date: "2026-08-04",
+        invoice_total: 610.00,
+        check_type: "FSC",
+        overcharge_cents: 1950,
+        confidence: 0.99,
+        review_status: "approved",
+        reject_reason_code: null,
+        evidence_json: { contract_clause: "Item 220-A", correct_value: 590.50 },
+        file_path: "invoices/inv_xpo_p04.pdf"
+      },
+      {
+        id: "flag_rr_p05",
+        invoice_id: "inv_rr_p05",
+        carrier: "Roadrunner",
+        pro_number: "RR-303301",
+        invoice_number: "INV-RR-3031",
+        invoice_date: "2026-08-05",
+        invoice_total: 350.00,
+        check_type: "DUP",
+        overcharge_cents: 35000,
+        confidence: 1.0,
+        review_status: "approved",
+        reject_reason_code: null,
+        evidence_json: { contract_clause: "Duplicate Defense", correct_value: 0.00 },
+        file_path: "invoices/inv_rr_p05.pdf"
+      },
+      {
+        id: "flag_rr_p06",
+        invoice_id: "inv_rr_p06",
+        carrier: "Roadrunner",
+        pro_number: "RR-303302",
+        invoice_number: "INV-RR-3032",
+        invoice_date: "2026-08-06",
+        invoice_total: 480.00,
+        check_type: "RATE",
+        overcharge_cents: 3800,
+        confidence: 0.96,
+        review_status: "approved",
+        reject_reason_code: null,
+        evidence_json: { contract_clause: "Item 400", correct_value: 442.00 },
+        file_path: "invoices/inv_rr_p06.pdf"
+      },
+      {
+        id: "flag_abf_p07",
+        invoice_id: "inv_abf_p07",
+        carrier: "ABF Freight",
+        pro_number: "042-101113",
+        invoice_number: "INV-ABF-1013",
+        invoice_date: "2026-08-07",
+        invoice_total: 820.00,
+        check_type: "ARITH",
+        overcharge_cents: 2000,
+        confidence: 0.99,
+        review_status: "approved",
+        reject_reason_code: null,
+        evidence_json: { contract_clause: "Reconciliation Check", correct_value: 800.00 },
+        file_path: "invoices/inv_abf_p07.pdf"
+      },
+      {
+        id: "flag_xpo_p08",
+        invoice_id: "inv_xpo_p08",
+        carrier: "XPO Logistics",
+        pro_number: "XPO-202203",
+        invoice_number: "INV-XPO-2023",
+        invoice_date: "2026-08-08",
+        invoice_total: 690.00,
+        check_type: "RATE",
+        overcharge_cents: 5100,
+        confidence: 0.97,
+        review_status: "approved",
+        reject_reason_code: null,
+        evidence_json: { contract_clause: "Item 100-D", correct_value: 639.00 },
+        file_path: "invoices/inv_xpo_p08.pdf"
+      },
+      {
+        id: "flag_rr_p09",
+        invoice_id: "inv_rr_p09",
+        carrier: "Roadrunner",
+        pro_number: "RR-303303",
+        invoice_number: "INV-RR-3033",
+        invoice_date: "2026-08-09",
+        invoice_total: 540.00,
+        check_type: "FSC",
+        overcharge_cents: 2100,
+        confidence: 0.98,
+        review_status: "approved",
+        reject_reason_code: null,
+        evidence_json: { contract_clause: "Item 220-A", correct_value: 519.00 },
+        file_path: "invoices/inv_rr_p09.pdf"
+      },
+      {
+        id: "flag_rej_01",
+        invoice_id: "inv_rej_001",
+        carrier: "ABF Freight",
+        pro_number: "042-999001",
+        invoice_number: "INV-ABF-9901",
+        invoice_date: "2026-08-10",
+        invoice_total: 450.00,
+        check_type: "RATE",
+        overcharge_cents: 4500,
+        confidence: 0.85,
+        review_status: "rejected",
+        reject_reason_code: "wrong-matrix-row",
+        evidence_json: { contract_clause: "Item 100-D", notes: "Extractor selected 303 lane instead of 302 exception row" },
+        file_path: "invoices/inv_rej_001.pdf"
+      }
+    ];
+
+    function startTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      timerSeconds = 0.0;
+      const el = document.getElementById("flag-timer");
+      const badge = document.getElementById("timer-pacing-badge");
+
+      timerInterval = setInterval(() => {
+        timerSeconds += 0.5;
+        el.innerText = timerSeconds.toFixed(1) + "s";
+
+        if (timerSeconds <= 30.0) {
+          badge.className = "text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800";
+          badge.innerText = "≤30s Target (Pacing Good)";
+        } else if (timerSeconds <= 60.0) {
+          badge.className = "text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800";
+          badge.innerText = "30-60s (Slight Lag)";
+        } else {
+          badge.className = "text-[10px] font-mono px-1.5 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-800";
+          badge.innerText = ">60s (Lagging)";
+        }
+      }, 500);
+    }
+
+    function recordDuration() {
+      sessionDurations.push(timerSeconds);
+      const avg = sessionDurations.reduce((a, b) => a + b, 0) / sessionDurations.length;
+      document.getElementById("stat-avg-duration").innerText = avg.toFixed(1) + "s";
+    }
+
+    function getFilteredFlags() {
+      const carrier = document.getElementById("filter-carrier").value;
+      const check = document.getElementById("filter-check").value;
+
+      return flagsData.filter(f => {
+        if (f.review_status !== activeTab) return false;
+        if (carrier && f.carrier !== carrier) return false;
+        if (check && f.check_type !== check) return false;
+        return true;
+      });
+    }
+
+    function updateStats() {
+      const pending = flagsData.filter(f => f.review_status === "pending").length;
+      const approved = flagsData.filter(f => f.review_status === "approved").length;
+      const rejected = flagsData.filter(f => f.review_status === "rejected").length;
+      const research = flagsData.filter(f => f.review_status === "research").length;
+
+      const recoverableCents = flagsData
+        .filter(f => f.review_status === "approved")
+        .reduce((sum, f) => sum + f.overcharge_cents, 0);
+
+      document.getElementById("stat-pending").innerText = pending;
+      document.getElementById("stat-approved").innerText = approved;
+      document.getElementById("stat-rejected").innerText = rejected;
+      document.getElementById("stat-research").innerText = research;
+      document.getElementById("stat-recoverable").innerText = "$" + (recoverableCents / 100).toFixed(2);
+
+      document.getElementById("tab-pending-cnt").innerText = pending;
+      document.getElementById("tab-approved-cnt").innerText = approved;
+      document.getElementById("tab-rejected-cnt").innerText = rejected;
+      document.getElementById("tab-research-cnt").innerText = research;
+    }
+
+    function renderActiveCard() {
+      updateStats();
+      const filtered = getFilteredFlags();
+      const container = document.getElementById("flag-card-container");
+      const emptyState = document.getElementById("empty-queue-state");
+
+      if (filtered.length === 0) {
+        container.innerHTML = "";
+        emptyState.classList.remove("hidden");
+        if (timerInterval) clearInterval(timerInterval);
+        return;
+      }
+
+      emptyState.classList.add("hidden");
+      if (currentFlagIndex >= filtered.length) currentFlagIndex = 0;
+      const flag = filtered[currentFlagIndex];
+
+      startTimer();
+
+      const dollarsOvercharge = (flag.overcharge_cents / 100).toFixed(2);
+      const ev = flag.evidence_json || {};
+
+      let checkPillColor = "bg-blue-950 text-blue-300 border-blue-800";
+      if (flag.check_type === "RATE") checkPillColor = "bg-purple-950 text-purple-300 border-purple-800";
+      if (flag.check_type === "FSC") checkPillColor = "bg-amber-950 text-amber-300 border-amber-800";
+      if (flag.check_type === "DUP") checkPillColor = "bg-rose-950 text-rose-300 border-rose-800";
+
+      // Render Flag Card
+      container.innerHTML = `
+        <div class="bg-gradient-to-b from-[#0c0c0c] to-[#070707] border border-[#1f1f1f] rounded-2xl p-6 sm:p-8 space-y-6 shadow-2xl">
+          
+          <!-- Top Row: Identification & Check Type -->
+          <div class="flex flex-wrap items-center justify-between gap-4 border-b border-[#1a1a1a] pb-4">
+            <div class="space-y-1">
+              <div class="flex items-center space-x-3">
+                <span class="text-xs px-2.5 py-1 rounded-full font-mono font-semibold border ${checkPillColor}">
+                  CHECK: ${flag.check_type}
+                </span>
+                <span class="text-sm font-bold text-white">${flag.carrier}</span>
+                <span class="text-xs font-mono text-neutral-400">PRO #${flag.pro_number}</span>
+                <span class="text-xs font-mono text-neutral-500">| Inv #${flag.invoice_number}</span>
+              </div>
+              <div class="text-[11px] text-neutral-500 font-mono">
+                Billed Date: ${flag.invoice_date} • Confidence: ${(flag.confidence * 100).toFixed(0)}% • Flag Index: ${currentFlagIndex + 1} of ${filtered.length}
+              </div>
+            </div>
+
+            <!-- Overcharge Highlight -->
+            <div class="text-right">
+              <div class="text-[11px] font-mono uppercase tracking-wider text-neutral-400">Calculated Overcharge</div>
+              <div class="text-2xl sm:text-3xl font-bold font-mono text-emerald-400">
+                +$${dollarsOvercharge}
+              </div>
+            </div>
+          </div>
+
+          <!-- Side-by-Side Comparison: Billed vs Audited -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <!-- Left: Billed by Carrier -->
+            <div class="bg-black/50 border border-[#222] rounded-xl p-5 space-y-3">
+              <div class="flex items-center justify-between border-b border-[#1a1a1a] pb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-rose-400 font-mono">1. Billed By Carrier</span>
+                <span class="text-xs font-mono text-neutral-400">$${flag.invoice_total.toFixed(2)} Total</span>
+              </div>
+              <div class="space-y-2 text-xs font-mono">
+                <div class="flex justify-between text-neutral-400">
+                  <span>Linehaul Billed:</span>
+                  <span class="text-white">${ev.billed_weight ? ev.billed_weight + ' lbs @ $' + ev.billed_rate + '/cwt' : '$' + (ev.billed_value || flag.invoice_total).toFixed(2)}</span>
+                </div>
+                ${ev.eia_price ? `
+                <div class="flex justify-between text-neutral-400">
+                  <span>Fuel Surcharge Billed:</span>
+                  <span class="text-rose-300">${ev.billed_value}%</span>
+                </div>
+                ` : ''}
+                ${ev.duplicate_pro ? `
+                <div class="flex justify-between text-neutral-400">
+                  <span>Duplicate Status:</span>
+                  <span class="text-rose-400 font-bold">Identical shipment re-billed</span>
+                </div>
+                ` : ''}
+              </div>
+            </div>
+
+            <!-- Right: Contracted RateGuard Verification -->
+            <div class="bg-black/50 border border-emerald-950/40 rounded-xl p-5 space-y-3">
+              <div class="flex items-center justify-between border-b border-[#1a1a1a] pb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 font-mono">2. Contracted / Audited</span>
+                <span class="text-xs font-mono text-emerald-400">Correct: $${(ev.correct_value !== undefined ? ev.correct_value : (flag.invoice_total - (flag.overcharge_cents/100))).toFixed(2)}</span>
+              </div>
+              <div class="space-y-2 text-xs font-mono">
+                <div class="flex justify-between text-neutral-400">
+                  <span>Mathematical Rule:</span>
+                  <span class="text-emerald-300 font-semibold">${flag.check_type === 'RATE' ? 'Bumped to ' + (ev.bumped_break || 'Break') + ' @ $' + ev.correct_rate + '/cwt' : 'Deterministic Verification'}</span>
+                </div>
+                ${ev.eia_price ? `
+                <div class="flex justify-between text-neutral-400">
+                  <span>EIA Diesel Rate Contracted:</span>
+                  <span class="text-emerald-300 font-semibold">${ev.correct_value}% (DOE peg $${ev.eia_price})</span>
+                </div>
+                ` : ''}
+                ${ev.duplicate_pro ? `
+                <div class="flex justify-between text-neutral-400">
+                  <span>Original PRO:</span>
+                  <span class="text-neutral-200">${ev.original_invoice} (${ev.original_date})</span>
+                </div>
+                ` : ''}
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Evidence Links & Citations -->
+          <div class="bg-[#0e0e0e] border border-[#1c1c1c] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div class="flex items-center space-x-2 text-neutral-300">
+              <span class="text-neutral-500 font-mono">Clause:</span>
+              <span class="font-semibold text-white">${ev.contract_clause || 'Item Standard Rules Tariff'}</span>
+              ${ev.page_number ? `<span class="text-neutral-500">(Page ${ev.page_number})</span>` : ''}
+            </div>
+
+            <div class="flex items-center space-x-3">
+              <button onclick="alert('Viewing original document: ${flag.file_path}')" class="px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-neutral-200 border border-neutral-700 transition flex items-center space-x-1 font-mono text-[11px]">
+                <span>📄 View Original PDF</span>
+                <span>↗</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Action Buttons / Judgment Controls -->
+          <div class="pt-4 border-t border-[#1a1a1a] flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center space-x-2 text-xs text-neutral-500 font-mono">
+              <span>Card ${currentFlagIndex + 1} of ${filtered.length}</span>
+            </div>
+
+            <div class="flex items-center space-x-3">
+              ${activeTab === 'research' ? `
+                <button onclick="openResolveModal('${flag.id}')" class="px-5 py-2.5 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-lg flex items-center space-x-2">
+                  <span>✓ Resolve Research Flag</span>
+                </button>
+              ` : `
+                <!-- Needs Research [S] -->
+                <button onclick="openResearchModal('${flag.id}')" class="px-4 py-2 text-xs font-semibold rounded-xl bg-[#141414] hover:bg-[#1c1c1c] text-amber-300 border border-amber-900/60 transition flex items-center space-x-2">
+                  <span>? Needs Research</span>
+                  <span class="kbd-shortcut">S</span>
+                </button>
+
+                <!-- Reject [R] -->
+                <button onclick="openRejectModal('${flag.id}')" class="px-4 py-2 text-xs font-semibold rounded-xl bg-[#141414] hover:bg-rose-950/40 text-rose-400 border border-rose-900/60 transition flex items-center space-x-2">
+                  <span>✘ Reject</span>
+                  <span class="kbd-shortcut">R</span>
+                </button>
+
+                <!-- Approve [A] -->
+                <button onclick="approveCurrentFlag('${flag.id}')" class="px-6 py-2.5 text-xs font-bold rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black transition shadow-lg shadow-emerald-950/50 flex items-center space-x-2">
+                  <span>✔ Approve (Stage for Report)</span>
+                  <span class="kbd-shortcut text-black border-emerald-700 bg-emerald-400">A</span>
+                </button>
+              `}
+            </div>
+          </div>
+
+        </div>
+      `;
+    }
+
+    // Actions
+    let activeModalFlagId = null;
+
+    function approveCurrentFlag(flagId) {
+      recordDuration();
+      const flag = flagsData.find(f => f.id === flagId);
+      if (flag) {
+        flag.review_status = "approved";
+        flag.reviewed_by = REVIEWER_ID;
+      }
+      renderActiveCard();
+    }
+
+    function openRejectModal(flagId) {
+      activeModalFlagId = flagId;
+      document.getElementById("reject-reason-select").value = "";
+      document.getElementById("reject-notes-input").value = "";
+      document.getElementById("reject-modal").classList.remove("hidden");
+    }
+
+    function closeRejectModal() {
+      document.getElementById("reject-modal").classList.add("hidden");
+    }
+
+    function submitRejection() {
+      const reasonCode = document.getElementById("reject-reason-select").value;
+      if (!reasonCode) {
+        alert("A mandatory reason code from the 8-code taxonomy is strictly required to reject a flag.");
+        return;
+      }
+
+      recordDuration();
+      const flag = flagsData.find(f => f.id === activeModalFlagId);
+      if (flag) {
+        flag.review_status = "rejected";
+        flag.reject_reason_code = reasonCode;
+        flag.reviewed_by = REVIEWER_ID;
+      }
+
+      closeRejectModal();
+      renderActiveCard();
+    }
+
+    function openResearchModal(flagId) {
+      activeModalFlagId = flagId;
+      document.getElementById("research-notes-input").value = "";
+      document.getElementById("research-modal").classList.remove("hidden");
+    }
+
+    function closeResearchModal() {
+      document.getElementById("research-modal").classList.add("hidden");
+    }
+
+    function submitNeedsResearch() {
+      const notes = document.getElementById("research-notes-input").value.trim();
+      if (!notes) {
+        alert("Research notes are required so the flag can be resolved.");
+        return;
+      }
+
+      recordDuration();
+      const flag = flagsData.find(f => f.id === activeModalFlagId);
+      if (flag) {
+        flag.review_status = "research";
+        flag.reviewed_by = REVIEWER_ID;
+        flag.research_notes = notes;
+      }
+
+      closeResearchModal();
+      renderActiveCard();
+    }
+
+    function openResolveModal(flagId) {
+      activeModalFlagId = flagId;
+      document.getElementById("resolve-notes-input").value = "";
+      document.getElementById("resolve-modal").classList.remove("hidden");
+    }
+
+    function closeResolveModal() {
+      document.getElementById("resolve-modal").classList.add("hidden");
+    }
+
+    function submitResolution() {
+      const action = document.getElementById("resolve-action-select").value;
+      const notes = document.getElementById("resolve-notes-input").value.trim();
+      if (!notes) {
+        alert("Resolution notes are required.");
+        return;
+      }
+
+      recordDuration();
+      const flag = flagsData.find(f => f.id === activeModalFlagId);
+      if (flag) {
+        flag.review_status = action;
+        flag.resolution_notes = notes;
+      }
+
+      closeResolveModal();
+      renderActiveCard();
+    }
+
+    function switchTab(tabName) {
+      activeTab = tabName;
+      currentFlagIndex = 0;
+
+      ["pending", "research", "approved", "rejected", "analytics"].forEach(t => {
+        const btn = document.getElementById("tab-" + t);
+        if (btn) {
+          if (t === tabName) {
+            btn.className = "px-4 py-2 text-xs font-semibold rounded-lg bg-white text-black transition";
+          } else {
+            btn.className = "px-4 py-2 text-xs font-semibold rounded-lg bg-[#111] hover:bg-[#181818] text-neutral-300 border border-[#222] transition";
+          }
+        }
+      });
+
+      if (tabName === "analytics") {
+        renderAnalytics();
+      } else {
+        document.getElementById("analytics-container").classList.add("hidden");
+        document.getElementById("flag-card-container").classList.remove("hidden");
+        document.getElementById("filter-controls-group").classList.remove("hidden");
+        renderActiveCard();
+      }
+    }
+
+    function renderAnalytics() {
+      const analyticsContainer = document.getElementById("analytics-container");
+      analyticsContainer.classList.remove("hidden");
+      document.getElementById("flag-card-container").classList.add("hidden");
+      document.getElementById("empty-queue-state").classList.add("hidden");
+      document.getElementById("filter-controls-group").classList.add("hidden");
+      if (timerInterval) clearInterval(timerInterval);
+
+      // Compute analytics
+      const approved = flagsData.filter(f => f.review_status === "approved").length;
+      const rejected = flagsData.filter(f => f.review_status === "rejected").length;
+      const pending = flagsData.filter(f => f.review_status === "pending").length;
+      const research = flagsData.filter(f => f.review_status === "research").length;
+      const totalReviewed = approved + rejected;
+      const precision = totalReviewed > 0 ? ((approved / totalReviewed) * 100).toFixed(1) : "0.0";
+      const precNum = parseFloat(precision);
+
+      let trajectoryBadge = "";
+      let trajectoryColor = "";
+      if (totalReviewed === 0) {
+        trajectoryBadge = "No Reviews Completed";
+        trajectoryColor = "bg-neutral-900 text-neutral-400 border-neutral-700";
+      } else if (precNum >= 98.0) {
+        trajectoryBadge = "Enterprise Quality Met (≥98%)";
+        trajectoryColor = "bg-purple-950 text-purple-300 border-purple-800";
+      } else if (precNum >= 95.0) {
+        trajectoryBadge = "W4-5 Scale Target Met (≥95%)";
+        trajectoryColor = "bg-blue-950 text-blue-300 border-blue-800";
+      } else if (precNum >= 90.0) {
+        trajectoryBadge = "Pilot Gate Passed (≥90%)";
+        trajectoryColor = "bg-emerald-950 text-emerald-300 border-emerald-800";
+      } else {
+        trajectoryBadge = "Below 90% Quality Gate";
+        trajectoryColor = "bg-rose-950 text-rose-300 border-rose-800";
+      }
+
+      // Check type breakdown
+      const checks = ["RATE", "FSC", "DUP", "ARITH"];
+      const checkCards = checks.map(c => {
+        const cApp = flagsData.filter(f => f.check_type === c && f.review_status === "approved").length;
+        const cRej = flagsData.filter(f => f.check_type === c && f.review_status === "rejected").length;
+        const cTot = cApp + cRej;
+        const cPrec = cTot > 0 ? ((cApp / cTot) * 100).toFixed(1) : "--";
+        const passed = cTot > 0 && parseFloat(cPrec) >= 90.0;
+        return `
+          <div class="bg-black/60 border border-[#222] rounded-xl p-4 space-y-2">
+            <div class="flex items-center justify-between text-xs font-mono">
+              <span class="font-bold text-white">${c}</span>
+              <span class="px-2 py-0.5 rounded text-[10px] ${passed ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-neutral-900 text-neutral-400 border border-neutral-800'}">
+                ${cTot > 0 ? (passed ? 'Gate Passed' : 'In Progress') : 'No Data'}
+              </span>
+            </div>
+            <div class="text-xl font-bold font-mono ${passed ? 'text-emerald-400' : 'text-white'}">
+              ${cPrec}${cTot > 0 ? '%' : ''}
+            </div>
+            <div class="text-[11px] font-mono text-neutral-500">
+              ${cApp} approved / ${cRej} rejected (${cTot} evaluated)
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      // Carrier breakdown
+      const carriers = ["ABF Freight", "XPO Logistics", "Roadrunner"];
+      const carrierCards = carriers.map(carr => {
+        const cApp = flagsData.filter(f => f.carrier === carr && f.review_status === "approved").length;
+        const cRej = flagsData.filter(f => f.carrier === carr && f.review_status === "rejected").length;
+        const cTot = cApp + cRej;
+        const cPrec = cTot > 0 ? ((cApp / cTot) * 100).toFixed(1) : "--";
+        return `
+          <div class="bg-black/60 border border-[#222] rounded-xl p-4 space-y-2">
+            <div class="text-xs font-bold text-neutral-200">${carr}</div>
+            <div class="text-xl font-bold font-mono text-white">${cPrec}${cTot > 0 ? '%' : ''}</div>
+            <div class="text-[11px] font-mono text-neutral-500">${cApp} app. / ${cRej} rej. (${cTot} total)</div>
+          </div>
+        `;
+      }).join("");
+
+      // Rejections frequency
+      const rejectionGroups = {};
+      flagsData.filter(f => f.review_status === "rejected").forEach(f => {
+        const code = f.reject_reason_code || "other";
+        rejectionGroups[code] = (rejectionGroups[code] || 0) + 1;
+      });
+
+      const sortedRejections = Object.entries(rejectionGroups).sort((a, b) => b[1] - a[1]);
+      const rejectionRows = sortedRejections.length > 0 ? sortedRejections.map(([code, count]) => {
+        const pct = ((count / (rejected || 1)) * 100).toFixed(1);
+        return `
+          <tr class="border-b border-[#181818] font-mono text-xs">
+            <td class="py-2.5 text-neutral-200 font-semibold">${code}</td>
+            <td class="py-2.5 text-neutral-300 text-center">${count}</td>
+            <td class="py-2.5 text-neutral-400 text-right">${pct}%</td>
+          </tr>
+        `;
+      }).join("") : `
+        <tr><td colspan="3" class="py-4 text-center text-xs text-neutral-500 font-mono">No rejections recorded. 100% precision.</td></tr>
+      `;
+
+      // Fix Tickets
+      const remediationMap = {
+        "wrong-matrix-row": { cat: "contract_parser", act: "Audit ContractParser RateMatrixJSON generation: verify 3-digit vs 5-digit zip prefix priority and weight break order." },
+        "misread-pdf-field": { cat: "invoice_parser", act: "Calibrate InvoiceParser LLM prompt extraction and bounding box checks for PRO# and Linehaul total." },
+        "contract-exception-misapplied": { cat: "contract_parser", act: "Refine contractual rider and exception extraction in Quality Ladder Rungs A & B." },
+        "not-an-error": { cat: "audit_engine", act: "Review deterministic audit rules; verify baseline carrier tariff rules and customer negotiated exclusions." },
+        "duplicate-false-positive": { cat: "audit_engine", act: "Tighten check_duplicates time window; verify BOL tracking rules." },
+        "fsc-table-wrong-month": { cat: "fsc_engine", act: "Audit FSCTable and EIA benchmark alignment. Verify Monday DOE benchmark price windowing." },
+        "rate-effective-date-mismatch": { cat: "contract_parser", act: "Verify rate_matrices effective date windows to prevent out-of-scope auditing." },
+        "other": { cat: "audit_engine", act: "Manual engineering investigation of ad-hoc rejection notes in review_events." },
+      };
+
+      const ticketsHtml = sortedRejections.length > 0 ? sortedRejections.map(([code, count]) => {
+        const rem = remediationMap[code] || remediationMap["other"];
+        const prio = count >= 5 ? "HIGH" : (count >= 2 ? "MEDIUM" : "LOW");
+        const prioColor = prio === "HIGH" ? "bg-rose-950 text-rose-300 border-rose-800" : (prio === "MEDIUM" ? "bg-amber-950 text-amber-300 border-amber-800" : "bg-neutral-900 text-neutral-400 border-neutral-700");
+        return `
+          <div class="bg-black/60 border border-[#222] rounded-xl p-4 space-y-2 text-xs">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <span class="px-2 py-0.5 rounded font-mono text-[10px] border ${prioColor}">${prio}</span>
+                <span class="font-mono text-neutral-300 font-bold">TICKET-${rem.cat.toUpperCase()}-${code.replace(/-/g, '_').toUpperCase()}</span>
+              </div>
+              <span class="font-mono text-neutral-500 text-[11px]">${count} rejections</span>
+            </div>
+            <div class="text-neutral-400 leading-relaxed font-sans">
+              ${rem.act}
+            </div>
+          </div>
+        `;
+      }).join("") : `
+        <div class="text-center py-6 text-xs text-neutral-500 font-mono">Zero open fix tickets. All audited checks performing within tolerance.</div>
+      `;
+
+      analyticsContainer.innerHTML = `
+        <div class="bg-gradient-to-b from-[#0e0e0e] to-[#080808] border border-[#222] rounded-2xl p-6 sm:p-8 space-y-8 shadow-2xl">
+          
+          <!-- Top Title & Action Header -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1c1c1c] pb-5">
+            <div class="space-y-1">
+              <div class="flex items-center space-x-3">
+                <h2 class="text-lg font-bold text-white">Precision & Feedback Loop Dashboard</h2>
+                <span class="text-xs px-2.5 py-0.5 rounded-full font-mono font-semibold border ${trajectoryColor}">
+                  ${trajectoryBadge}
+                </span>
+              </div>
+              <p class="text-xs text-neutral-400">
+                PRD §5.5 & §10 Quality Engine: tracks post-review precision and auto-generates parser/prompt fix tickets.
+              </p>
+            </div>
+
+            <button onclick="runMonthlyRetroModal()" class="px-4 py-2 text-xs font-semibold rounded-lg bg-white text-black hover:bg-neutral-200 transition shadow-lg flex items-center space-x-1.5 font-mono">
+              <span>📋 Run Monthly Retro & Export</span>
+            </button>
+          </div>
+
+          <!-- Main Precision Scorecard -->
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div class="bg-black/80 border border-[#262626] rounded-xl p-5 space-y-1">
+              <div class="text-[11px] font-mono text-neutral-500 uppercase tracking-wider">Overall Precision</div>
+              <div class="text-3xl font-bold font-mono text-emerald-400">${precision}%</div>
+              <div class="text-xs text-neutral-400">Gate: ≥90.0% (PRD §10)</div>
+            </div>
+            <div class="bg-black/80 border border-[#262626] rounded-xl p-5 space-y-1">
+              <div class="text-[11px] font-mono text-neutral-500 uppercase tracking-wider">Approved (Valid Flags)</div>
+              <div class="text-3xl font-bold font-mono text-white">${approved}</div>
+              <div class="text-xs text-neutral-400">Staged for Recovery Report</div>
+            </div>
+            <div class="bg-black/80 border border-[#262626] rounded-xl p-5 space-y-1">
+              <div class="text-[11px] font-mono text-neutral-500 uppercase tracking-wider">Rejected (False Positives)</div>
+              <div class="text-3xl font-bold font-mono text-rose-400">${rejected}</div>
+              <div class="text-xs text-neutral-400">Feedback training data</div>
+            </div>
+            <div class="bg-black/80 border border-[#262626] rounded-xl p-5 space-y-1">
+              <div class="text-[11px] font-mono text-neutral-500 uppercase tracking-wider">Total Evaluated</div>
+              <div class="text-3xl font-bold font-mono text-blue-400">${totalReviewed}</div>
+              <div class="text-xs text-neutral-400">${pending} pending in queue</div>
+            </div>
+          </div>
+
+          <!-- Section: Precision by Check Type -->
+          <div class="space-y-3">
+            <h3 class="text-xs font-bold uppercase font-mono tracking-wider text-neutral-400">Precision by Deterministic Check Type</h3>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              ${checkCards}
+            </div>
+          </div>
+
+          <!-- Section: Precision by Carrier -->
+          <div class="space-y-3">
+            <h3 class="text-xs font-bold uppercase font-mono tracking-wider text-neutral-400">Precision by Top-3 Carriers</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              ${carrierCards}
+            </div>
+          </div>
+
+          <!-- Bottom Grid: Reason Codes Leaderboard + Generated Fix Tickets -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-[#1c1c1c]">
+            
+            <!-- Left: Reason Code Failure Modes -->
+            <div class="space-y-3">
+              <h3 class="text-xs font-bold uppercase font-mono tracking-wider text-neutral-400">
+                Top Rejection Reason Codes (Failure Modes)
+              </h3>
+              <div class="bg-black/50 border border-[#222] rounded-xl p-4">
+                <table class="w-full text-left">
+                  <thead>
+                    <tr class="border-b border-[#222] font-mono text-[11px] text-neutral-500">
+                      <th class="pb-2 font-normal">Reason Code (Taxonomy)</th>
+                      <th class="pb-2 font-normal text-center">Count</th>
+                      <th class="pb-2 font-normal text-right">% Rejections</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${rejectionRows}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Right: Generated Fix Tickets -->
+            <div class="space-y-3">
+              <h3 class="text-xs font-bold uppercase font-mono tracking-wider text-neutral-400">
+                Prioritized Parser & Prompt Fix Tickets
+              </h3>
+              <div class="space-y-3">
+                ${ticketsHtml}
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      `;
+    }
+
+    function runMonthlyRetroModal() {
+      const approved = flagsData.filter(f => f.review_status === "approved").length;
+      const rejected = flagsData.filter(f => f.review_status === "rejected").length;
+      const total = approved + rejected;
+      const precision = total > 0 ? ((approved / total) * 100).toFixed(1) : "0.0";
+      const now = new Date().toISOString();
+
+      let markdown = `# RateGuard AI — Monthly Precision Retrospective Report (2026-08)\n`;
+      markdown += `**Generated:** ${now} | **Status:** ${parseFloat(precision) >= 90.0 ? 'PILOT_GATE_PASSED' : 'BELOW_TARGET'}\n\n`;
+      markdown += `## 1. Executive Quality Scoreboard\n`;
+      markdown += `- Total Reviewed Flags: ${total}\n`;
+      markdown += `- Approved Flags (Staged for Recovery Report): ${approved}\n`;
+      markdown += `- Rejected Flags (False Positives): ${rejected}\n`;
+      markdown += `- **Post-Review Precision:** **${precision}%** (Target: ≥90.0% Pilot / ≥95.0% Scale)\n\n`;
+      markdown += `## 2. Check Type Precision Breakdown\n`;
+      markdown += `| Check Type | Approved | Rejected | Total | Precision | Status |\n`;
+      markdown += `| :--- | :--- | :--- | :--- | :--- | :--- |\n`;
+
+      ["RATE", "FSC", "DUP", "ARITH"].forEach(c => {
+        const ca = flagsData.filter(f => f.check_type === c && f.review_status === "approved").length;
+        const cr = flagsData.filter(f => f.check_type === c && f.review_status === "rejected").length;
+        const ct = ca + cr;
+        const cp = ct > 0 ? ((ca / ct) * 100).toFixed(1) : "--";
+        markdown += `| ${c} | ${ca} | ${cr} | ${ct} | ${cp}% | ${ct > 0 && parseFloat(cp) >= 90.0 ? 'PASSED' : 'PENDING'} |\n`;
+      });
+
+      markdown += `\n## 3. Top Rejection Reason Codes\n`;
+      const rejMap = {};
+      flagsData.filter(f => f.review_status === "rejected").forEach(f => {
+        const code = f.reject_reason_code || "other";
+        rejMap[code] = (rejMap[code] || 0) + 1;
+      });
+      Object.entries(rejMap).sort((a,b) => b[1] - a[1]).forEach(([code, count]) => {
+        markdown += `- \`${code}\`: ${count} rejections\n`;
+      });
+
+      document.getElementById("retro-markdown-display").value = markdown;
+      document.getElementById("retro-copy-feedback").classList.add("hidden");
+      document.getElementById("retro-modal").classList.remove("hidden");
+    }
+
+    function closeRetroModal() {
+      document.getElementById("retro-modal").classList.add("hidden");
+    }
+
+    function copyRetroMarkdown() {
+      const textarea = document.getElementById("retro-markdown-display");
+      textarea.select();
+      navigator.clipboard.writeText(textarea.value).then(() => {
+        const feedback = document.getElementById("retro-copy-feedback");
+        feedback.classList.remove("hidden");
+        setTimeout(() => feedback.classList.add("hidden"), 3000);
+      });
+    }
+
+    function applyFilters() {
+      currentFlagIndex = 0;
+      renderActiveCard();
+    }
+
+    function resetDemoQueue() {
+      flagsData.forEach(f => {
+        f.review_status = "pending";
+        f.reject_reason_code = null;
+      });
+      activeTab = "pending";
+      currentFlagIndex = 0;
+      renderActiveCard();
+    }
+
+    // Keyboard Shortcuts Listener
+    window.addEventListener("keydown", (e) => {
+      // Avoid hotkeys when typing in inputs/textareas
+      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT") {
+        return;
+      }
+
+      const filtered = getFilteredFlags();
+      if (filtered.length === 0) return;
+      const currentFlag = filtered[currentFlagIndex];
+
+      if (e.key === "a" || e.key === "A") {
+        if (activeTab !== "research") approveCurrentFlag(currentFlag.id);
+      } else if (e.key === "r" || e.key === "R") {
+        if (activeTab !== "research") openRejectModal(currentFlag.id);
+      } else if (e.key === "s" || e.key === "S") {
+        if (activeTab !== "research") openResearchModal(currentFlag.id);
+      } else if (e.key === "ArrowRight" || e.key === "j") {
+        if (currentFlagIndex < filtered.length - 1) {
+          currentFlagIndex++;
+          renderActiveCard();
+        }
+      } else if (e.key === "ArrowLeft" || e.key === "k") {
+        if (currentFlagIndex > 0) {
+          currentFlagIndex--;
+          renderActiveCard();
+        }
+      }
+    });
+
+    // Initial Load
+    renderActiveCard();
+  </script>
+</body>
+</html>

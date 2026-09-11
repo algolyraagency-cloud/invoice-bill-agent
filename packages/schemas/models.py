@@ -2,7 +2,7 @@
 Shared Pydantic v2 schemas for RateGuard AI.
 Mirrored in TypeScript via Zod (packages/schemas/index.ts).
 """
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -186,4 +186,105 @@ class AuditRunResult(BaseModel):
     stats: AuditRunStats
     flags_by_invoice: Dict[str, List[Flag]] = Field(default_factory=dict)
     all_flags: List[Flag] = Field(default_factory=list)
+
+
+ReviewAction = Literal["approve", "reject", "research", "resolve_research"]
+
+
+class ReviewActionRequest(BaseModel):
+    flag_id: str = Field(..., description="Target flag UUID")
+    action: ReviewAction = Field(..., description="Review action to perform")
+    reviewer_id: str = Field(..., description="User ID performing review")
+    reason_code: Optional[str] = Field(None, description="Required for reject action from 8-code taxonomy")
+    notes: Optional[str] = Field(None, description="Reviewer notes (mandatory for research)")
+    duration_seconds: Optional[float] = Field(None, description="Time spent reviewing this flag in seconds")
+
+
+class ReviewQueueItem(BaseModel):
+    id: str = Field(..., description="Flag UUID")
+    invoice_id: str = Field(..., description="Associated invoice UUID")
+    check_type: str = Field(..., description="DUP, RATE, FSC, ARITH, etc.")
+    overcharge_cents: int = Field(..., description="Calculated overcharge discrepancy")
+    confidence: float = Field(default=1.0, ge=0.0, le=1.0)
+    evidence_json: Dict[str, Any] = Field(default_factory=dict)
+    review_status: str = Field(default="pending", description="pending, approved, rejected, research")
+    reject_reason_code: Optional[str] = None
+    reviewed_by: Optional[str] = None
+    reviewed_at: Optional[str] = None
+    # Joined invoice metadata
+    carrier: str = Field(..., description="Carrier name")
+    pro_number: str = Field(..., description="PRO tracking number")
+    invoice_number: str = Field(..., description="Carrier invoice number")
+    invoice_date: str = Field(..., description="Invoice billing date")
+    invoice_total: float = Field(..., description="Billed invoice total amount in dollars")
+    file_path: Optional[str] = None
+    signed_pdf_url: Optional[str] = None
+    customer_id: Optional[str] = None
+    created_at: Optional[str] = None
+
+
+class ReviewQueueSummary(BaseModel):
+    pending_count: int = 0
+    approved_count: int = 0
+    rejected_count: int = 0
+    research_count: int = 0
+    total_reviewed_count: int = 0
+    total_approved_overcharge_cents: int = 0
+    avg_duration_seconds: float = 0.0
+    flags_by_check_type: Dict[str, int] = Field(default_factory=dict)
+    flags_by_carrier: Dict[str, int] = Field(default_factory=dict)
+
+
+class ReviewEventRecord(BaseModel):
+    id: Optional[str] = None
+    flag_id: str
+    action: str
+    reason_code: Optional[str] = None
+    reviewer: str
+    notes: Optional[str] = None
+    duration_seconds: Optional[float] = None
+    created_at: Optional[str] = None
+
+
+class PrecisionReportItem(BaseModel):
+    category: str = Field(..., description="overall, check_type, or carrier")
+    name: str = Field(..., description="e.g. OVERALL, RATE, FSC, ABF Freight")
+    approved_count: int = 0
+    rejected_count: int = 0
+    pending_count: int = 0
+    research_count: int = 0
+    total_reviewed: int = 0
+    precision_pct: float = 0.0
+    meets_pilot_target: bool = False  # >= 90.0%
+    meets_scale_target: bool = False  # >= 95.0%
+    meets_enterprise_target: bool = False  # >= 98.0%
+
+
+class FeedbackTicket(BaseModel):
+    ticket_id: str = Field(..., description="Unique ticket ID e.g. TICKET-CONTRACT-001")
+    reason_code: str = Field(..., description="Rejection reason code from 8-code taxonomy")
+    rejection_count: int = 0
+    percentage_of_rejections: float = 0.0
+    category: str = Field(..., description="contract_parser, invoice_parser, fsc_engine, or audit_engine")
+    priority: str = Field(default="MEDIUM", description="HIGH, MEDIUM, LOW")
+    affected_carrier: Optional[str] = None
+    affected_check_type: Optional[str] = None
+    recommended_action: str = Field(..., description="Concrete prompt/code fix recommendation")
+    sample_flag_ids: List[str] = Field(default_factory=list)
+    created_at: str = Field(..., description="Timestamp ISO string")
+
+
+class MonthlyRetroReport(BaseModel):
+    month: str = Field(..., description="YYYY-MM period e.g. 2026-08")
+    total_flags_reviewed: int = 0
+    total_approved: int = 0
+    total_rejected: int = 0
+    overall_precision_pct: float = 0.0
+    trajectory_status: str = Field(default="PILOT_GATE_PASSED", description="BELOW_TARGET, PILOT_GATE_PASSED, SCALE_TARGET_MET, ENTERPRISE_MET")
+    precision_by_check_type: Dict[str, PrecisionReportItem] = Field(default_factory=dict)
+    precision_by_carrier: Dict[str, PrecisionReportItem] = Field(default_factory=dict)
+    top_reason_codes: List[Dict[str, Any]] = Field(default_factory=list)
+    generated_tickets: List[FeedbackTicket] = Field(default_factory=list)
+    generated_at: str = Field(..., description="Generation timestamp ISO string")
+
 

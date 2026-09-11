@@ -177,6 +177,62 @@ export const AuditRunResultSchema = z.object({
   all_flags: z.array(FlagSchema).default([]),
 });
 
+export const ReviewActionSchema = z.enum(['approve', 'reject', 'research', 'resolve_research']);
+
+export const ReviewActionRequestSchema = z.object({
+  flag_id: z.string(),
+  action: ReviewActionSchema,
+  reviewer_id: z.string(),
+  reason_code: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  duration_seconds: z.number().optional().nullable(),
+});
+
+export const ReviewQueueItemSchema = z.object({
+  id: z.string(),
+  invoice_id: z.string(),
+  check_type: z.string(),
+  overcharge_cents: z.number().int(),
+  confidence: z.number().min(0).max(1).default(1.0),
+  evidence_json: z.record(z.any()).default({}),
+  review_status: z.enum(['pending', 'approved', 'rejected', 'research']).default('pending'),
+  reject_reason_code: z.string().optional().nullable(),
+  reviewed_by: z.string().optional().nullable(),
+  reviewed_at: z.string().optional().nullable(),
+  carrier: z.string(),
+  pro_number: z.string(),
+  invoice_number: z.string(),
+  invoice_date: z.string(),
+  invoice_total: z.number(),
+  file_path: z.string().optional().nullable(),
+  signed_pdf_url: z.string().optional().nullable(),
+  customer_id: z.string().optional().nullable(),
+  created_at: z.string().optional().nullable(),
+});
+
+export const ReviewQueueSummarySchema = z.object({
+  pending_count: z.number().int().default(0),
+  approved_count: z.number().int().default(0),
+  rejected_count: z.number().int().default(0),
+  research_count: z.number().int().default(0),
+  total_reviewed_count: z.number().int().default(0),
+  total_approved_overcharge_cents: z.number().int().default(0),
+  avg_duration_seconds: z.number().default(0),
+  flags_by_check_type: z.record(z.number().int()).default({}),
+  flags_by_carrier: z.record(z.number().int()).default({}),
+});
+
+export const ReviewEventRecordSchema = z.object({
+  id: z.string().optional().nullable(),
+  flag_id: z.string(),
+  action: z.string(),
+  reason_code: z.string().optional().nullable(),
+  reviewer: z.string(),
+  notes: z.string().optional().nullable(),
+  duration_seconds: z.number().optional().nullable(),
+  created_at: z.string().optional().nullable(),
+});
+
 export type LineItem = z.infer<typeof LineItemSchema>;
 export type Accessorial = z.infer<typeof AccessorialSchema>;
 export type InvoiceJSON = z.infer<typeof InvoiceJSONSchema>;
@@ -193,4 +249,55 @@ export type ContractValidationResult = z.infer<typeof ContractValidationResultSc
 export type CalibrationMetric = z.infer<typeof CalibrationMetricSchema>;
 export type AuditRunStats = z.infer<typeof AuditRunStatsSchema>;
 export type AuditRunResult = z.infer<typeof AuditRunResultSchema>;
+export type ReviewAction = z.infer<typeof ReviewActionSchema>;
+export type ReviewActionRequest = z.infer<typeof ReviewActionRequestSchema>;
+export type ReviewQueueItem = z.infer<typeof ReviewQueueItemSchema>;
+export type ReviewQueueSummary = z.infer<typeof ReviewQueueSummarySchema>;
+export type ReviewEventRecord = z.infer<typeof ReviewEventRecordSchema>;
+
+export const PrecisionReportItemSchema = z.object({
+  category: z.string(),
+  name: z.string(),
+  approved_count: z.number().int().default(0),
+  rejected_count: z.number().int().default(0),
+  pending_count: z.number().int().default(0),
+  research_count: z.number().int().default(0),
+  total_reviewed: z.number().int().default(0),
+  precision_pct: z.number().default(0),
+  meets_pilot_target: z.boolean().default(false),
+  meets_scale_target: z.boolean().default(false),
+  meets_enterprise_target: z.boolean().default(false),
+});
+
+export const FeedbackTicketSchema = z.object({
+  ticket_id: z.string(),
+  reason_code: z.string(),
+  rejection_count: z.number().int().default(0),
+  percentage_of_rejections: z.number().default(0),
+  category: z.string(),
+  priority: z.enum(['HIGH', 'MEDIUM', 'LOW']).default('MEDIUM'),
+  affected_carrier: z.string().optional().nullable(),
+  affected_check_type: z.string().optional().nullable(),
+  recommended_action: z.string(),
+  sample_flag_ids: z.array(z.string()).default([]),
+  created_at: z.string(),
+});
+
+export const MonthlyRetroReportSchema = z.object({
+  month: z.string(),
+  total_flags_reviewed: z.number().int().default(0),
+  total_approved: z.number().int().default(0),
+  total_rejected: z.number().int().default(0),
+  overall_precision_pct: z.number().default(0),
+  trajectory_status: z.string().default('PILOT_GATE_PASSED'),
+  precision_by_check_type: z.record(PrecisionReportItemSchema).default({}),
+  precision_by_carrier: z.record(PrecisionReportItemSchema).default({}),
+  top_reason_codes: z.array(z.record(z.any())).default([]),
+  generated_tickets: z.array(FeedbackTicketSchema).default([]),
+  generated_at: z.string(),
+});
+
+export type PrecisionReportItem = z.infer<typeof PrecisionReportItemSchema>;
+export type FeedbackTicket = z.infer<typeof FeedbackTicketSchema>;
+export type MonthlyRetroReport = z.infer<typeof MonthlyRetroReportSchema>;
 
