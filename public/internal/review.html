@@ -440,12 +440,17 @@
         </div>
 
         <!-- Real-time Processing Console -->
-        <div id="upload-audit-trace" class="hidden bg-black border border-[#222] rounded-xl p-3 font-mono text-[11px] space-y-1 text-neutral-300">
+        <div id="upload-audit-trace" class="hidden bg-black border border-[#222] rounded-xl p-4 font-mono text-[11px] space-y-2 text-neutral-300">
           <div class="text-neutral-500">// Real-Time Ingestion & Audit Pipeline</div>
           <div id="trace-step-1" class="text-neutral-400">> Step 1: Ingesting file & computing SHA-256 checksum...</div>
           <div id="trace-step-2" class="text-neutral-500">> Step 2: Extraction self-validation (re-deriving line items)...</div>
           <div id="trace-step-3" class="text-neutral-500">> Step 3: Executing deterministic checks 1-4...</div>
-          <div id="trace-step-4" class="text-emerald-400 font-bold hidden">> SUCCESS: Invoice audited and added to Review Queue!</div>
+          <div id="trace-step-4" class="text-emerald-400 font-bold hidden pt-2 space-y-2 border-t border-[#1a1a1a]">
+            <div>> SUCCESS: Invoice audited and loaded as Flag 1 in Review Queue!</div>
+            <button onclick="closeUploadModal()" class="w-full py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-mono text-xs font-bold transition flex items-center justify-center space-x-1.5 shadow-md">
+              <span>👉 View Audited Invoice in Queue</span>
+            </button>
+          </div>
         </div>
 
         <div class="flex items-center justify-end space-x-3 pt-2">
@@ -1299,18 +1304,28 @@
       const s3 = document.getElementById("trace-step-3");
       const s4 = document.getElementById("trace-step-4");
 
+      const isABF = fileName.toLowerCase().includes('abf');
+      const isXPO = fileName.toLowerCase().includes('xpo');
       s4.classList.add("hidden");
       s1.className = "text-white font-semibold";
       s1.innerText = `> Step 1: Ingesting ${fileName} (SHA-256 computed: c89a01f4...)`;
       
       setTimeout(() => {
         s2.className = "text-white font-semibold";
-        s2.innerText = "> Step 2: Extraction self-validation -> Sum line items ($786.25 + $51.25 + $25.00 = $862.50) reconciled, 98% confidence";
+        if (isXPO) {
+          s2.innerText = "> Step 2: Extraction self-validation -> Sum line items ($462.00 + $34.50 + $15.90 = $512.40) reconciled, 99% confidence";
+        } else {
+          s2.innerText = "> Step 2: Extraction self-validation -> Sum line items ($786.25 + $51.25 + $25.00 = $862.50) reconciled, 98% confidence";
+        }
       }, 400);
 
       setTimeout(() => {
         s3.className = "text-white font-semibold";
-        s3.innerText = "> Step 3: Executing Checks 1-4 -> Discrepancy detected: Item 100-D Deficit Bumping error (+$76.25 overcharge)";
+        if (isXPO) {
+          s3.innerText = "> Step 3: Executing Checks 1-4 -> Discrepancy detected: Check 2 (FSC) Fuel Surcharge peg error (+$18.50 overcharge)";
+        } else {
+          s3.innerText = "> Step 3: Executing Checks 1-4 -> Discrepancy detected: Check 1 (RATE) Deficit Bumping error (+$76.25 overcharge)";
+        }
       }, 800);
 
       setTimeout(() => {
@@ -1318,18 +1333,17 @@
         
         // Add new flag to queue
         const newId = "flag_user_" + Date.now();
-        const isABF = fileName.toLowerCase().includes('abf');
         const newFlag = {
           id: newId,
           invoice_id: "inv_user_" + Date.now(),
           carrier: isABF ? "ABF Freight" : "XPO Logistics",
           pro_number: isABF ? "042-889123" : "XPO-551928",
           invoice_number: isABF ? "INV-ABF-7712" : "INV-XPO-9914",
-          invoice_date: "2026-08-16",
+          invoice_date: isABF ? "2026-08-16" : "2026-08-18",
           invoice_total: isABF ? 862.50 : 512.40,
           check_type: isABF ? "RATE" : "FSC",
           overcharge_cents: isABF ? 7625 : 1850,
-          confidence: 0.98,
+          confidence: isABF ? 0.98 : 0.99,
           review_status: "pending",
           reject_reason_code: null,
           evidence_json: {
@@ -1338,15 +1352,15 @@
             contract_clause: isABF ? "Item 100-D (Deficit Weight Bumping)" : "Item 220-A (EIA Fuel Surcharge Scale)",
             page_number: isABF ? 14 : 7,
             billed_value: isABF ? 786.25 : 34.50,
-            correct_value: isABF ? 710.00 : 32.40,
+            correct_value: isABF ? 710.00 : 16.00,
             overcharge_cents: isABF ? 7625 : 1850,
             billed_weight: isABF ? 4250 : null,
             billed_rate: isABF ? 18.50 : null,
             correct_rate: isABF ? 14.20 : null,
             bumped_break: isABF ? "M5M (5,000 lbs)" : null,
-            lane: isABF ? "303 -> 606" : null,
+            lane: isABF ? "303 -> 606" : "Charlotte NC -> Columbus OH",
             eia_price: isABF ? null : 3.82,
-            notes: isABF ? "Actual weight 4,250 lbs billed at $18.50/cwt ($786.25). Bumped to 5,000 lbs (M5M) at $14.20/cwt ($710.00) saves $76.25." : "DOE diesel index was $3.82 for week of 2026-08-10, contracted bracket is 32.40%."
+            notes: isABF ? "Actual weight 4,250 lbs billed at $18.50/cwt ($786.25). Bumped to 5,000 lbs (M5M) at $14.20/cwt ($710.00) saves $76.25." : "DOE diesel index was $3.82 for week of 2026-08-10, contracted bracket is 32.40% ($16.00), carrier billed 34.50% ($34.50)."
           },
           file_path: isABF ? "samples/ABF_Freight_Bill_INV-ABF-7712.pdf" : "invoices/" + fileName
         };
