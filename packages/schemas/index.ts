@@ -388,4 +388,112 @@ export type RecoveryReportSummary = z.infer<typeof RecoveryReportSummarySchema>;
 export type DisputeLetterItem = z.infer<typeof DisputeLetterItemSchema>;
 export type DisputeBatchPacket = z.infer<typeof DisputeBatchPacketSchema>;
 
+export const OnboardingChecklistStepSchema = z.object({
+  step_key: z.string(),
+  title: z.string(),
+  description: z.string(),
+  status: z.enum(['pending', 'in_progress', 'completed', 'signed', 'ready']).default('pending'),
+  action_label: z.string().optional().nullable(),
+  action_tab: z.string().optional().nullable(),
+});
+
+export const OnboardingChecklistSchema = z.object({
+  forwarding_rule: OnboardingChecklistStepSchema,
+  contracts_uploaded: OnboardingChecklistStepSchema,
+  first_invoices_in: OnboardingChecklistStepSchema,
+  recovery_agreement: OnboardingChecklistStepSchema,
+  report_ready: OnboardingChecklistStepSchema,
+  completed_steps_count: z.number().int().default(0),
+  total_steps_count: z.number().int().default(5),
+  is_fully_onboarded: z.boolean().default(false),
+});
+
+export const CustomerDashboardKPIsSchema = z.object({
+  total_recoverable_cents: z.number().int().default(0),
+  total_recoverable_dollars: z.number().default(0),
+  estimated_shipper_net_dollars: z.number().default(0),
+  contingency_fee_dollars: z.number().default(0),
+  total_invoices_audited: z.number().int().default(0),
+  total_flagged_invoices: z.number().int().default(0),
+  open_disputes_count: z.number().int().default(0),
+  verified_credit_memos_count: z.number().int().default(0),
+  verified_credit_memos_dollars: z.number().default(0),
+  active_contracts_count: z.number().int().default(0),
+});
+
+export const CustomerDashboardResponseSchema = z.object({
+  customer_id: z.string(),
+  name: z.string(),
+  slug: z.string(),
+  inbound_email: z.string(),
+  dispute_tracking_email: z.string(),
+  kpis: CustomerDashboardKPIsSchema,
+  checklist: OnboardingChecklistSchema,
+  carrier_summary: z.record(z.any()).default({}),
+  recent_activity: z.array(z.record(z.any())).default([]),
+});
+
+export const ContractIntakeRequestSchema = z.object({
+  carrier: z.string(),
+  rung: z.enum(['A', 'B', 'C', 'D']).default('A'),
+  has_signed_agreement: z.boolean().default(true),
+  notes: z.string().optional().nullable(),
+});
+
+export const ContractListItemSchema = z.object({
+  id: z.string(),
+  carrier: z.string(),
+  rung: z.enum(['A', 'B', 'C', 'D']),
+  file_path: z.string().optional().nullable(),
+  file_name: z.string(),
+  effective_date: z.string().optional().nullable(),
+  parsed_lanes_count: z.number().int().default(0),
+  validation_status: z.enum(['valid', 'needs_spot_check', 'rejected']).default('valid'),
+  spot_checks_count: z.number().int().default(0),
+  created_at: z.string(),
+});
+
+export const CreditMemoIntakeRequestSchema = z.object({
+  carrier: z.string(),
+  memo_number: z.string(),
+  original_invoice_ref: z.string(),
+  amount_dollars: z.number(),
+  kind: z.enum(['credit_memo', 'refund_check']).default('credit_memo'),
+  notes: z.string().optional().nullable(),
+});
+
+export const CreditMemoListItemSchema = z.object({
+  id: z.string(),
+  carrier: z.string(),
+  memo_number: z.string(),
+  original_invoice_ref: z.string(),
+  amount_cents: z.number().int(),
+  amount_dollars: z.number(),
+  kind: z.string(),
+  verification_status: z.enum(['pending', 'verified', 'rejected']).default('pending'),
+  matched_dispute_id: z.string().optional().nullable(),
+  verified_at: z.string().optional().nullable(),
+  created_at: z.string(),
+});
+
+export const CustomerPortalSessionSchema = z.object({
+  user_id: z.string(),
+  customer_id: z.string(),
+  email: z.string(),
+  role: z.enum(['owner', 'ap_clerk', 'internal_reviewer']),
+  customer_name: z.string(),
+  customer_slug: z.string(),
+});
+
+export type OnboardingChecklistStep = z.infer<typeof OnboardingChecklistStepSchema>;
+export type OnboardingChecklist = z.infer<typeof OnboardingChecklistSchema>;
+export type CustomerDashboardKPIs = z.infer<typeof CustomerDashboardKPIsSchema>;
+export type CustomerDashboardResponse = z.infer<typeof CustomerDashboardResponseSchema>;
+export type ContractIntakeRequest = z.infer<typeof ContractIntakeRequestSchema>;
+export type ContractListItem = z.infer<typeof ContractListItemSchema>;
+export type CreditMemoIntakeRequest = z.infer<typeof CreditMemoIntakeRequestSchema>;
+export type CreditMemoListItem = z.infer<typeof CreditMemoListItemSchema>;
+export type CustomerPortalSession = z.infer<typeof CustomerPortalSessionSchema>;
+
+
 

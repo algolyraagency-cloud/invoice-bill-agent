@@ -10,6 +10,10 @@
     {
       "source": "/internal/review",
       "destination": "/internal/review.html"
+    },
+    {
+      "source": "/portal",
+      "destination": "/portal.html"
     }
   ]
 }

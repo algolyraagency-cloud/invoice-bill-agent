@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RateGuard AI — Shipper Customer Portal (/portal)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    code, pre, .font-mono { font-family: 'Geist Mono', monospace; }
+    .tab-btn.active {
+      background: #181818;
+      color: #ffffff;
+      border-color: #333333;
+    }
+    @media print {
+      body * { visibility: hidden; }
+      #printable-report, #printable-report * { visibility: visible; }
+      #printable-report { position: absolute; left: 0; top: 0; width: 100%; }
+    }
+  </style>
+</head>
+<body class="bg-black text-neutral-100 min-h-screen flex flex-col selection:bg-neutral-800">
+
+  <!-- Navigation Bar -->
+  <header class="border-b border-[#1e1e1e] bg-[#050505]/95 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      
+      <!-- Brand & Organization Identity -->
+      <div class="flex items-center space-x-3">
+        <a href="/" class="w-8 h-8 rounded-lg bg-white text-black font-bold flex items-center justify-center text-sm">
+          RG
+        </a>
+        <div class="flex items-center space-x-2">
+          <span class="font-bold text-base tracking-tight text-white">RateGuard AI</span>
+          <span class="text-neutral-500">/</span>
+          <span class="text-sm font-semibold text-neutral-300">Customer Portal</span>
+        </div>
+        <span class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
+          Phase 5.5 Live
+        </span>
+      </div>
+
+      <!-- Center: Inbound Email Routing Address Chip -->
+      <div class="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-[#0e0e0e] border border-[#222]">
+        <span class="text-[11px] text-neutral-400 font-mono">Inbound AP:</span>
+        <button onclick="copyInboundEmail()" class="font-mono text-xs text-blue-400 hover:text-blue-300 transition flex items-center space-x-1" title="Click to copy inbound address">
+          <span id="header-inbound-email">acme-imports@in.rateguard.app</span>
+          <span>📋</span>
+        </button>
+      </div>
+
+      <!-- Right: User Identity, Org Switcher & Review Queue link -->
+      <div class="flex items-center space-x-4 text-xs">
+        <div class="flex items-center space-x-2">
+          <span class="text-neutral-400">Org:</span>
+          <select id="org-switcher" onchange="switchOrganization(this.value)" class="bg-[#111] border border-[#262626] rounded px-2 py-1 text-white font-mono text-xs focus:outline-none">
+            <option value="cust_acme_01" selected>Acme Imports & Logistics</option>
+            <option value="cust_pacific_02">Pacific Supply Corp</option>
+            <option value="cust_apex_03">Apex Global Distribution</option>
+          </select>
+        </div>
+
+        <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded bg-[#111] border border-[#222]">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span id="user-role-badge" class="font-mono text-[11px] text-neutral-300">Controller</span>
+        </div>
+
+        <a href="/internal/review" class="px-2.5 py-1 rounded bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 transition font-mono">
+          Review Queue ↗
+        </a>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Main View Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-6 py-6 space-y-6">
+
+    <!-- Top Summary Banner -->
+    <div class="bg-gradient-to-r from-[#0d0d0d] via-[#090909] to-[#0d0d0d] border border-[#1e1e1e] rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div class="space-y-1">
+        <div class="flex items-center space-x-3">
+          <h1 id="org-display-name" class="text-xl sm:text-2xl font-bold tracking-tight text-white">
+            Acme Imports & Logistics
+          </h1>
+          <span id="org-status-badge" class="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-emerald-950 text-emerald-300 border border-emerald-800">
+            Active Pilot
+          </span>
+        </div>
+        <p class="text-xs text-neutral-400">
+          Freight audit pipeline active · Automated Deficit Weight Bumping & FSC bracket reconciliation.
+        </p>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="flex items-center space-x-2">
+        <button onclick="switchTab('invoices'); openInvoiceUploadModal();" class="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold transition text-xs flex items-center space-x-1.5 shadow-lg shadow-blue-950/40">
+          <span>📤</span>
+          <span>Upload Bills</span>
+        </button>
+        <button onclick="switchTab('contracts')" class="px-3.5 py-2 rounded-xl bg-[#141414] hover:bg-[#1f1f1f] text-neutral-200 border border-[#2a2a2a] text-xs transition flex items-center space-x-1.5">
+          <span>📜</span>
+          <span>Add Contract</span>
+        </button>
+        <button onclick="switchTab('disputes')" class="px-3.5 py-2 rounded-xl bg-[#141414] hover:bg-[#1f1f1f] text-neutral-200 border border-[#2a2a2a] text-xs transition flex items-center space-x-1.5">
+          <span>✉️</span>
+          <span>Disputes</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="flex items-center space-x-2 border-b border-[#1c1c1c] pb-2 overflow-x-auto text-xs font-mono">
+      <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn active px-3.5 py-2 rounded-lg border border-transparent text-neutral-400 hover:text-white transition flex items-center space-x-1.5">
+        <span>📊</span>
+        <span>Overview & Checklist</span>
+      </button>
+      <button onclick="switchTab('invoices')" id="tab-invoices" class="tab-btn px-3.5 py-2 rounded-lg border border-transparent text-neutral-400 hover:text-white transition flex items-center space-x-1.5">
+        <span>📑</span>
+        <span>Freight Bills (<span id="tab-count-invoices">2</span>)</span>
+      </button>
+      <button onclick="switchTab('contracts')" id="tab-contracts" class="tab-btn px-3.5 py-2 rounded-lg border border-transparent text-neutral-400 hover:text-white transition flex items-center space-x-1.5">
+        <span>📜</span>
+        <span>Contracts & Rates (<span id="tab-count-contracts">2</span>)</span>
+      </button>
+      <button onclick="switchTab('disputes')" id="tab-disputes" class="tab-btn px-3.5 py-2 rounded-lg border border-transparent text-neutral-400 hover:text-white transition flex items-center space-x-1.5">
+        <span>✉️</span>
+        <span>Dispute Tracker (<span id="tab-count-disputes">2</span>)</span>
+      </button>
+      <button onclick="switchTab('creditmemos')" id="tab-creditmemos" class="tab-btn px-3.5 py-2 rounded-lg border border-transparent text-neutral-400 hover:text-white transition flex items-center space-x-1.5">
+        <span>💵</span>
+        <span>Credit Memos (<span id="tab-count-memos">1</span>)</span>
+      </button>
+      <button onclick="switchTab('reports')" id="tab-reports" class="tab-btn px-3.5 py-2 rounded-lg border border-transparent text-neutral-400 hover:text-white transition flex items-center space-x-1.5">
+        <span>📄</span>
+        <span>Recovery Reports</span>
+      </button>
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- TAB 1: Overview & Onboarding Checklist (Phase 5.5.1)                  -->
+    <!-- ==================================================================== -->
+    <div id="view-dashboard" class="space-y-6">
+
+      <!-- Executive KPI Cards -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        
+        <div class="bg-[#0b0b0b] border border-[#1e1e1e] rounded-xl p-5 relative overflow-hidden">
+          <div class="text-[11px] uppercase font-mono tracking-wider text-neutral-500">Gross Recoverable</div>
+          <div id="kpi-gross-recoverable" class="text-2xl font-bold text-emerald-400 mt-1.5">$207.50</div>
+          <div class="text-xs text-neutral-400 mt-1 flex items-center space-x-1">
+            <span>Verified claims detected</span>
+          </div>
+        </div>
+
+        <div class="bg-[#0b0b0b] border border-[#1e1e1e] rounded-xl p-5 relative overflow-hidden">
+          <div class="text-[11px] uppercase font-mono tracking-wider text-neutral-500">Shipper Net Recovery</div>
+          <div id="kpi-net-recovery" class="text-2xl font-bold text-white mt-1.5">$134.88</div>
+          <div class="text-xs text-emerald-500 mt-1">
+            65% client share
+          </div>
+        </div>
+
+        <div class="bg-[#0b0b0b] border border-[#1e1e1e] rounded-xl p-5 relative overflow-hidden">
+          <div class="text-[11px] uppercase font-mono tracking-wider text-neutral-500">Open Disputes</div>
+          <div id="kpi-open-disputes" class="text-2xl font-bold text-blue-400 mt-1.5">2 Claims</div>
+          <div class="text-xs text-neutral-400 mt-1">
+            Drafted & dispatched
+          </div>
+        </div>
+
+        <div class="bg-[#0b0b0b] border border-[#1e1e1e] rounded-xl p-5 relative overflow-hidden">
+          <div class="text-[11px] uppercase font-mono tracking-wider text-neutral-500">Verified Credit Memos</div>
+          <div id="kpi-verified-credits" class="text-2xl font-bold text-purple-400 mt-1.5">$142.50</div>
+          <div class="text-xs text-neutral-400 mt-1">
+            1 memo matched
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Onboarding Progress Checklist (PRD Flow A) -->
+      <div class="bg-[#090909] border border-[#1e1e1e] rounded-2xl p-6 space-y-4">
+        <div class="flex items-center justify-between">
+          <div class="space-y-0.5">
+            <h2 class="text-sm font-semibold text-white uppercase tracking-wider font-mono">
+              Onboarding & Recovery Checklist
+            </h2>
+            <p class="text-xs text-neutral-400">
+              Complete these steps to activate automated auditing and hand off dispute notices.
+            </p>
+          </div>
+          <div class="flex items-center space-x-2 text-xs font-mono">
+            <span id="checklist-progress-text" class="text-neutral-400">4 of 5 Completed</span>
+            <div class="w-24 bg-[#1e1e1e] h-2 rounded-full overflow-hidden">
+              <div id="checklist-progress-bar" class="bg-emerald-500 h-full w-4/5 transition-all duration-300"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-3 pt-2" id="checklist-steps-container">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Carrier Distribution & Recent Activity Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left: Carrier Progress Breakdown -->
+        <div class="lg:col-span-2 bg-[#090909] border border-[#1e1e1e] rounded-2xl p-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-white font-mono uppercase tracking-wider">
+              Carrier Recovery Distribution
+            </h3>
+            <span class="text-xs text-neutral-500 font-mono">Top LTL Carriers</span>
+          </div>
+
+          <div class="space-y-3" id="carrier-summary-list">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Right: Recent Activity Stream -->
+        <div class="bg-[#090909] border border-[#1e1e1e] rounded-2xl p-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-white font-mono uppercase tracking-wider">
+              Recent Activity
+            </h3>
+            <span class="text-xs text-neutral-500 font-mono">Live Feed</span>
+          </div>
+
+          <div class="space-y-3" id="recent-activity-list">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- TAB 2: Freight Bills / Invoices (Phase 5.5.2)                        -->
+    <!-- ==================================================================== -->
+    <div id="view-invoices" class="space-y-6 hidden">
+      
+      <!-- Toolbar -->
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#0a0a0a] border border-[#1e1e1e] p-4 rounded-xl">
+        <div class="flex flex-wrap items-center gap-3">
+          <input 
+            type="text" 
+            id="invoice-search-input" 
+            oninput="renderInvoicesTable()"
+            placeholder="Search PRO #, invoice #, carrier..." 
+            class="bg-[#121212] border border-[#262626] rounded-lg px-3 py-1.5 text-xs text-white placeholder-neutral-500 w-64 focus:outline-none focus:border-neutral-500"
+          >
+          <select id="invoice-carrier-filter" onchange="renderInvoicesTable()" class="bg-[#121212] border border-[#262626] rounded-lg px-3 py-1.5 text-xs text-neutral-300 font-mono focus:outline-none">
+            <option value="">All Carriers</option>
+            <option value="ABF Freight">ABF Freight</option>
+            <option value="XPO Logistics">XPO Logistics</option>
+            <option value="Roadrunner">Roadrunner</option>
+          </select>
+          <select id="invoice-status-filter" onchange="renderInvoicesTable()" class="bg-[#121212] border border-[#262626] rounded-lg px-3 py-1.5 text-xs text-neutral-300 font-mono focus:outline-none">
+            <option value="all">All Statuses</option>
+            <option value="audited">Audited</option>
+            <option value="pending">Pending Audit</option>
+          </select>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <button onclick="openInvoiceUploadModal()" class="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition flex items-center space-x-1.5">
+            <span>📤</span>
+            <span>Upload Bills</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Invoices Table -->
+      <div class="bg-[#090909] border border-[#1e1e1e] rounded-xl overflow-hidden">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-[#121212] text-neutral-400 font-mono uppercase text-[11px] border-b border-[#222]">
+            <tr>
+              <th class="p-3.5">Carrier</th>
+              <th class="p-3.5">PRO #</th>
+              <th class="p-3.5">Invoice #</th>
+              <th class="p-3.5">Date</th>
+              <th class="p-3.5 text-right">Billed Amount</th>
+              <th class="p-3.5 text-center">Audit Status</th>
+              <th class="p-3.5 text-right">Overcharge Discrepancy</th>
+              <th class="p-3.5 text-center">Document</th>
+            </tr>
+          </thead>
+          <tbody id="invoices-table-body" class="divide-y divide-[#1a1a1a]">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- TAB 3: Contracts & Quality Ladder (Phase 5.5.2)                      -->
+    <!-- ==================================================================== -->
+    <div id="view-contracts" class="space-y-6 hidden">
+      
+      <!-- PRD §5.3 Mandatory Pre-Pilot Qualification Card -->
+      <div class="bg-gradient-to-r from-neutral-900 via-[#0d0d0d] to-neutral-900 border border-[#2a2a2a] rounded-2xl p-6 space-y-4">
+        <div class="flex items-start justify-between">
+          <div class="space-y-1">
+            <span class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800">
+              PRD §5.3 Contract Quality Ladder
+            </span>
+            <h2 class="text-base font-bold text-white mt-2">
+              Mandatory Qualification Question: Do you have a signed rate agreement with your carriers?
+            </h2>
+            <p class="text-xs text-neutral-400 leading-relaxed max-w-3xl">
+              RateGuard audits invoices against exact contracted lane matrices. Select your current agreement format to determine intake routing:
+            </p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+          
+          <!-- Rung A -->
+          <button onclick="selectRungForIntake('A')" id="card-rung-a" class="p-4 rounded-xl border border-emerald-800/80 bg-emerald-950/20 text-left transition hover:border-emerald-500 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-white text-xs">Rung A: Signed Agreement</span>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700">Ideal</span>
+            </div>
+            <p class="text-[11px] text-neutral-300 leading-normal">
+              Clean signed FSTD, pricing schedule, or tariff addendum. Direct parsing into lane matrices.
+            </p>
+          </button>
+
+          <!-- Rung B -->
+          <button onclick="selectRungForIntake('B')" id="card-rung-b" class="p-4 rounded-xl border border-[#262626] bg-[#0e0e0e] text-left transition hover:border-neutral-500 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-white text-xs">Rung B: Email Quotes</span>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800">Review Req</span>
+            </div>
+            <p class="text-[11px] text-neutral-400 leading-normal">
+              Rates confirmed in email threads or rep quote attachments. Parsed with human spot-check review.
+            </p>
+          </button>
+
+          <!-- Rung C -->
+          <button onclick="selectRungForIntake('C')" id="card-rung-c" class="p-4 rounded-xl border border-[#262626] bg-[#0e0e0e] text-left transition hover:border-neutral-500 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-white text-xs">Rung C: Verbal Discount</span>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-neutral-800 text-neutral-300 border border-neutral-700">Benchmark</span>
+            </div>
+            <p class="text-[11px] text-neutral-400 leading-normal">
+              Published tariff with verbal discount (e.g. 65% off). Catches duplicates, fake accessorials, & arithmetic.
+            </p>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- Contract Intake Form & Dropzone -->
+      <div class="bg-[#090909] border border-[#1e1e1e] rounded-2xl p-6 space-y-4">
+        <h3 class="text-sm font-semibold text-white font-mono uppercase tracking-wider">
+          Upload Carrier Rate Agreement
+        </h3>
+
+        <form id="contract-upload-form" onsubmit="handleContractSubmit(event)" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-mono text-neutral-400 mb-1.5">Carrier</label>
+              <select id="contract-carrier-select" required class="w-full bg-[#121212] border border-[#262626] rounded-lg px-3 py-2 text-xs text-white focus:outline-none">
+                <option value="ABF Freight">ABF Freight</option>
+                <option value="XPO Logistics">XPO Logistics</option>
+                <option value="Roadrunner">Roadrunner</option>
+                <option value="Other Carrier">Other Carrier</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-mono text-neutral-400 mb-1.5">Selected Quality Ladder Rung</label>
+              <select id="contract-rung-select" required class="w-full bg-[#121212] border border-[#262626] rounded-lg px-3 py-2 text-xs text-white font-mono focus:outline-none">
+                <option value="A">Rung A (Signed Pricing Agreement)</option>
+                <option value="B">Rung B (Email Chain / Quote Sheet)</option>
+                <option value="C">Rung C (Published Tariff + Discount %)</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-mono text-neutral-400 mb-1.5">Agreement File (PDF)</label>
+              <input type="file" id="contract-file-input" accept=".pdf" class="w-full bg-[#121212] border border-[#262626] rounded-lg px-3 py-1.5 text-xs text-neutral-300 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[11px] file:bg-neutral-800 file:text-neutral-200">
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-2">
+            <span class="text-xs text-neutral-500">
+              *Contracts are parsed into deterministic lane matrices with effective date windowing.
+            </span>
+            <button type="submit" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition">
+              Upload & Parse Agreement
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Active Contracts Table -->
+      <div class="bg-[#090909] border border-[#1e1e1e] rounded-xl overflow-hidden">
+        <div class="p-4 border-b border-[#1e1e1e] flex items-center justify-between">
+          <h3 class="text-xs font-semibold text-white font-mono uppercase tracking-wider">Active Rate Contracts</h3>
+          <span class="text-xs text-neutral-500 font-mono">Quality Gates Applied</span>
+        </div>
+        <table class="w-full text-left text-xs">
+          <thead class="bg-[#121212] text-neutral-400 font-mono uppercase text-[11px] border-b border-[#222]">
+            <tr>
+              <th class="p-3.5">Carrier</th>
+              <th class="p-3.5">Quality Rung</th>
+              <th class="p-3.5">Agreement File</th>
+              <th class="p-3.5">Effective Window</th>
+              <th class="p-3.5 text-center">Parsed Lanes</th>
+              <th class="p-3.5 text-center">Sanity Validation</th>
+              <th class="p-3.5 text-center">Spot Checks</th>
+            </tr>
+          </thead>
+          <tbody id="contracts-table-body" class="divide-y divide-[#1a1a1a]">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- TAB 4: Dispute Tracker (Phase 5.5.3)                                 -->
+    <!-- ==================================================================== -->
+    <div id="view-disputes" class="space-y-6 hidden">
+
+      <!-- Legal Guardrail Banner (PRD §5.6 & Core Rule #3) -->
+      <div class="bg-gradient-to-r from-blue-950/40 via-black to-blue-950/20 border border-blue-900/40 rounded-2xl p-5 flex items-start space-x-4">
+        <div class="text-2xl">🛡️</div>
+        <div class="space-y-1 text-xs">
+          <div class="font-bold text-blue-300 font-mono uppercase tracking-wider">
+            Operating Guardrail: We Draft, You Send
+          </div>
+          <p class="text-neutral-300 leading-relaxed">
+            RateGuard AI never communicates directly with carriers or acts as an unauthorized third party. We draft mathematically verified dispute notices citing exact contract tariffs; you dispatch them in 1 click from your accounts payable email client.
+          </p>
+        </div>
+      </div>
+
+      <!-- Carrier Dispute Batch Packets -->
+      <div class="space-y-6" id="disputes-carrier-batches">
+        <!-- Populated by JS -->
+      </div>
+
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- TAB 5: Credit Memos & Forwarding Intake (Phase 5.5.3)                -->
+    <!-- ==================================================================== -->
+    <div id="view-creditmemos" class="space-y-6 hidden">
+
+      <!-- Carrier Reply Forwarding Instructions -->
+      <div class="bg-[#090909] border border-[#1e1e1e] rounded-2xl p-6 space-y-4">
+        <div class="flex items-start justify-between">
+          <div class="space-y-1">
+            <div class="flex items-center space-x-2">
+              <span class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-800">
+                PRD §5.7 & §6.1 Intake Flow
+              </span>
+              <span class="text-xs font-mono text-neutral-400">Zero Effort Inbound</span>
+            </div>
+            <h2 class="text-base font-bold text-white mt-1">
+              Forward Carrier Reply Emails & Credit Memos Here
+            </h2>
+            <p class="text-xs text-neutral-400 leading-relaxed max-w-3xl">
+              When carriers reply to your dispute notices with confirmed credit memos, simply forward the email to your dedicated dispute tracking inbox. Our ingestion engine matches the memo directly to the disputed invoice.
+            </p>
+          </div>
+
+          <a href="mailto:disputes+acme-imports@in.rateguard.app?subject=Fwd:%20Carrier%20Credit%20Memo" class="px-4 py-2 rounded-xl bg-purple-950 hover:bg-purple-900 border border-purple-800 text-purple-200 font-semibold text-xs transition flex items-center space-x-1.5">
+            <span>✉️</span>
+            <span>Forward Email</span>
+          </a>
+        </div>
+
+        <div class="p-3 bg-[#111] border border-[#222] rounded-xl flex items-center justify-between text-xs font-mono">
+          <span class="text-neutral-400">Your Tracking Address:</span>
+          <span class="text-purple-300 font-bold">disputes+acme-imports@in.rateguard.app</span>
+        </div>
+      </div>
+
+      <!-- Manual Credit Memo Submission Fallback -->
+      <div class="bg-[#090909] border border-[#1e1e1e] rounded-2xl p-6 space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-semibold text-white font-mono uppercase tracking-wider">
+            Register Credit Memo / Refund (Manual Entry)
+          </h3>
+          <span class="text-xs text-neutral-500 font-mono">Auto-Matches Against Disputes</span>
+        </div>
+
+        <form id="credit-memo-form" onsubmit="handleCreditMemoSubmit(event)" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div>
+              <label class="block text-xs font-mono text-neutral-400 mb-1.5">Carrier</label>
+              <select id="memo-carrier-select" required class="w-full bg-[#121212] border border-[#262626] rounded-lg px-3 py-2 text-xs text-white focus:outline-none">
+                <option value="ABF Freight">ABF Freight</option>
+                <option value="XPO Logistics">XPO Logistics</option>
+                <option value="Roadrunner">Roadrunner</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-mono text-neutral-400 mb-1.5">Credit Memo #</label>
+              <input type="text" id="memo-number-input" required placeholder="e.g. CM-78901" class="w-full bg-[#121212] border border-[#262626] rounded-lg px-3 py-2 text-xs text-white focus:outline-none">
+            </div>
+
+            <div>
+              <label class="block text-xs font-mono text-neutral-400 mb-1.5">Original Invoice / PRO #</label>
+              <input type="text" id="memo-ref-input" required placeholder="e.g. ABF-9021 or 042-881234" class="w-full bg-[#121212] border border-[#262626] rounded-lg px-3 py-2 text-xs text-white focus:outline-none">
+            </div>
+
+            <div>
+              <label class="block text-xs font-mono text-neutral-400 mb-1.5">Credit Amount ($)</label>
+              <input type="number" step="0.01" id="memo-amount-input" required placeholder="142.50" class="w-full bg-[#121212] border border-[#262626] rounded-lg px-3 py-2 text-xs text-white focus:outline-none">
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-2">
+            <span class="text-xs text-neutral-500">
+              *Verified credit memos trigger Net-15 contingency commission reconciliation per PRD §5.7.
+            </span>
+            <button type="submit" class="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs transition">
+              Verify & Match Memo
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Credit Memos Table -->
+      <div class="bg-[#090909] border border-[#1e1e1e] rounded-xl overflow-hidden">
+        <div class="p-4 border-b border-[#1e1e1e] flex items-center justify-between">
+          <h3 class="text-xs font-semibold text-white font-mono uppercase tracking-wider">Registered Credit Memos</h3>
+          <span class="text-xs text-neutral-500 font-mono">Verification Status</span>
+        </div>
+        <table class="w-full text-left text-xs">
+          <thead class="bg-[#121212] text-neutral-400 font-mono uppercase text-[11px] border-b border-[#222]">
+            <tr>
+              <th class="p-3.5">Carrier</th>
+              <th class="p-3.5">Credit Memo #</th>
+              <th class="p-3.5">Original Invoice Ref</th>
+              <th class="p-3.5 text-right">Credit Amount</th>
+              <th class="p-3.5 text-center">Matched Dispute</th>
+              <th class="p-3.5 text-center">Verification Status</th>
+              <th class="p-3.5 text-right">Logged At</th>
+            </tr>
+          </thead>
+          <tbody id="memos-table-body" class="divide-y divide-[#1a1a1a]">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- TAB 6: Recovery Reports (Phase 5.5.3)                                -->
+    <!-- ==================================================================== -->
+    <div id="view-reports" class="space-y-6 hidden">
+      
+      <!-- Report Header & CFO Download -->
+      <div class="bg-[#090909] border border-[#1e1e1e] rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div class="space-y-1">
+          <span class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
+            FR-3.1 CFO Rule: Bottom-Line on Page 1
+          </span>
+          <h2 class="text-lg font-bold text-white mt-2">
+            Branded Freight Audit & Recovery Report
+          </h2>
+          <p class="text-xs text-neutral-400">
+            Audit Period: Aug 01, 2026 – Aug 31, 2026 · Generated for Acme Imports & Logistics
+          </p>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <button onclick="window.print()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition flex items-center space-x-1.5 shadow-lg shadow-emerald-950/40">
+            <span>🖨️</span>
+            <span>Print / Save PDF</span>
+          </button>
+          <button onclick="copyCFOReportSummary()" class="px-3.5 py-2 rounded-xl bg-[#141414] hover:bg-[#1f1f1f] text-neutral-300 border border-[#2a2a2a] text-xs transition font-mono">
+            📋 Copy CFO Summary
+          </button>
+        </div>
+      </div>
+
+      <!-- Printable Report Container -->
+      <div id="printable-report" class="bg-[#080808] border border-[#1e1e1e] rounded-2xl p-8 space-y-6 text-neutral-200">
+        
+        <!-- Report Page 1: Executive Summary -->
+        <div class="border-b border-[#222] pb-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-xs font-mono uppercase text-emerald-400 tracking-wider">RateGuard AI Audit Division</div>
+              <h1 class="text-2xl font-bold text-white">Executive Freight Recovery Report</h1>
+            </div>
+            <div class="text-right text-xs font-mono text-neutral-400">
+              <div>Ref: REP-202609-001</div>
+              <div>Audit Date: Sept 12, 2026</div>
+            </div>
+          </div>
+
+          <!-- Bottom Line Callout Box -->
+          <div class="bg-gradient-to-r from-emerald-950/40 via-[#0a0a0a] to-emerald-950/20 border border-emerald-800/60 rounded-xl p-6 grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div>
+              <div class="text-xs font-mono uppercase text-neutral-400">Total Confirmed Overcharge</div>
+              <div class="text-3xl font-bold text-emerald-400 mt-1">$207.50</div>
+              <div class="text-xs text-neutral-400 mt-0.5">100% verified against contracts</div>
+            </div>
+            <div>
+              <div class="text-xs font-mono uppercase text-neutral-400">Estimated Shipper Net (65%)</div>
+              <div class="text-3xl font-bold text-white mt-1">$134.88</div>
+              <div class="text-xs text-neutral-400 mt-0.5">Retained directly by shipper AP</div>
+            </div>
+            <div>
+              <div class="text-xs font-mono uppercase text-neutral-400">Contingency Fee (35%)</div>
+              <div class="text-3xl font-bold text-neutral-300 mt-1">$72.62</div>
+              <div class="text-xs text-neutral-400 mt-0.5">Invoiced upon credit memo verification</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Claim Schedule Table -->
+        <div class="space-y-3">
+          <h3 class="text-sm font-semibold text-white font-mono uppercase tracking-wider">
+            Itemized Audit Claim Schedule
+          </h3>
+          <table class="w-full text-left text-xs border border-[#222] rounded-lg overflow-hidden">
+            <thead class="bg-[#141414] text-neutral-400 font-mono text-[11px]">
+              <tr>
+                <th class="p-3">Carrier</th>
+                <th class="p-3">PRO # / Inv #</th>
+                <th class="p-3">Check Type</th>
+                <th class="p-3 text-right">Billed $</th>
+                <th class="p-3 text-right">Contract $</th>
+                <th class="p-3 text-right">Overcharge $</th>
+                <th class="p-3">Governing Contract Clause</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-[#1e1e1e] font-mono">
+              <tr>
+                <td class="p-3 font-semibold text-white">ABF Freight</td>
+                <td class="p-3">042-881234 / ABF-9021</td>
+                <td class="p-3 text-emerald-400">RATE</td>
+                <td class="p-3 text-right">$842.50</td>
+                <td class="p-3 text-right">$700.00</td>
+                <td class="p-3 text-right font-bold text-emerald-400">$142.50</td>
+                <td class="p-3 text-neutral-400">Item 100-D (Deficit Weight Bumping)</td>
+              </tr>
+              <tr>
+                <td class="p-3 font-semibold text-white">XPO Logistics</td>
+                <td class="p-3">065-992143 / XPO-5512</td>
+                <td class="p-3 text-amber-400">FSC</td>
+                <td class="p-3 text-right">$1,240.00</td>
+                <td class="p-3 text-right">$1,175.00</td>
+                <td class="p-3 text-right font-bold text-emerald-400">$65.00</td>
+                <td class="p-3 text-neutral-400">Item 220-A (Fuel Surcharge Scale Table)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ==================================================================== -->
+  <!-- MODAL: Invoice PDF / Data Preview                                    -->
+  <!-- ==================================================================== -->
+  <div id="invoice-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-[#0e0e0e] border border-[#262626] rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-[#222] pb-3">
+        <h3 id="invoice-modal-title" class="text-sm font-bold text-white font-mono">
+          Invoice Details
+        </h3>
+        <button onclick="closeInvoiceModal()" class="text-neutral-400 hover:text-white text-lg">✕</button>
+      </div>
+      <div id="invoice-modal-body" class="space-y-4 text-xs font-mono text-neutral-300">
+        <!-- Injected by JS -->
+      </div>
+      <div class="flex justify-end pt-2">
+        <button onclick="closeInvoiceModal()" class="px-4 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-white text-xs">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- MODAL: Single Dispute Letter Preview                                 -->
+  <!-- ==================================================================== -->
+  <div id="dispute-letter-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-[#0e0e0e] border border-[#262626] rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-[#222] pb-3">
+        <h3 id="dispute-letter-title" class="text-sm font-bold text-white font-mono">
+          Carrier Dispute Notice
+        </h3>
+        <button onclick="closeDisputeLetterModal()" class="text-neutral-400 hover:text-white text-lg">✕</button>
+      </div>
+      <pre id="dispute-letter-text" class="bg-[#080808] border border-[#1e1e1e] rounded-xl p-4 text-xs font-mono text-neutral-300 max-h-96 overflow-y-auto whitespace-pre-wrap leading-relaxed">
+      </pre>
+      <div class="flex items-center justify-between pt-2">
+        <button onclick="copyActiveModalDisputeText()" class="px-3.5 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-mono">
+          📋 Copy Text
+        </button>
+        <a id="dispute-letter-mailto-btn" href="#" class="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs">
+          🚀 Open in Email Client
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- APPLICATION LOGIC & MOCK STATE                                       -->
+  <!-- ==================================================================== -->
+  <script>
+    // State Store
+    const state = {
+      currentOrgId: "cust_acme_01",
+      currentTab: "dashboard",
+      activeDisputeLetter: "",
+      
+      invoices: [
+        {
+          id: "inv_abf_101",
+          carrier: "ABF Freight",
+          invoice_number: "ABF-9021",
+          pro_number: "042-881234",
+          invoice_date: "2026-08-12",
+          invoice_total: 842.50,
+          status: "audited",
+          overcharge: 142.50,
+          flag_type: "RATE",
+          clause: "Item 100-D (Deficit Weight Bumping)",
+          origin: "60601 (Chicago, IL)",
+          dest: "48201 (Detroit, MI)"
+        },
+        {
+          id: "inv_xpo_102",
+          carrier: "XPO Logistics",
+          invoice_number: "XPO-5512",
+          pro_number: "065-992143",
+          invoice_date: "2026-08-14",
+          invoice_total: 1240.00,
+          status: "audited",
+          overcharge: 65.00,
+          flag_type: "FSC",
+          clause: "Item 220-A (Fuel Surcharge Scale Table)",
+          origin: "30301 (Atlanta, GA)",
+          dest: "28201 (Charlotte, NC)"
+        }
+      ],
+
+      contracts: [
+        {
+          id: "cont-01",
+          carrier: "ABF Freight",
+          rung: "A",
+          file_name: "abf_pricing_agreement_2026.pdf",
+          effective_window: "2026-01-01 – 2026-12-31",
+          lanes: 42,
+          status: "Valid (Tariff Safe)",
+          spot_checks: "5/5 Verified"
+        },
+        {
+          id: "cont-02",
+          carrier: "XPO Logistics",
+          rung: "B",
+          file_name: "xpo_negotiated_addendum.pdf",
+          effective_window: "2026-01-01 – 2026-12-31",
+          lanes: 24,
+          status: "Needs Spot Check",
+          spot_checks: "3/3 Verified"
+        }
+      ],
+
+      disputes: [
+        {
+          id: "disp-flg_01",
+          carrier: "ABF Freight",
+          email: "freightbilling@abf.com",
+          pro_number: "042-881234",
+          invoice_number: "ABF-9021",
+          invoice_date: "2026-08-12",
+          billed_amount: 842.50,
+          correct_amount: 700.00,
+          overcharge: 142.50,
+          category: "RATE",
+          clause: "Item 100-D (Deficit Bumping)",
+          status: "sent"
+        },
+        {
+          id: "disp-flg_02",
+          carrier: "XPO Logistics",
+          email: "ltlclaims@xpo.com",
+          pro_number: "065-992143",
+          invoice_number: "XPO-5512",
+          invoice_date: "2026-08-14",
+          billed_amount: 1240.00,
+          correct_amount: 1175.00,
+          overcharge: 65.00,
+          category: "FSC",
+          clause: "Item 220-A (Fuel Scale)",
+          status: "drafted"
+        }
+      ],
+
+      creditMemos: [
+        {
+          id: "cm-01",
+          carrier: "ABF Freight",
+          memo_number: "CM-ABF-7741",
+          original_invoice_ref: "ABF-9021",
+          amount: 142.50,
+          matched_dispute: "disp-flg_01",
+          status: "verified",
+          logged_at: "2026-09-11"
+        }
+      ]
+    };
+
+    // Tab Switching
+    function switchTab(tabId) {
+      state.currentTab = tabId;
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.getElementById(`tab-${tabId}`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      const views = ['dashboard', 'invoices', 'contracts', 'disputes', 'creditmemos', 'reports'];
+      views.forEach(v => {
+        const el = document.getElementById(`view-${v}`);
+        if (el) {
+          if (v === tabId) el.classList.remove('hidden');
+          else el.classList.add('hidden');
+        }
+      });
+    }
+
+    // Switch Organization
+    function switchOrganization(orgId) {
+      state.currentOrgId = orgId;
+      const names = {
+        cust_acme_01: "Acme Imports & Logistics",
+        cust_pacific_02: "Pacific Supply Corp",
+        cust_apex_03: "Apex Global Distribution"
+      };
+      const slugs = {
+        cust_acme_01: "acme-imports",
+        cust_pacific_02: "pacific-supply",
+        cust_apex_03: "apex-global"
+      };
+
+      const name = names[orgId] || "Acme Imports & Logistics";
+      const slug = slugs[orgId] || "acme-imports";
+
+      document.getElementById("org-display-name").innerText = name;
+      document.getElementById("header-inbound-email").innerText = `${slug}@in.rateguard.app`;
+
+      renderAll();
+    }
+
+    // Copy Inbound Address
+    function copyInboundEmail() {
+      const email = document.getElementById("header-inbound-email").innerText;
+      navigator.clipboard.writeText(email);
+      alert(`Inbound forwarding address copied: ${email}`);
+    }
+
+    // Render Checklist (Phase 5.5.1)
+    function renderChecklist() {
+      const steps = [
+        {
+          title: "1. Forwarding Rule",
+          desc: "Forward bills to AP inbox",
+          status: "completed",
+          tab: "dashboard"
+        },
+        {
+          title: "2. Contracts Ingested",
+          desc: "Quality Ladder Rungs A–C",
+          status: state.contracts.length > 0 ? "completed" : "pending",
+          tab: "contracts"
+        },
+        {
+          title: "3. Freight Bills Active",
+          desc: "Historical & live bills",
+          status: state.invoices.length > 0 ? "completed" : "pending",
+          tab: "invoices"
+        },
+        {
+          title: "4. Recovery Agreement",
+          desc: "35% contingency signed",
+          status: "signed",
+          tab: "dashboard"
+        },
+        {
+          title: "5. Recovery Report",
+          desc: "CFO-ready Page 1 summary",
+          status: "ready",
+          tab: "reports"
+        }
+      ];
+
+      const container = document.getElementById("checklist-steps-container");
+      container.innerHTML = steps.map(s => {
+        const isDone = s.status === "completed" || s.status === "signed" || s.status === "ready";
+        return `
+          <button onclick="switchTab('${s.tab}')" class="p-3 rounded-xl border ${isDone ? 'border-emerald-800/60 bg-emerald-950/20' : 'border-[#222] bg-[#0f0f0f]'} text-left transition hover:border-neutral-500">
+            <div class="flex items-center justify-between text-[11px] font-mono">
+              <span class="font-bold ${isDone ? 'text-emerald-300' : 'text-neutral-400'}">${s.title}</span>
+              <span>${isDone ? '✓' : '○'}</span>
+            </div>
+            <p class="text-[11px] text-neutral-400 mt-1">${s.desc}</p>
+          </button>
+        `;
+      }).join('');
+    }
+
+    // Render Carrier Summary
+    function renderCarrierSummary() {
+      const carriers = [
+        { name: "ABF Freight", invoices: 1, claims: 1, recoverable: 142.50 },
+        { name: "XPO Logistics", invoices: 1, claims: 1, recoverable: 65.00 },
+        { name: "Roadrunner", invoices: 0, claims: 0, recoverable: 0.00 }
+      ];
+
+      const container = document.getElementById("carrier-summary-list");
+      container.innerHTML = carriers.map(c => `
+        <div class="p-3 rounded-xl bg-[#0e0e0e] border border-[#1c1c1c] flex items-center justify-between">
+          <div>
+            <div class="font-bold text-white text-xs">${c.name}</div>
+            <div class="text-[11px] text-neutral-500 font-mono">${c.invoices} audited bills · ${c.claims} approved claims</div>
+          </div>
+          <div class="text-right font-mono">
+            <div class="text-xs font-bold text-emerald-400">$${c.recoverable.toFixed(2)}</div>
+            <div class="text-[10px] text-neutral-500">Disputed</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Render Recent Activity
+    function renderRecentActivity() {
+      const items = [
+        { title: "Credit Memo Verified", desc: "$142.50 from ABF Freight (CM-ABF-7741)", time: "10m ago" },
+        { title: "Dispute Notice Dispatched", desc: "PRO #042-881234 sent to carrier AP", time: "1h ago" },
+        { title: "Audit Batch Completed", desc: "2 invoices audited with zero errors", time: "3h ago" }
+      ];
+
+      const container = document.getElementById("recent-activity-list");
+      container.innerHTML = items.map(i => `
+        <div class="text-xs border-l-2 border-emerald-500 pl-3 py-1 space-y-0.5">
+          <div class="font-semibold text-neutral-200">${i.title}</div>
+          <div class="text-[11px] text-neutral-400 font-mono">${i.desc}</div>
+          <div class="text-[10px] text-neutral-500 font-mono">${i.time}</div>
+        </div>
+      `).join('');
+    }
+
+    // Render Invoices Table (Phase 5.5.2)
+    function renderInvoicesTable() {
+      const search = (document.getElementById("invoice-search-input")?.value || "").toLowerCase();
+      const carrierFilter = document.getElementById("invoice-carrier-filter")?.value || "";
+      const statusFilter = document.getElementById("invoice-status-filter")?.value || "all";
+
+      let filtered = state.invoices.filter(i => {
+        if (carrierFilter && i.carrier !== carrierFilter) return false;
+        if (statusFilter !== "all" && i.status !== statusFilter) return false;
+        if (search) {
+          const match = i.invoice_number.toLowerCase().includes(search) ||
+                        i.pro_number.toLowerCase().includes(search) ||
+                        i.carrier.toLowerCase().includes(search);
+          if (!match) return false;
+        }
+        return true;
+      });
+
+      const tbody = document.getElementById("invoices-table-body");
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-neutral-500 font-mono text-xs">No freight bills found matching criteria.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(inv => `
+        <tr class="hover:bg-[#111] transition">
+          <td class="p-3.5 font-semibold text-white">${inv.carrier}</td>
+          <td class="p-3.5 font-mono text-neutral-300">${inv.pro_number}</td>
+          <td class="p-3.5 font-mono text-neutral-300">${inv.invoice_number}</td>
+          <td class="p-3.5 font-mono text-neutral-400">${inv.invoice_date}</td>
+          <td class="p-3.5 font-mono text-right text-white font-semibold">$${inv.invoice_total.toFixed(2)}</td>
+          <td class="p-3.5 text-center">
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-emerald-950 text-emerald-300 border border-emerald-800">
+              ${inv.status}
+            </span>
+          </td>
+          <td class="p-3.5 font-mono text-right font-bold text-emerald-400">
+            ${inv.overcharge > 0 ? '+$' + inv.overcharge.toFixed(2) : '$0.00'}
+          </td>
+          <td class="p-3.5 text-center">
+            <button onclick="previewInvoiceModal('${inv.id}')" class="px-2 py-1 rounded bg-[#161616] hover:bg-[#222] border border-[#2a2a2a] text-neutral-200 text-[11px] font-mono transition">
+              👁️ View Bill
+            </button>
+          </td>
+        </tr>
+      `).join('');
+
+      document.getElementById("tab-count-invoices").innerText = state.invoices.length;
+    }
+
+    // Modal: Preview Invoice
+    function previewInvoiceModal(invId) {
+      const inv = state.invoices.find(i => i.id === invId);
+      if (!inv) return;
+
+      document.getElementById("invoice-modal-title").innerText = `Freight Bill: ${inv.invoice_number} (PRO #${inv.pro_number})`;
+      document.getElementById("invoice-modal-body").innerHTML = `
+        <div class="bg-[#121212] p-4 rounded-xl space-y-2 border border-[#222]">
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div><span class="text-neutral-500">Carrier:</span> ${inv.carrier}</div>
+            <div><span class="text-neutral-500">Billing Date:</span> ${inv.invoice_date}</div>
+            <div><span class="text-neutral-500">Origin:</span> ${inv.origin}</div>
+            <div><span class="text-neutral-500">Destination:</span> ${inv.dest}</div>
+            <div><span class="text-neutral-500">Billed Total:</span> $${inv.invoice_total.toFixed(2)}</div>
+            <div><span class="text-neutral-500">Disputed Amount:</span> <span class="text-emerald-400 font-bold">$${inv.overcharge.toFixed(2)}</span></div>
+          </div>
+        </div>
+        <div class="bg-[#121212] p-4 rounded-xl space-y-1 border border-[#222]">
+          <div class="text-[11px] text-neutral-400 uppercase font-bold">Audit Finding:</div>
+          <div class="text-neutral-200">${inv.clause}</div>
+          <div class="text-neutral-400 text-[11px]">Audit category: <span class="text-emerald-400">${inv.flag_type}</span></div>
+        </div>
+      `;
+
+      document.getElementById("invoice-modal").classList.remove("hidden");
+    }
+
+    function closeInvoiceModal() {
+      document.getElementById("invoice-modal").classList.add("hidden");
+    }
+
+    function openInvoiceUploadModal() {
+      const proNum = prompt("Enter PRO Number for quick test bill:", `042-${Math.floor(100000 + Math.random() * 900000)}`);
+      if (!proNum) return;
+
+      state.invoices.unshift({
+        id: `inv-new-${Date.now()}`,
+        carrier: "ABF Freight",
+        invoice_number: `ABF-${Math.floor(1000 + Math.random() * 9000)}`,
+        pro_number: proNum,
+        invoice_date: new Date().toISOString().split('T')[0],
+        invoice_total: 650.00,
+        status: "audited",
+        overcharge: 0.00,
+        flag_type: "CLEAN",
+        clause: "Reconciled with zero rate variance",
+        origin: "60601 (Chicago, IL)",
+        dest: "48201 (Detroit, MI)"
+      });
+
+      renderInvoicesTable();
+      alert("New freight bill ingested and audited!");
+    }
+
+    // Render Contracts Table (Phase 5.5.2)
+    function renderContractsTable() {
+      const tbody = document.getElementById("contracts-table-body");
+      tbody.innerHTML = state.contracts.map(c => `
+        <tr class="hover:bg-[#111] transition">
+          <td class="p-3.5 font-semibold text-white">${c.carrier}</td>
+          <td class="p-3.5">
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono uppercase ${c.rung === 'A' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-amber-950 text-amber-300 border border-amber-800'}">
+              Rung ${c.rung}
+            </span>
+          </td>
+          <td class="p-3.5 font-mono text-neutral-300">${c.file_name}</td>
+          <td class="p-3.5 font-mono text-neutral-400">${c.effective_window}</td>
+          <td class="p-3.5 font-mono text-center text-white">${c.lanes} lanes</td>
+          <td class="p-3.5 text-center">
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-emerald-950 text-emerald-300 border border-emerald-800">
+              ${c.status}
+            </span>
+          </td>
+          <td class="p-3.5 text-center font-mono text-neutral-300">
+            ${c.spot_checks}
+          </td>
+        </tr>
+      `).join('');
+
+      document.getElementById("tab-count-contracts").innerText = state.contracts.length;
+    }
+
+    function selectRungForIntake(rung) {
+      document.getElementById("contract-rung-select").value = rung;
+      alert(`Selected Quality Ladder Rung ${rung}. Complete agreement upload below.`);
+    }
+
+    function handleContractSubmit(e) {
+      e.preventDefault();
+      const carrier = document.getElementById("contract-carrier-select").value;
+      const rung = document.getElementById("contract-rung-select").value;
+      const fileInput = document.getElementById("contract-file-input");
+      const filename = fileInput.files[0]?.name || `${carrier.toLowerCase().replace(' ', '_')}_agreement_2026.pdf`;
+
+      state.contracts.unshift({
+        id: `cont-${Date.now()}`,
+        carrier: carrier,
+        rung: rung,
+        file_name: filename,
+        effective_window: "2026-01-01 – 2026-12-31",
+        lanes: rung === "A" ? 42 : (rung === "B" ? 24 : 8),
+        status: rung === "A" ? "Valid (Tariff Safe)" : "Needs Spot Check",
+        spot_checks: rung === "A" ? "5/5 Verified" : "3/3 Verified"
+      });
+
+      renderContractsTable();
+      renderChecklist();
+      alert(`Agreement uploaded and parsed under Quality Ladder Rung ${rung}!`);
+    }
+
+    // Render Disputes (Phase 5.5.3)
+    function renderDisputes() {
+      const container = document.getElementById("disputes-carrier-batches");
+      
+      const carriers = ["ABF Freight", "XPO Logistics"];
+      container.innerHTML = carriers.map(carrier => {
+        const carrierDisputes = state.disputes.filter(d => d.carrier === carrier);
+        if (carrierDisputes.length === 0) return '';
+
+        const totalOvercharge = carrierDisputes.reduce((sum, d) => sum + d.overcharge, 0);
+
+        const disputeCards = carrierDisputes.map(d => {
+          const subject = `Billing Dispute: Invoice #${d.invoice_number} / PRO #${d.pro_number} — Acme Imports`;
+          const body = `To: ${d.carrier} Billing & Claims Department (${d.email})
+From: Freight Accounts Payable, Acme Imports & Logistics
+Subject: ${subject}
+
+Dear Billing Department,
+
+We have audited freight invoice #${d.invoice_number} (PRO #${d.pro_number}) dated ${d.invoice_date} and identified an overcharge totaling $${d.overcharge.toFixed(2)}.
+
+DISPUTE DETAILS:
+- Billed Amount: $${d.billed_amount.toFixed(2)}
+- Contract Rate: $${d.correct_amount.toFixed(2)}
+- Disputed Overcharge: $${d.overcharge.toFixed(2)}
+- Governing Clause: ${d.clause}
+
+Please issue an itemized Credit Memo referencing Invoice #${d.invoice_number} within 30 days to:
+disputes+acme-imports@in.rateguard.app
+
+Thank you,
+Accounts Payable, Acme Imports
+`;
+
+          const mailto = `mailto:${d.email}?cc=disputes%2Bacme-imports%40in.rateguard.app&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+          return `
+            <div class="bg-[#0e0e0e] border border-[#1e1e1e] rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div class="space-y-1">
+                <div class="flex items-center space-x-2">
+                  <span class="font-bold text-white text-xs">PRO #${d.pro_number}</span>
+                  <span class="font-mono text-xs text-neutral-400">(Invoice #${d.invoice_number})</span>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-emerald-950 text-emerald-300 border border-emerald-800">${d.category}</span>
+                </div>
+                <div class="text-xs text-neutral-400">${d.clause}</div>
+                <div class="text-xs font-mono font-bold text-emerald-400">Overcharge: $${d.overcharge.toFixed(2)}</div>
+              </div>
+
+              <div class="flex items-center space-x-2">
+                <select onchange="updateDisputeStatus('${d.id}', this.value)" class="bg-[#141414] border border-[#262626] rounded-lg px-2.5 py-1.5 text-[11px] text-neutral-300 font-mono">
+                  <option value="drafted" ${d.status === 'drafted' ? 'selected' : ''}>Status: Drafted</option>
+                  <option value="sent" ${d.status === 'sent' ? 'selected' : ''}>Status: Sent</option>
+                  <option value="responded" ${d.status === 'responded' ? 'selected' : ''}>Status: Responded</option>
+                  <option value="credit_issued" ${d.status === 'credit_issued' ? 'selected' : ''}>Status: Credit Issued</option>
+                </select>
+
+                <a href="${mailto}" target="_blank" onclick="markDisputeSent('${d.id}')" class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition flex items-center space-x-1">
+                  <span>🚀 Send</span>
+                </a>
+
+                <button onclick="previewDisputeNotice('${d.id}')" class="px-2.5 py-1.5 rounded-lg bg-[#181818] hover:bg-[#222] border border-[#2a2a2a] text-neutral-300 text-xs font-mono">
+                  👁️ Inspect
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div class="bg-[#090909] border border-[#1e1e1e] rounded-2xl p-6 space-y-4">
+            <div class="flex items-center justify-between border-b border-[#1c1c1c] pb-3">
+              <div>
+                <h3 class="text-sm font-bold text-white font-mono uppercase tracking-wider">${carrier} Dispute Packet</h3>
+                <div class="text-xs text-neutral-400 font-mono">${carrierDisputes.length} claim(s) · Total: $${totalOvercharge.toFixed(2)}</div>
+              </div>
+              <button onclick="copyBatchEmail('${carrier}')" class="px-3.5 py-1.5 rounded-lg bg-[#141414] hover:bg-[#1f1f1f] text-neutral-300 border border-[#2a2a2a] text-xs font-mono">
+                📋 Copy Batch Body
+              </button>
+            </div>
+            <div class="space-y-3">
+              ${disputeCards}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById("tab-count-disputes").innerText = state.disputes.length;
+    }
+
+    function updateDisputeStatus(disputeId, newStatus) {
+      const d = state.disputes.find(x => x.id === disputeId);
+      if (d) {
+        d.status = newStatus;
+        renderDisputes();
+      }
+    }
+
+    function markDisputeSent(disputeId) {
+      const d = state.disputes.find(x => x.id === disputeId);
+      if (d) {
+        d.status = "sent";
+        renderDisputes();
+      }
+    }
+
+    function previewDisputeNotice(disputeId) {
+      const d = state.disputes.find(x => x.id === disputeId);
+      if (!d) return;
+
+      const subject = `Billing Dispute: Invoice #${d.invoice_number} / PRO #${d.pro_number} — Acme Imports`;
+      const body = `To: ${d.carrier} Billing & Claims Department (${d.email})
+From: Accounts Payable, Acme Imports & Logistics
+Date: September 12, 2026
+Subject: ${subject}
+
+Dear Billing Department,
+
+We have completed an audit of freight invoice #${d.invoice_number} (PRO #${d.pro_number}) dated ${d.invoice_date} and identified a confirmed overcharge discrepancy totaling $${d.overcharge.toFixed(2)}.
+
+AUDIT DISPUTE DETAILS:
+- Carrier: ${d.carrier}
+- Invoice Number: ${d.invoice_number}
+- PRO Number: ${d.pro_number}
+- Billed Total: $${d.billed_amount.toFixed(2)}
+- Contract Agreed Total: $${d.correct_amount.toFixed(2)}
+- Disputed Overcharge: $${d.overcharge.toFixed(2)}
+- Audit Check Category: ${d.category}
+- Governing Authority: ${d.clause}
+
+REQUESTED ACTION:
+Pursuant to our contracted pricing agreement and standard industry billing practices, please issue an itemized Credit Memo in the amount of $${d.overcharge.toFixed(2)} referencing original Invoice #${d.invoice_number} and PRO #${d.pro_number} within 30 days.
+
+Please reply directly to this email or send confirmed credit memo documentation to:
+disputes+acme-imports@in.rateguard.app
+
+Thank you,
+Freight Accounts Payable
+Acme Imports & Logistics`;
+
+      state.activeDisputeLetter = body;
+      document.getElementById("dispute-letter-title").innerText = `Dispute Notice: PRO #${d.pro_number} (${d.carrier})`;
+      document.getElementById("dispute-letter-text").innerText = body;
+
+      const mailto = `mailto:${d.email}?cc=disputes%2Bacme-imports%40in.rateguard.app&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      document.getElementById("dispute-letter-mailto-btn").href = mailto;
+
+      document.getElementById("dispute-letter-modal").classList.remove("hidden");
+    }
+
+    function closeDisputeLetterModal() {
+      document.getElementById("dispute-letter-modal").classList.add("hidden");
+    }
+
+    function copyActiveModalDisputeText() {
+      navigator.clipboard.writeText(state.activeDisputeLetter);
+      alert("Dispute notice copied to clipboard!");
+    }
+
+    function copyBatchEmail(carrier) {
+      alert(`Batch dispute packet for ${carrier} copied to clipboard!`);
+    }
+
+    // Render Credit Memos Table (Phase 5.5.3)
+    function renderCreditMemos() {
+      const tbody = document.getElementById("memos-table-body");
+      tbody.innerHTML = state.creditMemos.map(m => `
+        <tr class="hover:bg-[#111] transition font-mono">
+          <td class="p-3.5 font-semibold text-white font-sans">${m.carrier}</td>
+          <td class="p-3.5 text-neutral-300">${m.memo_number}</td>
+          <td class="p-3.5 text-neutral-400">${m.original_invoice_ref}</td>
+          <td class="p-3.5 text-right font-bold text-purple-400">+$${m.amount.toFixed(2)}</td>
+          <td class="p-3.5 text-center text-neutral-400">${m.matched_dispute || '—'}</td>
+          <td class="p-3.5 text-center">
+            <span class="px-2 py-0.5 rounded text-[10px] uppercase ${m.status === 'verified' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-amber-950 text-amber-300 border border-amber-800'}">
+              ${m.status}
+            </span>
+          </td>
+          <td class="p-3.5 text-right text-neutral-500 text-[11px]">${m.logged_at}</td>
+        </tr>
+      `).join('');
+
+      document.getElementById("tab-count-memos").innerText = state.creditMemos.length;
+    }
+
+    function handleCreditMemoSubmit(e) {
+      e.preventDefault();
+      const carrier = document.getElementById("memo-carrier-select").value;
+      const memoNum = document.getElementById("memo-number-input").value;
+      const ref = document.getElementById("memo-ref-input").value;
+      const amount = parseFloat(document.getElementById("memo-amount-input").value) || 0.0;
+
+      // Auto-match check
+      const matched = state.disputes.find(d => 
+        (d.invoice_number.toLowerCase().includes(ref.toLowerCase()) || 
+         d.pro_number.toLowerCase().includes(ref.toLowerCase()) ||
+         ref.toLowerCase().includes(d.invoice_number.toLowerCase())) &&
+        d.carrier === carrier
+      );
+
+      const isVerified = !!matched;
+      if (matched) {
+        matched.status = "credit_issued";
+      }
+
+      state.creditMemos.unshift({
+        id: `cm-${Date.now()}`,
+        carrier: carrier,
+        memo_number: memoNum,
+        original_invoice_ref: ref,
+        amount: amount,
+        matched_dispute: matched ? matched.id : null,
+        status: isVerified ? "verified" : "pending",
+        logged_at: new Date().toISOString().split('T')[0]
+      });
+
+      renderCreditMemos();
+      renderDisputes();
+      alert(isVerified ? "Credit Memo matched to open dispute and automatically verified!" : "Credit Memo logged as pending verification.");
+    }
+
+    function copyCFOReportSummary() {
+      const summary = `RATEGUARD AI — CFO EXECUTIVE SUMMARY
+Audit Period: Aug 01, 2026 – Aug 31, 2026
+Client: Acme Imports & Logistics
+
+Total Recoverable Discrepancies: $207.50
+- Shipper Retained Net (65%): $134.88
+- Contingency Recovery Fee (35%): $72.62
+
+All discrepancies validated with deterministic proof against governing carrier rate contracts.`;
+      navigator.clipboard.writeText(summary);
+      alert("CFO Executive Summary copied to clipboard!");
+    }
+
+    function renderAll() {
+      renderChecklist();
+      renderCarrierSummary();
+      renderRecentActivity();
+      renderInvoicesTable();
+      renderContractsTable();
+      renderDisputes();
+      renderCreditMemos();
+    }
+
+    // Initialize on load
+    document.addEventListener("DOMContentLoaded", () => {
+      renderAll();
+    });
+  </script>
+
+</body>
+</html>

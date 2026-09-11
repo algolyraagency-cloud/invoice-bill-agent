@@ -370,4 +370,102 @@ class DisputeBatchPacket(BaseModel):
     created_at: str = Field(..., description="Creation timestamp")
 
 
+class OnboardingChecklistStep(BaseModel):
+    step_key: str = Field(..., description="forwarding_rule, contracts_uploaded, first_invoices_in, recovery_agreement, report_ready")
+    title: str = Field(..., description="Display title")
+    description: str = Field(..., description="Actionable instruction")
+    status: Literal["pending", "in_progress", "completed", "signed", "ready"] = "pending"
+    action_label: Optional[str] = None
+    action_tab: Optional[str] = None
+
+
+class OnboardingChecklist(BaseModel):
+    forwarding_rule: OnboardingChecklistStep
+    contracts_uploaded: OnboardingChecklistStep
+    first_invoices_in: OnboardingChecklistStep
+    recovery_agreement: OnboardingChecklistStep
+    report_ready: OnboardingChecklistStep
+    completed_steps_count: int = 0
+    total_steps_count: int = 5
+    is_fully_onboarded: bool = False
+
+
+class CustomerDashboardKPIs(BaseModel):
+    total_recoverable_cents: int = 0
+    total_recoverable_dollars: float = 0.0
+    estimated_shipper_net_dollars: float = 0.0  # 65% share
+    contingency_fee_dollars: float = 0.0       # 35% fee
+    total_invoices_audited: int = 0
+    total_flagged_invoices: int = 0
+    open_disputes_count: int = 0
+    verified_credit_memos_count: int = 0
+    verified_credit_memos_dollars: float = 0.0
+    active_contracts_count: int = 0
+
+
+class CustomerDashboardResponse(BaseModel):
+    customer_id: str
+    name: str
+    slug: str
+    inbound_email: str
+    dispute_tracking_email: str
+    kpis: CustomerDashboardKPIs
+    checklist: OnboardingChecklist
+    carrier_summary: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
+    recent_activity: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class ContractIntakeRequest(BaseModel):
+    carrier: str
+    rung: Literal["A", "B", "C", "D"] = "A"
+    has_signed_agreement: bool = True
+    notes: Optional[str] = None
+
+
+class ContractListItem(BaseModel):
+    id: str
+    carrier: str
+    rung: Literal["A", "B", "C", "D"]
+    file_path: Optional[str] = None
+    file_name: str
+    effective_date: Optional[str] = None
+    parsed_lanes_count: int = 0
+    validation_status: Literal["valid", "needs_spot_check", "rejected"] = "valid"
+    spot_checks_count: int = 0
+    created_at: str
+
+
+class CreditMemoIntakeRequest(BaseModel):
+    carrier: str
+    memo_number: str
+    original_invoice_ref: str
+    amount_dollars: float
+    kind: Literal["credit_memo", "refund_check"] = "credit_memo"
+    notes: Optional[str] = None
+
+
+class CreditMemoListItem(BaseModel):
+    id: str
+    carrier: str
+    memo_number: str
+    original_invoice_ref: str
+    amount_cents: int
+    amount_dollars: float
+    kind: str
+    verification_status: Literal["pending", "verified", "rejected"] = "pending"
+    matched_dispute_id: Optional[str] = None
+    verified_at: Optional[str] = None
+    created_at: str
+
+
+class CustomerPortalSession(BaseModel):
+    user_id: str
+    customer_id: str
+    email: str
+    role: Literal["owner", "ap_clerk", "internal_reviewer"]
+    customer_name: str
+    customer_slug: str
+
+
+
 

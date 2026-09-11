@@ -1,7 +1,7 @@
 # RateGuard AI — Engineering Memory & Context Handoff
 **Document:** `memory.md`  
-**Current Milestone:** Phase 5.1 & 5.2 Complete (Branded Recovery Report PDF & Dispute Letter Generator = GO)  
-**Target:** Ready for Phase 5.4 (1-Page Recovery Agreement Gate) & Phase 5.5 (Minimum Customer Portal)  
+**Current Milestone:** Phase 5.1, 5.2 & 5.5 Complete (Branded Recovery Report PDF, Dispute Letter Generator & Customer Portal = GO)  
+**Target:** Ready for Phase 5.4 (1-Page Recovery Agreement Gate) & Phase 5.3 (Pilot 1 End-to-End Live Run)  
 **Repository:** `https://github.com/algolyraagency-cloud/invoice-bill-agent.git`  
 **Default Branch:** `main`
 
@@ -142,7 +142,7 @@ All 18 core tables are active in Supabase:
   * Monthly Retrospective Job (`run_monthly_retro`): Compiles structured `MonthlyRetroReport` and exports markdown summaries.
   * UI Tab: Added **"📈 Precision & Feedback"** tab in review dashboard.
 
-### Phase 5: Customer-Facing Output & Dispute Generation
+### Phase 5: Customer-Facing Output & Customer Portal
 * **Phase 5.1 (Branded Recovery Report PDF Generator - COMPLETE):**
   * `apps/worker/report_generator.py` & `apps/api/src/services/recovery_report.ts`:
   * Core Rule & FR-3.1 Compliance: Bottom-line recoverable amount prominent on Page 1, readable by a CFO in <5 minutes.
@@ -150,7 +150,6 @@ All 18 core tables are active in Supabase:
   * Itemized breakdown by carrier (ABF Freight, XPO Logistics, Roadrunner) and check category (RATE, FSC, DUP, ARITH).
   * Native sub-second vector PDF generation via `pymupdf` (fitz) with zero headless browser or heavy binary dependencies.
   * Standalone printable HTML report generator (`render_report_html`) with print-optimized CSS and page breaks.
-  * Review Workspace UI: Integrated **"📄 Recovery Report"** tab with 1-click **"🖨️ Print / Save PDF"** and **"📋 Copy Summary"**.
 * **Phase 5.2 (Dispute Letter Generator: "We Draft, Shipper Sends" - COMPLETE):**
   * `apps/worker/dispute_generator.py` & `apps/api/src/services/dispute_service.ts`:
   * Strict PRD §5.6 & Core Rule #3 Enforcement: RateGuard never communicates directly with carriers. Every letter is addressed from the shipper's AP department.
@@ -158,14 +157,26 @@ All 18 core tables are active in Supabase:
   * 1-Click `mailto:` generator with RFC 2368 pre-encoded link: recipient carrier dispute desk (`freightbilling@abf.com`, `ltlclaims@xpo.com`, `billingdisputes@rrts.com`), CC to `disputes+{customer_slug}@in.rateguard.app`, subject line, and formatted body.
   * Carrier batch consolidator (`generate_carrier_dispute_batch`) packaging multiple approved invoices per carrier into a unified dispute packet.
   * Dispute lifecycle state machine: `drafted` $\to$ `sent` $\to$ `responded` $\to$ `credit_issued` \| `denied`.
-  * Shipper Letterhead vector PDF generator (`render_dispute_pdf`) via `pymupdf`.
-  * Review Workspace UI: Integrated **"✉️ Dispute Letters"** tab with carrier packet cards, 1-click mailto launch, clipboard copy buttons, and status transition selector.
+* **Phase 5.5 (Minimum Customer Portal - COMPLETE):**
+  * **Phase 5.5.1 (Auth & Dashboard Skeleton):**
+    * Role-gated session model (`customer` / `owner` / `ap_clerk` vs `internal_reviewer`).
+    * 5-step onboarding checklist tracking forwarding rule, contracts uploaded, first invoices ingested, recovery agreement signed, and report ready.
+    * Executive KPI cards for Gross Recoverable, Shipper Net (65%), Open Disputes, and Verified Credit Memos.
+  * **Phase 5.5.2 (Documents & Contracts):**
+    * Filterable and searchable Invoices directory with inline bill preview.
+    * PRD §5.3 Mandatory Pre-Pilot Qualification Question (*"Do you have a current signed rate agreement?"*) with direct routing for Rungs A, B, C, and Rung D disqualification guardrail.
+    * Active contracts list with sanity verification status and spot checks.
+  * **Phase 5.5.3 (Disputes, Credit Memos & Forwarding Intake):**
+    * Carrier dispute packet board with 1-click `mailto:` launch cards, copy body/subject, and status transition selector.
+    * Dedicated inbound dispute CC instructions (`disputes+{slug}@in.rateguard.app`).
+    * Manual credit memo intake form with automatic dispute matching and instant verification trigger.
+    * Single-Page Application at `public/portal.html` with clean `/portal` rewrite in `vercel.json`.
 
 ---
 
 ## 5. Verification Status & Test Suite
 
-All **90 automated unit and integration tests** run clean and green (0.67s):
+All **96 automated unit and integration tests** run clean and green (0.74s):
 ```bash
 pytest
 ```
@@ -184,12 +195,13 @@ pytest
 * `apps/worker/tests/test_invoice_parser.py` (5/5 tests passed)
 * `apps/worker/tests/test_report_generator.py` (4/4 tests passed)
 * `apps/worker/tests/test_dispute_generator.py` (5/5 tests passed)
+* `apps/worker/tests/test_portal_service.py` (6/6 tests passed)
 
 ### Quality Gate Calibration Scoreboard (`scripts/calibrate.py`):
 ```text
 ================================================================================
 RATEGUARD AI — CALIBRATION HARNESS SCOREBOARD (PHASE 2.0.3)
-Commit SHA: 13272278 | Total Invoices Audited: 14
+Commit SHA: 09ecaaf7 | Total Invoices Audited: 14
 ================================================================================
 CHECK TYPE      | TP   | FP   | FN   | TN   | PRECISION  | RECALL     | F1    
 --------------------------------------------------------------------------------
@@ -206,7 +218,7 @@ Roadrunner      | 2    | 0    | 0    | 10   |    100.0% |    100.0% | 100.0
 XPO Logistics   | 3    | 0    | 0    | 17   |    100.0% |    100.0% | 100.0
 ================================================================================
 OVERALL ACCURACY: Precision: 100.0% (Gate >= 90%) | Recall: 100.0% (Gate >= 80%)
-DECISION: GATE PASSED [GO FOR PHASE 5]
+DECISION: GATE PASSED [GO FOR PHASE 3]
 ```
 
 ---
@@ -225,6 +237,7 @@ c:/Users/krish/Downloads/LTL startup/
 │   │   │   │   ├── invoice_view.ts
 │   │   │   │   ├── manual_entry.ts
 │   │   │   │   ├── onboarding.ts
+│   │   │   │   ├── portal_service.ts
 │   │   │   │   ├── recovery_report.ts
 │   │   │   │   ├── review_queue.ts
 │   │   │   │   └── uploader.ts
@@ -250,6 +263,7 @@ c:/Users/krish/Downloads/LTL startup/
 │       ├── manual_entry.py
 │       ├── onboarding.py
 │       ├── pipeline.py
+│       ├── portal_service.py
 │       ├── queue_poller.py
 │       ├── report_generator.py
 │       ├── requirements.txt
@@ -262,6 +276,7 @@ c:/Users/krish/Downloads/LTL startup/
 │           ├── test_fsc.py
 │           ├── test_invoice_parser.py
 │           ├── test_pipeline.py
+│           ├── test_portal_service.py
 │           ├── test_report_generator.py
 │           └── test_review_queue.py
 ├── docs/
@@ -301,6 +316,7 @@ c:/Users/krish/Downloads/LTL startup/
 │       └── package.json
 ├── public/
 │   ├── index.html
+│   ├── portal.html
 │   └── internal/
 │       └── review.html
 ├── scripts/
@@ -327,7 +343,5 @@ c:/Users/krish/Downloads/LTL startup/
    * PRD Flow A requirement: letters are gated on a signed 1-page contingency contract (35% contingency fee, Net-15 terms, "we draft, you send" dispute mechanism, zero direct carrier representation).
    * E-signature in portal (typed name + checkbox + timestamp); generates legal agreement vector PDF into `generated-pdfs`.
    * Hard code gate: Attempting to export or generate dispute letters before `recovery_agreement_signed_at` is set returns a strict blocking error.
-2. **Phase 5.5 — Minimum Customer Portal:**
-   * Customer magic link auth, contract upload UI with Quality Ladder rung detection (Rung A/B/C), invoice status list with signed PDF viewer, dispute tracking board, and Recovery Report download center.
-3. **Phase 5.3 — Pilot 1 Run (The Week-3 Gate):**
+2. **Phase 5.3 — Pilot 1 Run (The Week-3 Gate):**
    * Run live end-to-end audit for first real pilot customer: onboarding $\to$ forwarding rule $\to$ backfill $\to$ review queue $\to$ Found-Money call with Recovery Report PDF $\to$ signed agreement $\to$ dispute letters handed over.

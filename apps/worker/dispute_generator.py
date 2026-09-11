@@ -251,7 +251,8 @@ Freight Accounts Payable
     }
     mailto_link = f"mailto:{carrier_dispute_email}?" + urllib.parse.urlencode(mailto_params, quote_via=urllib.parse.quote)
 
-    dispute_id = f"DISP-{datetime.now(timezone.utc).strftime('%Y%m')}-{uuid.uuid4().hex[:6].upper()}"
+    dispute_id = str(f.get("dispute_id")) if f.get("dispute_id") else f"DISP-{datetime.now(timezone.utc).strftime('%Y%m')}-{uuid.uuid4().hex[:6].upper()}"
+    status = str(f.get("status", "drafted"))
 
     return DisputeLetterItem(
         dispute_id=dispute_id,
@@ -273,7 +274,7 @@ Freight Accounts Payable
         contract_clause=contract_clause + page_str,
         dispute_reason_text=str(explanation),
         evidence_details=evidence_json,
-        status="drafted",
+        status=status,
         letter_pdf_path=None,
         mailto_link=mailto_link,
         email_subject=email_subject,
