@@ -143,7 +143,12 @@
         <span>💳</span>
         <span>Commission Invoices</span>
       </button>
+      <button onclick="switchTab('analytics')" id="tab-analytics" class="tab-btn px-3.5 py-2 rounded-lg border border-transparent text-neutral-400 hover:text-white transition flex items-center space-x-1.5">
+        <span>📈</span>
+        <span>Carrier Analytics & Nudges</span>
+      </button>
     </div>
+
 
 
     <!-- ==================================================================== -->
@@ -774,6 +779,118 @@
 
     </div>
 
+    <!-- ==================================================================== -->
+    <!-- TAB 8: Carrier Analytics & Overdue Reminder Nudges (Phase 7.4)        -->
+    <!-- ==================================================================== -->
+    <div id="view-analytics" class="space-y-6 hidden">
+      
+      <!-- Top Analytics Header & Overdue Nudges Alert -->
+      <div class="bg-[#090909] border border-[#1e1e1e] rounded-2xl p-6 space-y-4">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <span class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-800">
+              Phase 7.4 — Dispute Status Tracking & Hostility Intelligence
+            </span>
+            <h2 class="text-lg font-bold text-white mt-2">
+              Overdue Reminder Nudges & Carrier Hostility Analytics
+            </h2>
+            <p class="text-xs text-neutral-400">
+              Automates follow-up nudges for sent disputes >14 days old and profiles carrier hostility scores based on approval/denial ratios and resolution latency.
+            </p>
+          </div>
+        </div>
+
+        <!-- Overdue Nudges Section -->
+        <div class="border-t border-[#1c1c1c] pt-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-amber-400 font-mono flex items-center space-x-2">
+              <span>🔔 Overdue Dispute Nudges (>14 Days Sent)</span>
+              <span id="nudges-count-badge" class="px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 text-xs border border-amber-800">1 Pending</span>
+            </h3>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-neutral-300">
+              <thead class="bg-[#111] text-neutral-400 font-mono text-[11px] uppercase border-b border-[#1c1c1c]">
+                <tr>
+                  <th class="py-3 px-4">PRO #</th>
+                  <th class="py-3 px-4">Carrier</th>
+                  <th class="py-3 px-4">Sent Date</th>
+                  <th class="py-3 px-4">Days Overdue</th>
+                  <th class="py-3 px-4">Action</th>
+                </tr>
+              </thead>
+              <tbody id="dispute-nudges-tbody" class="divide-y divide-[#181818]">
+                <tr class="hover:bg-[#121212] transition">
+                  <td class="py-3.5 px-4 font-mono text-white">PRO-EX-1002</td>
+                  <td class="py-3.5 px-4 font-semibold text-neutral-200">FedEx Freight</td>
+                  <td class="py-3.5 px-4 font-mono text-neutral-400">2026-08-20</td>
+                  <td class="py-3.5 px-4 font-mono text-amber-400 font-bold">23 days</td>
+                  <td class="py-3.5 px-4">
+                    <a href="mailto:disputes@fedex.com?subject=REMINDER:%20Unresolved%20Billing%20Dispute%20Notice:%20PRO%20%23PRO-EX-1002" class="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs transition inline-flex items-center space-x-1">
+                      <span>🚀 1-Click Reminder Nudge</span>
+                    </a>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Carrier Hostility Analytics Scorecard -->
+      <div class="bg-[#0b0b0b] border border-[#1e1e1e] rounded-2xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-[#1c1c1c] flex items-center justify-between">
+          <h3 class="font-bold text-sm text-white font-mono">Carrier Hostility Analytics & Resolution Performance</h3>
+          <span class="text-xs font-mono text-neutral-500">Updated Realtime</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-neutral-300">
+            <thead class="bg-[#111] text-neutral-400 font-mono text-[11px] uppercase border-b border-[#1c1c1c]">
+              <tr>
+                <th class="py-3 px-4">Carrier</th>
+                <th class="py-3 px-4">Total Sent</th>
+                <th class="py-3 px-4">Approved</th>
+                <th class="py-3 px-4">Denied</th>
+                <th class="py-3 px-4">Approval Rate</th>
+                <th class="py-3 px-4">Avg Resolution</th>
+                <th class="py-3 px-4">Hostility Score</th>
+                <th class="py-3 px-4">Status Badge</th>
+              </tr>
+            </thead>
+            <tbody id="carrier-analytics-tbody" class="divide-y divide-[#181818]">
+              <tr class="hover:bg-[#121212] transition">
+                <td class="py-3.5 px-4 font-bold text-white">Estes Express</td>
+                <td class="py-3.5 px-4 font-mono">5</td>
+                <td class="py-3.5 px-4 font-mono text-emerald-400">4</td>
+                <td class="py-3.5 px-4 font-mono text-rose-400">0</td>
+                <td class="py-3.5 px-4 font-mono text-emerald-400 font-bold">80.0%</td>
+                <td class="py-3.5 px-4 font-mono">4.5 days</td>
+                <td class="py-3.5 px-4 font-mono font-bold text-emerald-400">0.90</td>
+                <td class="py-3.5 px-4">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-950 text-emerald-300 border border-emerald-800 uppercase">Friendly</span>
+                </td>
+              </tr>
+              <tr class="hover:bg-[#121212] transition">
+                <td class="py-3.5 px-4 font-bold text-white">FedEx Freight</td>
+                <td class="py-3.5 px-4 font-mono">8</td>
+                <td class="py-3.5 px-4 font-mono text-emerald-400">3</td>
+                <td class="py-3.5 px-4 font-mono text-rose-400">4</td>
+                <td class="py-3.5 px-4 font-mono text-amber-400 font-bold">37.5%</td>
+                <td class="py-3.5 px-4 font-mono">18.2 days</td>
+                <td class="py-3.5 px-4 font-mono font-bold text-rose-400">7.64</td>
+                <td class="py-3.5 px-4">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-rose-950 text-rose-300 border border-rose-800 uppercase">Hostile</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+
   <!-- ==================================================================== -->
   <!-- MODAL: Single Dispute Letter Preview                                 -->
   <!-- ==================================================================== -->
@@ -915,7 +1032,7 @@
       const activeBtn = document.getElementById(`tab-${tabId}`);
       if (activeBtn) activeBtn.classList.add('active');
 
-      const views = ['dashboard', 'invoices', 'contracts', 'disputes', 'creditmemos', 'reports', 'commission'];
+      const views = ['dashboard', 'invoices', 'contracts', 'disputes', 'creditmemos', 'reports', 'commission', 'analytics'];
       views.forEach(v => {
         const el = document.getElementById(`view-${v}`);
         if (el) {

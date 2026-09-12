@@ -52,6 +52,15 @@ from apps.worker.agreement_generator import (
 )
 from apps.worker.credit_memo_service import CreditMemoService
 from apps.worker.stripe_commission import StripeCommissionService
+from apps.worker.dispute_tracker_automation import (
+    compute_carrier_hostility_analytics,
+    scan_overdue_disputes,
+)
+from packages.schemas.models import (
+    CarrierAnalyticsReport,
+    DisputeReminderNudge,
+)
+
 
 
 class CustomerPortalService:
@@ -930,4 +939,36 @@ class CustomerPortalService:
             stronger_evidence_notes=stronger_evidence_notes,
         )
         return result
+
+    def list_dispute_reminders(
+        self,
+        customer_id: str,
+        days_threshold: int = 14,
+    ) -> List[DisputeReminderNudge]:
+        """
+        Lists overdue dispute reminder nudges (>14 days in 'sent' state) for the customer portal.
+        """
+        disputes = self.list_disputes(customer_id)
+        dispute_dicts = []
+        for item in disputes:
+            d_dict = item.model_dump()
+            disp_rec = self._disputes.get(item.dispute_id, {})
+            if disp_rec.get("sent_at"):
+                d_dict["sent_at"] = disp_rec["sent_at"]
+            dispute_dicts.append(d_dict)
+
+        return scan_overdue_disputes(dispute_dicts, days_threshold=days_threshold)
+
+    def get_carrier_analytics(
+        self,
+        customer_id: str,
+        period: str = "all_time",
+    ) -> CarrierAnalyticsReport:
+        """
+        Computes carrier hostility analytics and resolution metrics for the customer portal.
+        """
+        disputes = self.list_disputes(customer_id)
+        dispute_dicts = [item.model_dump() for item in disputes]
+        return compute_carrier_hostility_analytics(dispute_dicts, customer_id=customer_id, period=period)
+
 

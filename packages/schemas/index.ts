@@ -630,8 +630,53 @@ export const RegexFallbackExtractionResultSchema = z.object({
   parser_used: z.string().default('regex_fallback'),
 });
 
-export type OnboardingWizardState = z.infer<typeof OnboardingWizardStateSchema>;
-export type RegexFallbackExtractionResult = z.infer<typeof RegexFallbackExtractionResultSchema>;
+export const DisputeReminderNudgeSchema = z.object({
+  dispute_id: z.string(),
+  invoice_id: z.string(),
+  pro_number: z.string(),
+  carrier: z.string(),
+  customer_id: z.string(),
+  customer_name: z.string(),
+  sent_at: z.string(),
+  days_since_sent: z.number().int(),
+  overdue_threshold_days: z.number().int().default(14),
+  suggested_action: z.string().default('Send 1-Click Reminder Nudge'),
+  mailto_reminder_link: z.string(),
+  reminder_subject: z.string(),
+  status: z.string().default('sent'),
+});
+
+export const CarrierHostilityMetricsSchema = z.object({
+  carrier: z.string(),
+  total_disputes_sent: z.number().int().default(0),
+  disputes_approved: z.number().int().default(0),
+  disputes_denied: z.number().int().default(0),
+  disputes_pending: z.number().int().default(0),
+  approval_rate_pct: z.number().default(0.0),
+  denial_rate_pct: z.number().default(0.0),
+  avg_resolution_days: z.number().default(0.0),
+  hostility_score: z.number().default(0.0),
+  hostility_status: z.enum(['friendly', 'moderate', 'hostile']).default('friendly'),
+});
+
+export const CarrierAnalyticsReportSchema = z.object({
+  report_id: z.string(),
+  customer_id: z.string(),
+  period: z.string().default('all_time'),
+  total_carriers_tracked: z.number().int().default(0),
+  total_disputes: z.number().int().default(0),
+  total_recovered_dollars: z.number().default(0.0),
+  total_denied_dollars: z.number().default(0.0),
+  carriers: z.array(CarrierHostilityMetricsSchema).default([]),
+  highest_hostility_carrier: z.string().optional().nullable(),
+  lowest_hostility_carrier: z.string().optional().nullable(),
+  generated_at: z.string(),
+});
+
+export type DisputeReminderNudge = z.infer<typeof DisputeReminderNudgeSchema>;
+export type CarrierHostilityMetrics = z.infer<typeof CarrierHostilityMetricsSchema>;
+export type CarrierAnalyticsReport = z.infer<typeof CarrierAnalyticsReportSchema>;
+
 
 
 

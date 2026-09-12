@@ -1,7 +1,8 @@
 # RateGuard AI — Engineering Memory & Context Handoff
 **Document:** `memory.md`  
-**Current Milestone:** Phase 7 Complete (Self-Serve Onboarding Wizard SPA, Top-10 Carrier Formats, Ultra-Stable Regex Fallback Layer = GO)  
-**Target:** Ready for Enterprise Scale & Production Launch  
+**Current Milestone:** Phase 7.3 & Phase 7.4 Complete (Audit Checks 5–8: Accessorials, Reweigh, Guaranteed SLA, Freight Tax & Dispute Status Tracking Automation + Carrier Hostility Analytics = GO)  
+**Target:** 100% Core Feature Complete & Ready for Enterprise Scale Launch  
+
 **Repository:** `https://github.com/algolyraagency-cloud/invoice-bill-agent.git`  
 **Default Branch:** `main`
 
@@ -214,12 +215,23 @@ All 18 core tables are active in Supabase:
   * `apps/worker/regex_fallback_parser.py` & `fixtures/golden/top10_carriers/`:
   * Extended Carrier Support: Full format hints, regex patterns, and golden test fixtures for Top-10 US LTL carriers (ABF Freight, XPO Logistics, Roadrunner, Estes Express, Saia Freight, TForce Freight, Old Dominion, R+L Carriers, Yellow/YRC, Southeastern Freight).
   * Ultra-Stable Regex Fallback Parser (`RegexFallbackParser`): Zero-cost, high-reliability extraction engine for mandatory audit fields (PRO#, Invoice#, Date, Weight, Net Freight, FSC, Total Amount), ensuring 100% extraction reliability at $0.00 LLM cost.
+* **Phase 7.3 (Remaining Audit Checks 5–8: Accessorials, Reweigh, Guaranteed SLA, Freight Tax - COMPLETE):**
+  * `packages/audit-engine/engine.py` & `apps/worker/tests/test_audit_checks_5_8.py`:
+  * **Check 5 (ACCESSORIAL):** Audits Liftgate, Residential, Inside Delivery, Redelivery against contracted approved schedule.
+  * **Check 6 (REWEIGH):** Flags uncertified weight increases (> 50 lbs over BOL) or unauthorized reweigh fees.
+  * **Check 7 (GUARANTEE):** Flags SLA delivery date breaches on guaranteed shipments (100% money-back guarantee under Item 780).
+  * **Check 8 (TAX):** Audits sales and state transport taxes charged on tax-exempt interstate freight.
+* **Phase 7.4 (Dispute Status Tracking Automation & Carrier Hostility Analytics - COMPLETE):**
+  * `apps/worker/dispute_tracker_automation.py`, `apps/api/src/services/dispute_automation.ts`, `apps/worker/portal_service.py`, & `public/portal.html`:
+  * Overdue Nudges: Automatically identifies sent disputes pending >14 days and generates RFC 2368 1-click `mailto:` reminder links.
+  * Carrier Hostility Analytics: Computes per-carrier denial rates, approval rates, resolution latency, and assigns hostility scores (0.0 to 10.0) with status badges (`friendly`, `moderate`, `hostile`).
+  * Customer Portal Integration: Integrated **"📈 Carrier Analytics & Nudges"** tab into `public/portal.html`.
 
 ---
 
 ## 5. Verification Status & Test Suite
 
-All **115 automated unit and integration tests** run clean and green (3.82s):
+All **125 automated unit and integration tests** run clean and green (2.19s):
 ```bash
 pytest
 ```
@@ -244,6 +256,9 @@ pytest
 * `apps/worker/tests/test_stripe_commission.py` (5/5 tests passed)
 * `apps/worker/tests/test_onboarding_wizard.py` (2/2 tests passed)
 * `apps/worker/tests/test_regex_fallback_parser.py` (3/3 tests passed)
+* `apps/worker/tests/test_audit_checks_5_8.py` (7/7 tests passed)
+* `apps/worker/tests/test_dispute_automation.py` (3/3 tests passed)
+
 
 
 

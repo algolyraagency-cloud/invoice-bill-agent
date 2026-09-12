@@ -20,16 +20,40 @@ from packages.schemas.models import (
 )
 
 try:
-    from engine import check_arithmetic, check_duplicates, check_fsc, check_rates, parse_date
+    from engine import (
+        check_accessorials,
+        check_arithmetic,
+        check_duplicates,
+        check_freight_tax,
+        check_fsc,
+        check_guaranteed_sla,
+        check_rates,
+        check_reweigh_dimension,
+        parse_date,
+    )
 except ImportError:
     try:
-        from .engine import check_arithmetic, check_duplicates, check_fsc, check_rates, parse_date
-    except ImportError:
-        from packages.audit_engine.engine import (
+        from .engine import (
+            check_accessorials,
             check_arithmetic,
             check_duplicates,
+            check_freight_tax,
             check_fsc,
+            check_guaranteed_sla,
             check_rates,
+            check_reweigh_dimension,
+            parse_date,
+        )
+    except ImportError:
+        from packages.audit_engine.engine import (
+            check_accessorials,
+            check_arithmetic,
+            check_duplicates,
+            check_freight_tax,
+            check_fsc,
+            check_guaranteed_sla,
+            check_rates,
+            check_reweigh_dimension,
             parse_date,
         )
 
@@ -41,13 +65,24 @@ def audit_invoice(
     all_invoices: Optional[List[InvoiceJSON]] = None,
     eia_diesel_price: Optional[float] = None,
     eia_indices: Optional[List[Dict[str, Any]]] = None,
+    approved_accessorials: Optional[Dict[str, float]] = None,
+    bol_weight: Optional[float] = None,
+    certified_reweigh: Optional[bool] = None,
+    guaranteed_service: Optional[bool] = None,
+    promised_delivery_date: Optional[str] = None,
+    actual_delivery_date: Optional[str] = None,
+    is_interstate: Optional[bool] = None,
 ) -> List[Flag]:
     """
-    Executes the 4 deterministic audit checks on a single invoice:
+    Executes the 8 deterministic audit checks on a single invoice:
     1. Duplicates (DUP)
     2. Rates & Deficit Weight Rating (RATE)
     3. Fuel Surcharge (FSC)
     4. Arithmetic Reconciliation (ARITH)
+    5. Accessorial Audit (ACCESSORIAL)
+    6. Reweigh & Dimension Discrepancies (REWEIGH)
+    7. Guaranteed SLA & Money-Back Guarantee (GUARANTEE)
+    8. Freight Tax Audit (TAX)
     """
     flags: List[Flag] = []
     comparison_invoices = all_invoices or [invoice]
@@ -73,7 +108,40 @@ def audit_invoice(
     arith_flags = check_arithmetic(invoice)
     flags.extend(arith_flags)
 
+    # Check 5: Accessorial Audit
+    acc_flags = check_accessorials(
+        invoice,
+        rate_matrix_versions=rate_matrices,
+        approved_accessorials=approved_accessorials,
+    )
+    flags.extend(acc_flags)
+
+    # Check 6: Reweigh & Dimension Audit
+    reweigh_flags = check_reweigh_dimension(
+        invoice,
+        bol_weight=bol_weight,
+        certified_reweigh=certified_reweigh,
+    )
+    flags.extend(reweigh_flags)
+
+    # Check 7: Guaranteed SLA Audit
+    sla_flags = check_guaranteed_sla(
+        invoice,
+        guaranteed_service=guaranteed_service,
+        promised_delivery_date=promised_delivery_date,
+        actual_delivery_date=actual_delivery_date,
+    )
+    flags.extend(sla_flags)
+
+    # Check 8: Freight Tax Audit
+    tax_flags = check_freight_tax(
+        invoice,
+        is_interstate=is_interstate,
+    )
+    flags.extend(tax_flags)
+
     return flags
+
 
 
 def audit_batch(

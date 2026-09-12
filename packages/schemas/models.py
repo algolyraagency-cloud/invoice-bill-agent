@@ -614,7 +614,58 @@ class RegexFallbackExtractionResult(BaseModel):
     parser_used: str = "regex_fallback"
 
 
+class DisputeReminderNudge(BaseModel):
+    dispute_id: str
+    invoice_id: Optional[str] = None
+    pro_number: str
+    invoice_number: str = "N/A"
+    carrier: str
+    customer_id: str = "cust_default"
+    customer_name: str = "Shipper"
+    sent_at: str
+    days_since_sent: int = 0
+    days_overdue: int = 0
+    overdue_threshold_days: int = 14
+    overcharge_dollars: float = 0.0
+    suggested_action: str = "Send 1-Click Reminder Nudge"
+    mailto_reminder_link: str = ""
+    reminder_mailto_link: str = ""
+    reminder_subject: str = ""
+    reminder_count: int = 1
+    status: str = "sent"
 
 
+class CarrierHostilityMetrics(BaseModel):
+    carrier: str
+    total_disputes: int = 0
+    total_disputes_sent: int = 0
+    approved_count: int = 0
+    disputes_approved: int = 0
+    denied_count: int = 0
+    disputes_denied: int = 0
+    pending_count: int = 0
+    disputes_pending: int = 0
+    approval_rate_pct: float = 0.0
+    denial_rate_pct: float = 0.0
+    avg_resolution_days: float = 0.0
+    total_recovered_dollars: float = 0.0
+    hostility_score: float = 0.0
+    hostility_status: Literal["friendly", "moderate", "hostile"] = "friendly"
 
+
+class CarrierAnalyticsReport(BaseModel):
+    report_id: str = ""
+    customer_id: str = "cust_default"
+    period: str = "all_time"
+    generated_at: str
+    total_carriers_tracked: int = 0
+    total_disputes: int = 0
+    total_disputes_analyzed: int = 0
+    overall_denial_rate_pct: float = 0.0
+    total_recovered_dollars: float = 0.0
+    total_denied_dollars: float = 0.0
+    highest_hostility_carrier: Optional[str] = None
+    lowest_hostility_carrier: Optional[str] = None
+    most_hostile_carrier: Optional[str] = None
+    carriers: List[CarrierHostilityMetrics] = Field(default_factory=list)
 

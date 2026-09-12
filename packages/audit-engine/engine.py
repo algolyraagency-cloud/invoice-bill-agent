@@ -422,3 +422,289 @@ def check_fsc(
 
     return flags
 
+
+def check_accessorials(
+    invoice: InvoiceJSON,
+    rate_matrix_versions: Optional[List[RateMatrixJSON]] = None,
+    approved_accessorials: Optional[Dict[str, float]] = None
+) -> List[Flag]:
+    """
+    Check 5: Accessorial Audit.
+    Verifies billed accessorial fees (Liftgate, Residential, Inside Delivery, Redelivery, etc.)
+    against contract approved limits or authorization state.
+    """
+    flags: List[Flag] = []
+    matrix = select_effective_matrix(invoice.invoice_date, rate_matrix_versions) if rate_matrix_versions else None
+    
+    # Combined contract approved accessorial rates (lowercased keys)
+    contract_approved: Dict[str, float] = {}
+    if approved_accessorials:
+        contract_approved.update({k.lower(): float(v) for k, v in approved_accessorials.items()})
+    if matrix and matrix.approved_accessorials:
+        contract_approved.update({k.lower(): float(v) for k, v in matrix.approved_accessorials.items()})
+
+    # 1. Audit structured accessorials list
+    for acc in invoice.accessorials:
+        acc_type_clean = acc.type.strip().lower()
+        billed_amt = acc.amount
+
+        # Case A: Unauthorized accessorial explicitly marked
+        if acc.authorized is False:
+            overcharge_cents = int(round(billed_amt * 100))
+            if overcharge_cents > 0:
+                flags.append(Flag(
+                    invoice_id=getattr(invoice, "id", None),
+                    check_type="ACCESSORIAL",
+                    overcharge_cents=overcharge_cents,
+                    confidence=0.98,
+                    evidence_json={
+                        "invoice_ref": invoice.invoice_number,
+                        "carrier": invoice.carrier,
+                        "contract_clause": "Item 550 — Accessorial Authorization Rule",
+                        "page_number": 9,
+                        "accessorial_type": acc.type,
+                        "billed_value": round(billed_amt, 2),
+                        "correct_value": 0.00,
+                        "overcharge_cents": overcharge_cents,
+                        "note": f"Unauthorized accessorial '{acc.type}' billed (${billed_amt:.2f})"
+                    }
+                ))
+            continue
+
+        # Case B: Exceeds approved contract rate limit
+        if acc_type_clean in contract_approved:
+            approved_rate = contract_approved[acc_type_clean]
+            if billed_amt > approved_rate + 0.50:
+                diff = billed_amt - approved_rate
+                overcharge_cents = int(round(diff * 100))
+                flags.append(Flag(
+                    invoice_id=getattr(invoice, "id", None),
+                    check_type="ACCESSORIAL",
+                    overcharge_cents=overcharge_cents,
+                    confidence=0.95,
+                    evidence_json={
+                        "invoice_ref": invoice.invoice_number,
+                        "carrier": invoice.carrier,
+                        "contract_clause": f"Item 550 — {acc.type.title()} Schedule Rate",
+                        "page_number": 9,
+                        "accessorial_type": acc.type,
+                        "billed_value": round(billed_amt, 2),
+                        "correct_value": round(approved_rate, 2),
+                        "overcharge_cents": overcharge_cents,
+                        "note": f"Billed {acc.type} (${billed_amt:.2f}) exceeds contracted rate (${approved_rate:.2f})"
+                    }
+                ))
+
+    # 2. Audit line items for unapproved/overbilled accessorial charges
+    for item in invoice.line_items:
+        desc_clean = item.description.strip().lower()
+        if any(keyword in desc_clean for keyword in ["liftgate", "residential", "inside delivery", "redelivery", "notification", "detention"]):
+            matched_key = None
+            for key in contract_approved:
+                if key in desc_clean:
+                    matched_key = key
+                    break
+            
+            if matched_key:
+                approved_rate = contract_approved[matched_key]
+                if item.amount > approved_rate + 0.50:
+                    diff = item.amount - approved_rate
+                    overcharge_cents = int(round(diff * 100))
+                    # Avoid duplicate flag if already covered in invoice.accessorials
+                    already_flagged = any(f.check_type == "ACCESSORIAL" and f.evidence_json.get("billed_value") == round(item.amount, 2) for f in flags)
+                    if not already_flagged:
+                        flags.append(Flag(
+                            invoice_id=getattr(invoice, "id", None),
+                            check_type="ACCESSORIAL",
+                            overcharge_cents=overcharge_cents,
+                            confidence=0.94,
+                            evidence_json={
+                                "invoice_ref": invoice.invoice_number,
+                                "carrier": invoice.carrier,
+                                "contract_clause": f"Item 550 — Accessorial Line Item Schedule",
+                                "page_number": 9,
+                                "accessorial_type": item.description,
+                                "billed_value": round(item.amount, 2),
+                                "correct_value": round(approved_rate, 2),
+                                "overcharge_cents": overcharge_cents,
+                                "note": f"Billed line item '{item.description}' (${item.amount:.2f}) exceeds contract rate (${approved_rate:.2f})"
+                            }
+                        ))
+
+    return flags
+
+
+def check_reweigh_dimension(
+    invoice: InvoiceJSON,
+    bol_weight: Optional[float] = None,
+    certified_reweigh: Optional[bool] = None
+) -> List[Flag]:
+    """
+    Check 6: Reweigh & Dimension Discrepancy Audit.
+    Flags unauthorized reweigh fees or uncertified weight increases (> 50 lbs over BOL weight).
+    """
+    flags: List[Flag] = []
+    
+    # 1. Check for explicit reweigh / inspection fee line items
+    for item in invoice.line_items:
+        desc_clean = item.description.strip().lower()
+        if "reweigh" in desc_clean or "weight adjustment" in desc_clean or "weight inspection" in desc_clean:
+            if certified_reweigh is False or certified_reweigh is None:
+                overcharge_cents = int(round(item.amount * 100))
+                if overcharge_cents > 0:
+                    flags.append(Flag(
+                        invoice_id=getattr(invoice, "id", None),
+                        check_type="REWEIGH",
+                        overcharge_cents=overcharge_cents,
+                        confidence=0.96,
+                        evidence_json={
+                            "invoice_ref": invoice.invoice_number,
+                            "carrier": invoice.carrier,
+                            "contract_clause": "Item 140 — Reweigh & Weight Inspection Certification",
+                            "page_number": 11,
+                            "billed_weight": invoice.billed_weight,
+                            "bol_weight": bol_weight or invoice.billed_weight,
+                            "reweigh_fee": round(item.amount, 2),
+                            "billed_value": round(item.amount, 2),
+                            "correct_value": 0.00,
+                            "overcharge_cents": overcharge_cents,
+                            "note": f"Reweigh fee (${item.amount:.2f}) charged without attached weight verification certificate"
+                        }
+                    ))
+
+    # 2. Check if billed weight exceeds BOL weight by > 50 lbs without certified reweigh doc
+    if bol_weight is not None and invoice.billed_weight > bol_weight + 50.0:
+        if certified_reweigh is False or certified_reweigh is None:
+            # Check if we haven't already flagged the reweigh line item
+            if not any(f.check_type == "REWEIGH" for f in flags):
+                weight_diff = invoice.billed_weight - bol_weight
+                # Estimated overcharge based on weight diff proportion or baseline penalty
+                cwt_diff = weight_diff / 100.0
+                estimated_overcharge = max(35.0, cwt_diff * 12.50)
+                overcharge_cents = int(round(estimated_overcharge * 100))
+                flags.append(Flag(
+                    invoice_id=getattr(invoice, "id", None),
+                    check_type="REWEIGH",
+                    overcharge_cents=overcharge_cents,
+                    confidence=0.92,
+                    evidence_json={
+                        "invoice_ref": invoice.invoice_number,
+                        "carrier": invoice.carrier,
+                        "contract_clause": "Item 140-B — Uncertified Weight Adjustment Restriction",
+                        "page_number": 11,
+                        "billed_weight": invoice.billed_weight,
+                        "bol_weight": bol_weight,
+                        "weight_diff_lbs": weight_diff,
+                        "billed_value": round(invoice.invoice_total, 2),
+                        "correct_value": round(invoice.invoice_total - estimated_overcharge, 2),
+                        "overcharge_cents": overcharge_cents,
+                        "note": f"Billed weight ({invoice.billed_weight:.1f} lbs) exceeds BOL weight ({bol_weight:.1f} lbs) by {weight_diff:.1f} lbs without scale certificate"
+                    }
+                ))
+
+    return flags
+
+
+def check_guaranteed_sla(
+    invoice: InvoiceJSON,
+    guaranteed_service: Optional[bool] = None,
+    promised_delivery_date: Optional[str] = None,
+    actual_delivery_date: Optional[str] = None
+) -> List[Flag]:
+    """
+    Check 7: Guaranteed SLA & On-Time Delivery Audit.
+    Flags late delivery on guaranteed shipments (100% money-back guarantee under Item 780).
+    """
+    flags: List[Flag] = []
+    
+    # Detect guaranteed service line item or argument
+    guarantee_line_amount = 0.0
+    for item in invoice.line_items:
+        desc_clean = item.description.strip().lower()
+        if "guaranteed" in desc_clean or "gsd" in desc_clean or "am delivery" in desc_clean:
+            guarantee_line_amount += item.amount
+
+    is_guaranteed = guaranteed_service or (guarantee_line_amount > 0.0)
+    if not is_guaranteed:
+        return flags
+
+    # Check dates if provided
+    if promised_delivery_date and actual_delivery_date:
+        promised_dt = parse_date(promised_delivery_date)
+        actual_dt = parse_date(actual_delivery_date)
+        
+        if actual_dt > promised_dt:
+            # SLA Missed! Full money-back guarantee refund applies
+            # Overcharge is guaranteed fee plus total freight or guaranteed fee amount
+            refundable_amount = guarantee_line_amount if guarantee_line_amount > 0.0 else invoice.invoice_total
+            overcharge_cents = int(round(refundable_amount * 100))
+            flags.append(Flag(
+                invoice_id=getattr(invoice, "id", None),
+                check_type="GUARANTEE",
+                overcharge_cents=overcharge_cents,
+                confidence=0.99,
+                evidence_json={
+                    "invoice_ref": invoice.invoice_number,
+                    "carrier": invoice.carrier,
+                    "contract_clause": "Item 780 — Guaranteed Service Money-Back Guarantee",
+                    "page_number": 14,
+                    "promised_delivery_date": promised_delivery_date,
+                    "actual_delivery_date": actual_delivery_date,
+                    "billed_value": round(invoice.invoice_total, 2),
+                    "correct_value": round(max(0.0, invoice.invoice_total - refundable_amount), 2),
+                    "overcharge_cents": overcharge_cents,
+                    "note": f"Guaranteed delivery missed: promised {promised_delivery_date}, actual delivery {actual_delivery_date}. 100% refund of ${refundable_amount:.2f}"
+                }
+            ))
+
+    return flags
+
+
+def check_freight_tax(
+    invoice: InvoiceJSON,
+    is_interstate: Optional[bool] = None
+) -> List[Flag]:
+    """
+    Check 8: Freight Transportation Tax Audit.
+    Flags sales/transportation taxes billed on tax-exempt interstate freight shipments.
+    """
+    flags: List[Flag] = []
+    
+    # Determine interstate status: different zip prefixes or explicit param
+    orig_prefix = invoice.origin_zip[:3] if invoice.origin_zip else ""
+    dest_prefix = invoice.dest_zip[:3] if invoice.dest_zip else ""
+    interstate = is_interstate if is_interstate is not None else (orig_prefix != dest_prefix)
+
+    if not interstate:
+        return flags
+
+    # Inspect line items for tax charges
+    for item in invoice.line_items:
+        desc_clean = item.description.strip().lower()
+        if any(keyword in desc_clean for keyword in ["sales tax", "state tax", "transportation tax", "gst", "hst", "tax charge"]):
+            tax_amount = item.amount
+            if tax_amount > 0.0:
+                overcharge_cents = int(round(tax_amount * 100))
+                flags.append(Flag(
+                    invoice_id=getattr(invoice, "id", None),
+                    check_type="TAX",
+                    overcharge_cents=overcharge_cents,
+                    confidence=0.98,
+                    evidence_json={
+                        "invoice_ref": invoice.invoice_number,
+                        "carrier": invoice.carrier,
+                        "contract_clause": "IRC Sec. 4271 & State Tax Exemption for Interstate Commerce",
+                        "page_number": 2,
+                        "origin_zip": invoice.origin_zip,
+                        "dest_zip": invoice.dest_zip,
+                        "tax_description": item.description,
+                        "billed_value": round(tax_amount, 2),
+                        "correct_value": 0.00,
+                        "overcharge_cents": overcharge_cents,
+                        "note": f"Tax line item '{item.description}' (${tax_amount:.2f}) billed on tax-exempt interstate shipment"
+                    }
+                ))
+
+    return flags
+
+
