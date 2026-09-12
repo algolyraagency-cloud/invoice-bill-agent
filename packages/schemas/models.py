@@ -498,6 +498,90 @@ class RecoveryAgreementRecord(BaseModel):
     is_active: bool = Field(default=True, description="Active contract status")
 
 
+class UnverifiedMemoBillingError(Exception):
+    """Raised when commission invoicing is attempted for credit memos that are not verified."""
+    def __init__(self, memo_number: str = "Unknown"):
+        self.memo_number = memo_number
+        super().__init__(
+            f"Revenue Integrity Violation: Credit Memo '{memo_number}' is not verified. "
+            "Commission invoices can ONLY be generated from credit memos with verification_status='verified' "
+            "(PRD Flow A & Implementation §6.1)."
+        )
+
+
+class CreditMemoDetectionCandidate(BaseModel):
+    carrier: str
+    memo_number: str
+    original_invoice_ref: str
+    amount_cents: int
+    amount_dollars: float
+    kind: Literal["credit_memo", "refund_check"] = "credit_memo"
+    detected_via: Literal["stream", "forwarded", "manual"] = "stream"
+    raw_text_snippet: Optional[str] = None
+    confidence_score: float = 1.0
+
+
+class CreditMemoVerificationResult(BaseModel):
+    credit_memo_id: str
+    verification_status: Literal["verified", "pending", "rejected", "unmatched"]
+    matched_dispute_id: Optional[str] = None
+    carrier: str
+    original_invoice_ref: str
+    memo_amount_dollars: float
+    dispute_amount_dollars: Optional[float] = None
+    discrepancy_dollars: float = 0.0
+    verified_at: Optional[str] = None
+    notes: str = ""
+
+
+class CommissionInvoiceItem(BaseModel):
+    credit_memo_id: str
+    dispute_id: str
+    carrier: str
+    pro_number: str
+    original_invoice_ref: str
+    gross_credit_cents: int
+    gross_credit_dollars: float
+    commission_rate_pct: float = 35.0
+    commission_cents: int
+    commission_dollars: float
+
+
+class CommissionInvoiceRecord(BaseModel):
+    id: str
+    customer_id: str
+    customer_name: str
+    billing_period: str
+    items: List[CommissionInvoiceItem] = Field(default_factory=list)
+    total_gross_credit_cents: int = 0
+    total_gross_credit_dollars: float = 0.0
+    total_commission_cents: int = 0
+    total_commission_dollars: float = 0.0
+    stripe_invoice_id: Optional[str] = None
+    stripe_hosted_url: Optional[str] = None
+    status: Literal["draft", "sent", "paid", "overdue", "void"] = "draft"
+    net_terms_due_at: str
+    pdf_path: Optional[str] = None
+    created_at: str
+
+
+class ResendDisputeInput(BaseModel):
+    dispute_id: str
+    stronger_evidence_notes: str
+    additional_tariff_clauses: List[str] = Field(default_factory=list)
+
+
+class UnrecoverableDisputeRecord(BaseModel):
+    dispute_id: str
+    customer_id: str
+    carrier: str
+    pro_number: str
+    original_invoice_number: str
+    overcharge_dollars: float
+    denial_reason: str
+    marked_unrecoverable_at: str
+
+
 
 
 

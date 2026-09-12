@@ -139,7 +139,12 @@
         <span>📄</span>
         <span>Recovery Reports</span>
       </button>
+      <button onclick="switchTab('commission')" id="tab-commission" class="tab-btn px-3.5 py-2 rounded-lg border border-transparent text-neutral-400 hover:text-white transition flex items-center space-x-1.5">
+        <span>💳</span>
+        <span>Commission Invoices</span>
+      </button>
     </div>
+
 
     <!-- ==================================================================== -->
     <!-- TAB 1: Overview & Onboarding Checklist (Phase 5.5.1)                  -->
@@ -697,9 +702,82 @@
     </div>
   </div>
 
+    <!-- ==================================================================== -->
+    <!-- TAB 7: Commission Invoices (Phase 6.2)                               -->
+    <!-- ==================================================================== -->
+    <div id="view-commission" class="space-y-6 hidden">
+      
+      <div class="bg-[#090909] border border-[#1e1e1e] rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div class="space-y-1">
+          <span class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800">
+            Phase 6.2 — Net-15 Stripe Billing Trigger
+          </span>
+          <h2 class="text-lg font-bold text-white mt-2">
+            35% Contingency Commission Invoices
+          </h2>
+          <p class="text-xs text-neutral-400">
+            Revenue Integrity Control: Invoices are strictly generated ONLY from credit memos with <code class="text-emerald-400">verification_status='verified'</code>.
+          </p>
+        </div>
+
+        <button onclick="generateCommissionInvoiceClient()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition flex items-center space-x-1.5 shadow-lg shadow-blue-950/40">
+          <span>⚡</span>
+          <span>Generate Monthly Commission Invoice</span>
+        </button>
+      </div>
+
+      <!-- Commission Invoices Table -->
+      <div class="bg-[#0b0b0b] border border-[#1e1e1e] rounded-2xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-[#1c1c1c] flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <h3 class="font-bold text-sm text-white">Issued Commission Invoices</h3>
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-neutral-900 text-neutral-400 border border-neutral-800">Net-15 Terms</span>
+          </div>
+          <span class="text-xs font-mono text-neutral-500">Stripe Integration Active</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-neutral-300">
+            <thead class="bg-[#111] text-neutral-400 font-mono text-[11px] uppercase border-b border-[#1c1c1c]">
+              <tr>
+                <th class="py-3 px-4">Invoice #</th>
+                <th class="py-3 px-4">Billing Period</th>
+                <th class="py-3 px-4">Verified Credits</th>
+                <th class="py-3 px-4">Rate %</th>
+                <th class="py-3 px-4">Fee Amount</th>
+                <th class="py-3 px-4">Net-15 Due Date</th>
+                <th class="py-3 px-4">Status</th>
+                <th class="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="commission-invoices-tbody" class="divide-y divide-[#181818]">
+              <tr class="hover:bg-[#121212] transition">
+                <td class="py-3.5 px-4 font-mono text-white font-semibold">inv_rg_202609_acme</td>
+                <td class="py-3.5 px-4">Sept 2026</td>
+                <td class="py-3.5 px-4 font-mono text-emerald-400">$142.50</td>
+                <td class="py-3.5 px-4 font-mono">35.0%</td>
+                <td class="py-3.5 px-4 font-mono text-white font-semibold">$49.88</td>
+                <td class="py-3.5 px-4 font-mono text-neutral-300">Sept 27, 2026</td>
+                <td class="py-3.5 px-4">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-blue-950 text-blue-300 border border-blue-800 uppercase">Sent (Net-15)</span>
+                </td>
+                <td class="py-3.5 px-4 text-right space-x-2">
+                  <a href="/generated-pdfs/acme-imports/commission_inv_rg_202609_acme.pdf" target="_blank" class="px-2.5 py-1 rounded bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-neutral-200 font-mono text-[11px] inline-flex items-center space-x-1">
+                    <span>📄 PDF</span>
+                  </a>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
   <!-- ==================================================================== -->
   <!-- MODAL: Single Dispute Letter Preview                                 -->
   <!-- ==================================================================== -->
+
   <div id="dispute-letter-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-[#0e0e0e] border border-[#262626] rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl">
       <div class="flex items-center justify-between border-b border-[#222] pb-3">
@@ -837,7 +915,7 @@
       const activeBtn = document.getElementById(`tab-${tabId}`);
       if (activeBtn) activeBtn.classList.add('active');
 
-      const views = ['dashboard', 'invoices', 'contracts', 'disputes', 'creditmemos', 'reports'];
+      const views = ['dashboard', 'invoices', 'contracts', 'disputes', 'creditmemos', 'reports', 'commission'];
       views.forEach(v => {
         const el = document.getElementById(`view-${v}`);
         if (el) {

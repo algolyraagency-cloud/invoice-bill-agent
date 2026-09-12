@@ -1,9 +1,10 @@
 # RateGuard AI — Engineering Memory & Context Handoff
 **Document:** `memory.md`  
-**Current Milestone:** Phase 5 Complete (Branded Recovery Report PDF, Dispute Generator, 1-Page Agreement Gate, Customer Portal & Pilot 1 E2E Run = GO)  
-**Target:** Ready for Production Pilot Launch & Week 4 Live Operations  
+**Current Milestone:** Phase 6 Complete (Credit-Memo Detection & Verification, Stripe Net-15 Invoicing, Vector PDF Generator, Resend Engine = GO)  
+**Target:** Ready for Phase 7 (Self-Serve Onboarding Wizard & Scale Features)  
 **Repository:** `https://github.com/algolyraagency-cloud/invoice-bill-agent.git`  
 **Default Branch:** `main`
+
 
 ---
 
@@ -189,11 +190,25 @@ All 18 core tables are active in Supabase:
     * Manual credit memo intake form with automatic dispute matching and instant verification trigger.
     * Single-Page Application at `public/portal.html` with clean `/portal` rewrite in `vercel.json`.
 
+### Phase 6: Recovery Tracking & Commission Billing
+* **Phase 6.1 (Credit-Memo Detection & Verification - COMPLETE):**
+  * `apps/worker/credit_memo_service.py` & `apps/api/src/services/credit_memo_service.ts`:
+  * Stream Scanner: Scans newly ingested invoices / documents for negative invoice totals (`invoice_total < 0`) or explicit credit memo keywords (`"CREDIT MEMO"`, `"CREDIT ADVICE"`, `"STATEMENT OF ADJUSTMENT"`).
+  * Forwarded Email Intake: Parses customer-forwarded credit memo emails to `disputes+{slug}@in.rateguard.app`.
+  * Automated Verification Engine (`verify_credit_memo`): Matches carrier, PRO/original invoice reference, and dollar amount ($\pm \$1.00$ tolerance).
+  * Revenue Integrity Guard: Strict accounting control ensuring `verification_status = 'verified'` is the ONLY state that can trigger commission invoicing.
+* **Phase 6.2 (Stripe Commission Invoicing & Resend Engine - COMPLETE):**
+  * `apps/worker/stripe_commission.py` & `apps/api/src/services/stripe_commission.ts`:
+  * Monthly 35% Aggregator (`generate_monthly_commission_invoice`): Collects all unbilled verified credit memos for a customer and issues Net-15 aggregate commission invoice (35% standard fee, 40% concierge fee).
+  * Stripe API Integration: Syncs with Stripe Invoicing API or falls back to mock metadata in offline/test environments.
+  * Vector PDF Generator (`render_commission_invoice_pdf`): Generates printable Net-15 commission invoices via PyMuPDF (fitz) with itemized breakdown and remittance instructions.
+  * Denied Dispute Resend & Unrecoverable Workflow (`handle_denied_dispute`): Executes 1 automated resend task with stronger tariff evidence. If denied again, marks as `status = 'unrecoverable'` ($0 fee).
+
 ---
 
 ## 5. Verification Status & Test Suite
 
-All **96 automated unit and integration tests** run clean and green (0.74s):
+All **110 automated unit and integration tests** run clean and green (1.27s):
 ```bash
 pytest
 ```
@@ -214,6 +229,9 @@ pytest
 * `apps/worker/tests/test_dispute_generator.py` (5/5 tests passed)
 * `apps/worker/tests/test_portal_service.py` (6/6 tests passed)
 * `apps/worker/tests/test_agreement_generator.py` (4/4 tests passed)
+* `apps/worker/tests/test_credit_memo_service.py` (5/5 tests passed)
+* `apps/worker/tests/test_stripe_commission.py` (5/5 tests passed)
+
 
 ### Quality Gate Calibration Scoreboard (`scripts/calibrate.py`):
 ```text
@@ -255,6 +273,22 @@ GATE PASSED (GO FOR PILOT LAUNCH)
 ================================================================================
 ```
 
+### Phase 6 Verification (`scripts/run_phase6_verification.py`):
+```text
+================================================================================
+RATEGUARD AI -- PHASE 6 END-TO-END VERIFICATION (RECOVERY TRACKING & COMMISSION BILLING)
+================================================================================
+GATE PASSED (100% COMPLETE)
+- Stream Credit Memo Detection: CM-ABF-8812 ($142.50)
+- Forwarded Email Intake: CM-5512 ($65.00)
+- Verification Engine: Matched to disputes disp_abf_01 and disp_xpo_02
+- Revenue Integrity Guard: Unverified billing strictly blocked (UnverifiedMemoBillingError)
+- Commission Invoicing: $207.50 gross -> $72.63 Net-15 RateGuard commission invoice
+- Stripe Sync & PDF Generator: Generated vector PDF invoice and mock Stripe metadata
+- Denied Dispute Resends: Resend #1 dispatched; Resend #2 marked unrecoverable ($0 fee)
+================================================================================
+```
+
 ---
 
 ## 6. Monorepo File Structure
@@ -266,6 +300,7 @@ c:/Users/krish/Downloads/LTL startup/
 │   │   ├── package.json
 │   │   ├── src/
 │   │   │   ├── services/
+│   │   │   │   ├── credit_memo_service.ts
 │   │   │   │   ├── dispute_service.ts
 │   │   │   │   ├── feedback_loop.ts
 │   │   │   │   ├── invoice_view.ts
@@ -275,6 +310,7 @@ c:/Users/krish/Downloads/LTL startup/
 │   │   │   │   ├── recovery_agreement.ts
 │   │   │   │   ├── recovery_report.ts
 │   │   │   │   ├── review_queue.ts
+│   │   │   │   ├── stripe_commission.ts
 │   │   │   │   └── uploader.ts
 │   │   │   └── webhooks/
 │   │   │       └── postmark.ts
@@ -290,6 +326,7 @@ c:/Users/krish/Downloads/LTL startup/
 │       ├── agreement_generator.py
 │       ├── contract_parser.py
 │       ├── cost_guard.py
+│       ├── credit_memo_service.py
 │       ├── dispute_generator.py
 │       ├── extractor.py
 │       ├── feedback_loop.py
@@ -304,10 +341,12 @@ c:/Users/krish/Downloads/LTL startup/
 │       ├── report_generator.py
 │       ├── requirements.txt
 │       ├── review_queue.py
+│       ├── stripe_commission.py
 │       └── tests/
 │           ├── test_agreement_generator.py
 │           ├── test_contract_parser.py
 │           ├── test_cost_guard.py
+│           ├── test_credit_memo_service.py
 │           ├── test_dispute_generator.py
 │           ├── test_feedback_loop.py
 │           ├── test_fsc.py
@@ -315,7 +354,8 @@ c:/Users/krish/Downloads/LTL startup/
 │           ├── test_pipeline.py
 │           ├── test_portal_service.py
 │           ├── test_report_generator.py
-│           └── test_review_queue.py
+│           ├── test_review_queue.py
+│           └── test_stripe_commission.py
 ├── docs/
 │   └── spikes/
 │       ├── document-pipeline.md
@@ -358,6 +398,7 @@ c:/Users/krish/Downloads/LTL startup/
 │       └── review.html
 ├── scripts/
 │   ├── calibrate.py
+│   ├── run_phase6_verification.py
 │   ├── run_pilot_end_to_end.py
 │   └── verify_ingestion_phase_gate.py
 ├── .env
@@ -375,15 +416,13 @@ c:/Users/krish/Downloads/LTL startup/
 
 ---
 
-## 7. Next Immediate Tasks (Week 4 Roadmap)
+## 7. Next Immediate Tasks (Phase 7 Roadmap: Self-Serve & Scale)
 
-1. **Production Pilot Deployment & Customer Onboarding:**
-   * Deploy frontend artifacts (`public/index.html`, `public/portal.html`, `public/internal/review.html`) to Vercel production hosting.
-   * Onboard initial batch of 5 mid-market LTL shippers.
-   * Set up Postmark Inbound Webhook forwarders for `{slug}@in.rateguard.app`.
-2. **First Found-Money Reviews & Contingency Invoicing:**
-   * Execute weekly batch audit pipeline on live invoice streams.
-   * Conduct human reviewer passes in `/internal/review.html`.
-   * Export CFO Recovery Reports and execute 1-Page Recovery Agreements.
-   * Track credit memo receipts and issue Net-15 contingency commission invoices (35%).
+1. **Phase 7.1 — Self-Serve Onboarding Wizard:**
+   * Interactive company setup wizard (Company $\to$ Users $\to$ Remit-To addresses $\to$ Carrier selection $\to$ Rate agreement upload $\to$ Forwarding rule setup).
+2. **Phase 7.2 — Top-10 Carrier Formats & Parser Hints:**
+   * Extend invoice parser regex fallback layer to top-10 US LTL carriers (Estes, Saia, TForce, Old Dominion, R+L Carriers).
+3. **Phase 7.3 — Remaining Audit Checks 5–8:**
+   * Expand audit engine checks: Accessorials, Reweigh/Dimension, Guaranteed-Service POD date parsing, and State Tax reconciliation.
+
 

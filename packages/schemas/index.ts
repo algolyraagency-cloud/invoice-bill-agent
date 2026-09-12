@@ -518,6 +518,86 @@ export const RecoveryAgreementRecordSchema = z.object({
 export type RecoveryAgreementSignInput = z.infer<typeof RecoveryAgreementSignInputSchema>;
 export type RecoveryAgreementRecord = z.infer<typeof RecoveryAgreementRecordSchema>;
 
+export const CreditMemoDetectionCandidateSchema = z.object({
+  carrier: z.string(),
+  memo_number: z.string(),
+  original_invoice_ref: z.string(),
+  amount_cents: z.number().int(),
+  amount_dollars: z.number(),
+  kind: z.enum(['credit_memo', 'refund_check']).default('credit_memo'),
+  detected_via: z.enum(['stream', 'forwarded', 'manual']).default('stream'),
+  raw_text_snippet: z.string().optional().nullable(),
+  confidence_score: z.number().default(1.0),
+});
+
+export const CreditMemoVerificationResultSchema = z.object({
+  credit_memo_id: z.string(),
+  verification_status: z.enum(['verified', 'pending', 'rejected', 'unmatched']),
+  matched_dispute_id: z.string().optional().nullable(),
+  carrier: z.string(),
+  original_invoice_ref: z.string(),
+  memo_amount_dollars: z.number(),
+  dispute_amount_dollars: z.number().optional().nullable(),
+  discrepancy_dollars: z.number().default(0.0),
+  verified_at: z.string().optional().nullable(),
+  notes: z.string().default(''),
+});
+
+export const CommissionInvoiceItemSchema = z.object({
+  credit_memo_id: z.string(),
+  dispute_id: z.string(),
+  carrier: z.string(),
+  pro_number: z.string(),
+  original_invoice_ref: z.string(),
+  gross_credit_cents: z.number().int(),
+  gross_credit_dollars: z.number(),
+  commission_rate_pct: z.number().default(35.0),
+  commission_cents: z.number().int(),
+  commission_dollars: z.number(),
+});
+
+export const CommissionInvoiceRecordSchema = z.object({
+  id: z.string(),
+  customer_id: z.string(),
+  customer_name: z.string(),
+  billing_period: z.string(),
+  items: z.array(CommissionInvoiceItemSchema).default([]),
+  total_gross_credit_cents: z.number().int().default(0),
+  total_gross_credit_dollars: z.number().default(0.0),
+  total_commission_cents: z.number().int().default(0),
+  total_commission_dollars: z.number().default(0.0),
+  stripe_invoice_id: z.string().optional().nullable(),
+  stripe_hosted_url: z.string().optional().nullable(),
+  status: z.enum(['draft', 'sent', 'paid', 'overdue', 'void']).default('draft'),
+  net_terms_due_at: z.string(),
+  pdf_path: z.string().optional().nullable(),
+  created_at: z.string(),
+});
+
+export const ResendDisputeInputSchema = z.object({
+  dispute_id: z.string(),
+  stronger_evidence_notes: z.string(),
+  additional_tariff_clauses: z.array(z.string()).default([]),
+});
+
+export const UnrecoverableDisputeRecordSchema = z.object({
+  dispute_id: z.string(),
+  customer_id: z.string(),
+  carrier: z.string(),
+  pro_number: z.string(),
+  original_invoice_number: z.string(),
+  overcharge_dollars: z.number(),
+  denial_reason: z.string(),
+  marked_unrecoverable_at: z.string(),
+});
+
+export type CreditMemoDetectionCandidate = z.infer<typeof CreditMemoDetectionCandidateSchema>;
+export type CreditMemoVerificationResult = z.infer<typeof CreditMemoVerificationResultSchema>;
+export type CommissionInvoiceItem = z.infer<typeof CommissionInvoiceItemSchema>;
+export type CommissionInvoiceRecord = z.infer<typeof CommissionInvoiceRecordSchema>;
+export type ResendDisputeInput = z.infer<typeof ResendDisputeInputSchema>;
+export type UnrecoverableDisputeRecord = z.infer<typeof UnrecoverableDisputeRecordSchema>;
+
 
 
 

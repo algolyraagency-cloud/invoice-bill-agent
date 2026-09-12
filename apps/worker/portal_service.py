@@ -34,6 +34,10 @@ from packages.schemas.models import (
     RateMatrixJSON,
     RecoveryAgreementRecord,
     RecoveryAgreementRequiredError,
+    CommissionInvoiceRecord,
+    CommissionInvoiceItem,
+    UnverifiedMemoBillingError,
+    UnrecoverableDisputeRecord,
 )
 from apps.worker.dispute_generator import (
     DEFAULT_CARRIER_CONTACTS,
@@ -46,6 +50,8 @@ from apps.worker.agreement_generator import (
     render_recovery_agreement_text,
     verify_recovery_agreement_gate,
 )
+from apps.worker.credit_memo_service import CreditMemoService
+from apps.worker.stripe_commission import StripeCommissionService
 
 
 class CustomerPortalService:
@@ -64,7 +70,9 @@ class CustomerPortalService:
         self._flags: Dict[str, Dict[str, Any]] = {}
         self._disputes: Dict[str, Dict[str, Any]] = {}
         self._credit_memos: Dict[str, Dict[str, Any]] = {}
+        self._commission_invoices: Dict[str, Dict[str, Any]] = {}
         self._forwarding_rules: Dict[str, bool] = {}
+
 
     # --------------------------------------------------------------------------
     # Mock Seeder Helpers (for testing)
@@ -91,6 +99,9 @@ class CustomerPortalService:
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
         self._forwarding_rules[customer_id] = forwarding_configured
+
+    def get_customer(self, customer_id: str) -> Optional[Dict[str, Any]]:
+        return self._customers.get(customer_id)
 
     def seed_user(
         self,
@@ -158,15 +169,18 @@ class CustomerPortalService:
         flag_id: str,
         status: DisputeStatus = "drafted",
         letter_path: Optional[str] = None,
+        customer_id: Optional[str] = None,
     ) -> None:
         self._disputes[dispute_id] = {
             "id": dispute_id,
             "flag_id": flag_id,
+            "customer_id": customer_id or "cust_acme_01",
             "status": status,
             "letter_path": letter_path,
             "created_at": datetime.now(timezone.utc).isoformat(),
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }
+
 
     # --------------------------------------------------------------------------
     # Phase 5.5.1: Customer Auth & Dashboard Skeleton
@@ -835,3 +849,85 @@ class CustomerPortalService:
             )
             for m in memos
         ]
+
+    def generate_commission_invoice(
+        self,
+        customer_id: str,
+        billing_period: str = "2026-09",
+        contingency_fee_pct: float = 35.0,
+    ) -> CommissionInvoiceRecord:
+        """
+        Aggregates all verified credit memos for customer and generates 35% Net-15 commission invoice.
+        Raises UnverifiedMemoBillingError if any memo is not verified.
+        """
+        cust = self.get_customer(customer_id)
+        cust_name = cust.get("name", "Customer") if cust else "Customer"
+
+        # Find verified memos for this customer that are not yet billed
+        verified_memos = [
+            m for m in self._credit_memos.values()
+            if m["customer_id"] == customer_id and m.get("verification_status") == "verified"
+            and not m.get("commission_invoice_id")
+        ]
+
+        if not verified_memos:
+            # If no unbilled verified memos exist, check if there are any verified memos
+            verified_memos = [
+                m for m in self._credit_memos.values()
+                if m["customer_id"] == customer_id and m.get("verification_status") == "verified"
+            ]
+
+        # Enforce revenue integrity: inspect all customer memos
+        all_cust_memos = [m for m in self._credit_memos.values() if m["customer_id"] == customer_id]
+        for memo in all_cust_memos:
+            if memo.get("verification_status") != "verified" and memo in verified_memos:
+                raise UnverifiedMemoBillingError(memo_number=memo.get("memo_number", "Unknown"))
+
+        disputes_map = {d["id"]: d for d in self._disputes.values() if d.get("customer_id") == customer_id or not d.get("customer_id")}
+
+        record = StripeCommissionService.generate_monthly_commission_invoice(
+            customer_id=customer_id,
+            customer_name=cust_name,
+            billing_period=billing_period,
+            verified_memos=verified_memos,
+            disputes_map=disputes_map,
+            contingency_fee_pct=contingency_fee_pct,
+        )
+
+        record = StripeCommissionService.sync_with_stripe(record)
+        StripeCommissionService.render_commission_invoice_pdf(record)
+
+        # Mark memos as billed
+        for memo in verified_memos:
+            memo["commission_invoice_id"] = record.id
+
+        self._commission_invoices[record.id] = record.model_dump()
+        return record
+
+    def list_commission_invoices(self, customer_id: str) -> List[CommissionInvoiceRecord]:
+        """Lists all generated commission invoices for customer."""
+        records = [
+            CommissionInvoiceRecord(**r)
+            for r in self._commission_invoices.values()
+            if r.get("customer_id") == customer_id
+        ]
+        records.sort(key=lambda x: x.created_at, reverse=True)
+        return records
+
+    def resend_denied_dispute(
+        self,
+        customer_id: str,
+        dispute_id: str,
+        stronger_evidence_notes: str,
+    ) -> Dict[str, Any]:
+        """Executes automated resend for denied dispute or marks unrecoverable if previously resent."""
+        disp = self._disputes.get(dispute_id)
+        if not disp or disp.get("customer_id") != customer_id:
+            raise ValueError(f"Dispute {dispute_id} not found for customer {customer_id}")
+
+        result = StripeCommissionService.handle_denied_dispute(
+            dispute=disp,
+            stronger_evidence_notes=stronger_evidence_notes,
+        )
+        return result
+
