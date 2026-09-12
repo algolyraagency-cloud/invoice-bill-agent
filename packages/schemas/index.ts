@@ -598,6 +598,41 @@ export type CommissionInvoiceRecord = z.infer<typeof CommissionInvoiceRecordSche
 export type ResendDisputeInput = z.infer<typeof ResendDisputeInputSchema>;
 export type UnrecoverableDisputeRecord = z.infer<typeof UnrecoverableDisputeRecordSchema>;
 
+export const OnboardingWizardStateSchema = z.object({
+  customer_id: z.string(),
+  current_step: z.number().int().default(1),
+  company_name: z.string(),
+  slug: z.string(),
+  remit_to_address: z.string().optional().nullable(),
+  selected_carriers: z.array(z.string()).default([]),
+  has_signed_contract: z.boolean().default(true),
+  forwarding_verified: z.boolean().default(false),
+  inbound_email: z.string(),
+  dispute_tracking_email: z.string(),
+  is_completed: z.boolean().default(false),
+  updated_at: z.string(),
+});
+
+export const RegexFallbackExtractionResultSchema = z.object({
+  carrier: z.string(),
+  pro_number: z.string().optional().nullable(),
+  invoice_number: z.string().optional().nullable(),
+  invoice_date: z.string().optional().nullable(),
+  total_weight_lbs: z.number().optional().nullable(),
+  net_charge_cents: z.number().int().optional().nullable(),
+  net_charge_dollars: z.number().optional().nullable(),
+  fuel_surcharge_cents: z.number().int().optional().nullable(),
+  fuel_surcharge_dollars: z.number().optional().nullable(),
+  total_amount_cents: z.number().int().optional().nullable(),
+  total_amount_dollars: z.number().optional().nullable(),
+  matched_rules: z.array(z.string()).default([]),
+  confidence_score: z.number().default(0.90),
+  parser_used: z.string().default('regex_fallback'),
+});
+
+export type OnboardingWizardState = z.infer<typeof OnboardingWizardStateSchema>;
+export type RegexFallbackExtractionResult = z.infer<typeof RegexFallbackExtractionResultSchema>;
+
 
 
 

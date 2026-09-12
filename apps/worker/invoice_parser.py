@@ -25,6 +25,8 @@ import instructor
 from packages.schemas.models import Accessorial, InvoiceJSON, InvoiceValidationResult, LineItem
 from validation import validate_invoice_extraction
 from apps.worker.extractor import extract_document_bytes, extract_document_text
+from apps.worker.regex_fallback_parser import RegexFallbackParser
+
 
 PROMPT_VERSION = "v1.0"
 
@@ -72,34 +74,17 @@ def _simulate_llm_invoice_extraction(document_text: str, carrier_hint: Optional[
     """
     High-fidelity deterministic simulation parser for offline testing, CI regression,
     and budget safety when no API key is available.
-    Extracts key fields using regex pattern matching over invoice text.
+    Uses RegexFallbackParser for Top-10 carrier formats.
     """
-    carrier = "Generic Carrier"
+    regex_res = RegexFallbackParser.parse_text(document_text, carrier_hint=carrier_hint or "")
+    carrier = regex_res.carrier if regex_res.carrier != "Unknown Carrier" else (carrier_hint or "Generic Carrier")
     text_lower = document_text.lower()
-    if "abf" in text_lower:
-        carrier = "ABF Freight"
-    elif "xpo" in text_lower:
-        carrier = "XPO Logistics"
-    elif "roadrunner" in text_lower or "rrts" in text_lower:
-        carrier = "Roadrunner"
-    elif carrier_hint:
-        carrier = carrier_hint
 
-    # Extract PRO number
-    pro_match = re.search(
-        r"(?:pro\s*(?:number|#)?|tracking\s*(?:number|#)?)[\s#:]*([0-9]{3}-?[0-9]{6,7}|[0-9]{7,10})",
-        document_text,
-        re.IGNORECASE
-    )
-    pro_number = pro_match.group(1).strip() if pro_match else "PRO-000000"
+    pro_number = regex_res.pro_number or "PRO-000000"
 
-    # Extract Invoice number
-    inv_match = re.search(r"(?:invoice\s*(?:number|#)?|inv\s*(?:number|#)?)[\s#:]*([A-Za-z0-9\-]{4,15})", document_text, re.IGNORECASE)
-    invoice_number = inv_match.group(1).strip() if inv_match else f"INV-{pro_number}"
+    invoice_number = regex_res.invoice_number or f"INV-{pro_number}"
+    invoice_date = regex_res.invoice_date or "2026-08-15"
 
-    # Extract Date YYYY-MM-DD
-    date_match = re.search(r"(?:date|billed)[\s:]*([0-9]{4}-[0-9]{2}-[0-9]{2})", document_text, re.IGNORECASE)
-    invoice_date = date_match.group(1).strip() if date_match else "2026-08-15"
 
     # Extract Zip codes (stay on same line or within line)
     origin_zip = "60601"

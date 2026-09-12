@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RateGuard AI — Self-Serve Onboarding Wizard (/onboarding)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    code, pre, .font-mono { font-family: 'Geist Mono', monospace; }
+    .step-pill.active {
+      background: #181818;
+      border-color: #3b82f6;
+      color: #ffffff;
+    }
+    .step-pill.completed {
+      background: #052e16;
+      border-color: #166534;
+      color: #86efac;
+    }
+  </style>
+</head>
+<body class="bg-black text-neutral-100 min-h-screen flex flex-col selection:bg-neutral-800">
+
+  <!-- Navigation Bar -->
+  <header class="border-b border-[#1e1e1e] bg-[#050505]/95 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <a href="/" class="w-8 h-8 rounded-lg bg-white text-black font-bold flex items-center justify-center text-sm">
+          RG
+        </a>
+        <div class="flex items-center space-x-2">
+          <span class="font-bold text-base tracking-tight text-white">RateGuard AI</span>
+          <span class="text-neutral-500">/</span>
+          <span class="text-sm font-semibold text-neutral-300">Self-Serve Onboarding Wizard</span>
+        </div>
+      </div>
+      <a href="/portal" class="text-xs font-mono text-neutral-400 hover:text-white transition">
+        Skip to Portal ↗
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-4xl w-full mx-auto px-6 py-10 space-y-8">
+
+    <!-- Title & Progress Bar -->
+    <div class="space-y-4">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+        <div>
+          <span class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800">
+            Phase 7.1 Self-Serve Onboarding
+          </span>
+          <h1 id="step-title-heading" class="text-2xl font-bold text-white mt-1">
+            Step 1: Company Profile & Identity
+          </h1>
+        </div>
+        <div id="step-counter" class="text-xs font-mono text-neutral-400">
+          Step <span id="current-step-num">1</span> of 6
+        </div>
+      </div>
+
+      <!-- 6-Step Visual Pills -->
+      <div class="grid grid-cols-6 gap-2 font-mono text-[11px]">
+        <div id="pill-step-1" class="step-pill active border rounded-lg py-2 px-3 text-center transition">1. Company</div>
+        <div id="pill-step-2" class="step-pill border border-[#222] rounded-lg py-2 px-3 text-center text-neutral-500 transition">2. Team</div>
+        <div id="pill-step-3" class="step-pill border border-[#222] rounded-lg py-2 px-3 text-center text-neutral-500 transition">3. Carriers</div>
+        <div id="pill-step-4" class="step-pill border border-[#222] rounded-lg py-2 px-3 text-center text-neutral-500 transition">4. Contracts</div>
+        <div id="pill-step-5" class="step-pill border border-[#222] rounded-lg py-2 px-3 text-center text-neutral-500 transition">5. Forwarding</div>
+        <div id="pill-step-6" class="step-pill border border-[#222] rounded-lg py-2 px-3 text-center text-neutral-500 transition">6. Launch</div>
+      </div>
+    </div>
+
+    <!-- Wizard Card Body -->
+    <div class="bg-[#0b0b0b] border border-[#1e1e1e] rounded-2xl p-8 space-y-6 shadow-2xl">
+
+      <!-- STEP 1: Company Profile -->
+      <div id="wizard-step-1" class="space-y-5">
+        <h3 class="text-base font-bold text-white">Enter Your Company Details & Remit-To Address</h3>
+        <p class="text-xs text-neutral-400">
+          RateGuard uses your company profile to verify freight bills, match BOL shipper names, and issue 35% Net-15 contingency commission invoices.
+        </p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
+          <div class="space-y-1">
+            <label class="text-neutral-300">Company Name *</label>
+            <input type="text" id="input-company-name" value="Acme Imports & Logistics" class="w-full bg-[#141414] border border-[#262626] rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-blue-500">
+          </div>
+          <div class="space-y-1">
+            <label class="text-neutral-300">Organization Slug *</label>
+            <input type="text" id="input-company-slug" value="acme-imports" class="w-full bg-[#141414] border border-[#262626] rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-blue-500">
+          </div>
+          <div class="space-y-1 sm:col-span-2">
+            <label class="text-neutral-300">Remit-To Address *</label>
+            <input type="text" id="input-remit-address" value="100 Commerce Way, Suite 400, Chicago, IL 60601" class="w-full bg-[#141414] border border-[#262626] rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-blue-500">
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2: Team Members -->
+      <div id="wizard-step-2" class="space-y-5 hidden">
+        <h3 class="text-base font-bold text-white">Invite Team Members & Accounts Payable</h3>
+        <p class="text-xs text-neutral-400">
+          Add team members who will have access to the customer portal and dispute tracking dashboard.
+        </p>
+        <div class="space-y-3 text-xs font-mono">
+          <div class="flex items-center space-x-2">
+            <input type="email" value="controller@acmeimports.com" class="flex-1 bg-[#141414] border border-[#262626] rounded-xl px-3.5 py-2 text-white" readonly>
+            <span class="px-2.5 py-1 rounded bg-blue-950 text-blue-300 border border-blue-800 text-[10px]">Owner / Controller</span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <input type="email" value="ap@acmeimports.com" class="flex-1 bg-[#141414] border border-[#262626] rounded-xl px-3.5 py-2 text-white" readonly>
+            <span class="px-2.5 py-1 rounded bg-neutral-900 text-neutral-400 border border-neutral-800 text-[10px]">AP Clerk</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 3: Carrier Selection -->
+      <div id="wizard-step-3" class="space-y-5 hidden">
+        <h3 class="text-base font-bold text-white">Select Your Top-10 Active LTL Carriers</h3>
+        <p class="text-xs text-neutral-400">
+          Select carriers you ship with to activate specialized regex fallback parsers and dispute desk routing.
+        </p>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs font-mono">
+          <label class="flex items-center space-x-2 p-3 bg-[#141414] border border-[#262626] rounded-xl cursor-pointer hover:border-blue-500">
+            <input type="checkbox" checked class="accent-blue-500">
+            <span>ABF Freight (ArcBest)</span>
+          </label>
+          <label class="flex items-center space-x-2 p-3 bg-[#141414] border border-[#262626] rounded-xl cursor-pointer hover:border-blue-500">
+            <input type="checkbox" checked class="accent-blue-500">
+            <span>XPO Logistics</span>
+          </label>
+          <label class="flex items-center space-x-2 p-3 bg-[#141414] border border-[#262626] rounded-xl cursor-pointer hover:border-blue-500">
+            <input type="checkbox" checked class="accent-blue-500">
+            <span>Roadrunner Freight</span>
+          </label>
+          <label class="flex items-center space-x-2 p-3 bg-[#141414] border border-[#262626] rounded-xl cursor-pointer hover:border-blue-500">
+            <input type="checkbox" checked class="accent-blue-500">
+            <span>Estes Express Lines</span>
+          </label>
+          <label class="flex items-center space-x-2 p-3 bg-[#141414] border border-[#262626] rounded-xl cursor-pointer hover:border-blue-500">
+            <input type="checkbox" checked class="accent-blue-500">
+            <span>Saia LTL Freight</span>
+          </label>
+          <label class="flex items-center space-x-2 p-3 bg-[#141414] border border-[#262626] rounded-xl cursor-pointer hover:border-blue-500">
+            <input type="checkbox" class="accent-blue-500">
+            <span>TForce Freight</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- STEP 4: Rate Contracts -->
+      <div id="wizard-step-4" class="space-y-5 hidden">
+        <h3 class="text-base font-bold text-white">Rate Agreement Intake (PRD §5.3 Pre-Pilot Qualification)</h3>
+        
+        <div class="bg-blue-950/40 border border-blue-800 rounded-xl p-4 space-y-2 text-xs">
+          <div class="font-bold text-blue-300">Mandatory Qualification Question:</div>
+          <div class="text-neutral-200">"Do you have a current signed rate agreement with your LTL carriers?"</div>
+          <div class="flex items-center space-x-4 pt-1 font-mono">
+            <label class="flex items-center space-x-1.5 cursor-pointer">
+              <input type="radio" name="qual" checked class="accent-blue-500">
+              <span class="text-emerald-300 font-semibold">YES — Rate Agreement Signed (Rungs A-C)</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="border border-dashed border-[#333] rounded-xl p-6 text-center space-y-2">
+          <div class="text-2xl">📜</div>
+          <div class="text-xs text-neutral-300 font-semibold">Upload Rate Agreement PDFs or CSV Matrices</div>
+          <div class="text-[11px] text-neutral-500">ABF_Tariff_2026.pdf, XPO_Contract_Signed.pdf</div>
+        </div>
+      </div>
+
+      <!-- STEP 5: Forwarding Setup -->
+      <div id="wizard-step-5" class="space-y-5 hidden">
+        <h3 class="text-base font-bold text-white">Configure Inbound Email Forwarding Rule</h3>
+        <p class="text-xs text-neutral-400">
+          Forward carrier freight invoices automatically to your dedicated RateGuard ingestion address.
+        </p>
+
+        <div class="bg-[#141414] border border-[#262626] rounded-xl p-4 space-y-2 text-xs font-mono">
+          <div class="text-neutral-400">Your Dedicated Ingestion Address:</div>
+          <div class="text-blue-400 font-bold text-sm">acme-imports@in.rateguard.app</div>
+          <div class="text-[11px] text-neutral-500 pt-1">
+            Setup rule in Outlook / Gmail: Forward messages from carriers (freightbilling@abf.com, etc.) to the above address.
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 6: Launch -->
+      <div id="wizard-step-6" class="space-y-5 hidden text-center py-6">
+        <div class="text-5xl">🚀</div>
+        <h2 class="text-2xl font-bold text-white">Onboarding Complete — System Ready!</h2>
+        <p class="text-xs text-neutral-300 max-w-md mx-auto">
+          Your organization is fully configured. The audit engine is ready to receive invoices, match rate contracts, and compile CFO recovery reports.
+        </p>
+        <a href="/portal" class="inline-block px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition shadow-lg shadow-emerald-950/50 font-mono">
+          Enter Customer Portal ↗
+        </a>
+      </div>
+
+      <!-- Wizard Control Buttons -->
+      <div id="wizard-controls" class="flex items-center justify-between pt-4 border-t border-[#1e1e1e]">
+        <button id="btn-back" onclick="prevStep()" class="px-4 py-2 rounded-xl bg-[#141414] hover:bg-[#1f1f1f] text-neutral-400 border border-[#2a2a2a] text-xs font-mono transition hidden">
+          ← Back
+        </button>
+        <div class="flex-1"></div>
+        <button id="btn-next" onclick="nextStep()" class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs font-mono transition shadow-lg shadow-blue-950/40">
+          Continue to Step 2 →
+        </button>
+      </div>
+
+    </div>
+
+  </main>
+
+  <script>
+    let currentStep = 1;
+
+    function updateStepUI() {
+      document.getElementById('current-step-num').innerText = currentStep;
+      
+      const titles = [
+        "Step 1: Company Profile & Identity",
+        "Step 2: Team & AP User Setup",
+        "Step 3: Carrier Selection (Top-10 LTL Carriers)",
+        "Step 4: Rate Agreement Intake & Rung Verification",
+        "Step 5: Configure Inbound Email Forwarding",
+        "Step 6: System Launch & Automated Pipeline Active"
+      ];
+      document.getElementById('step-title-heading').innerText = titles[currentStep - 1];
+
+      for (let i = 1; i <= 6; i++) {
+        const stepEl = document.getElementById(`wizard-step-${i}`);
+        const pillEl = document.getElementById(`pill-step-${i}`);
+        
+        if (i === currentStep) {
+          stepEl.classList.remove('hidden');
+          pillEl.className = 'step-pill active border rounded-lg py-2 px-3 text-center transition';
+        } else {
+          stepEl.classList.add('hidden');
+          if (i < currentStep) {
+            pillEl.className = 'step-pill completed border rounded-lg py-2 px-3 text-center transition';
+          } else {
+            pillEl.className = 'step-pill border border-[#222] rounded-lg py-2 px-3 text-center text-neutral-500 transition';
+          }
+        }
+      }
+
+      const btnBack = document.getElementById('btn-back');
+      const btnNext = document.getElementById('btn-next');
+      const controls = document.getElementById('wizard-controls');
+
+      if (currentStep === 1) {
+        btnBack.classList.add('hidden');
+      } else {
+        btnBack.classList.remove('hidden');
+      }
+
+      if (currentStep === 6) {
+        controls.classList.add('hidden');
+      } else {
+        controls.classList.remove('hidden');
+        btnNext.innerText = `Continue to Step ${currentStep + 1} →`;
+      }
+    }
+
+    function nextStep() {
+      if (currentStep < 6) {
+        currentStep++;
+        updateStepUI();
+      }
+    }
+
+    function prevStep() {
+      if (currentStep > 1) {
+        currentStep--;
+        updateStepUI();
+      }
+    }
+  </script>
+</body>
+</html>

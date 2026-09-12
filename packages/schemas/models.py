@@ -582,6 +582,39 @@ class UnrecoverableDisputeRecord(BaseModel):
     marked_unrecoverable_at: str
 
 
+class OnboardingWizardState(BaseModel):
+    customer_id: str
+    current_step: int = 1  # Steps 1 to 6
+    company_name: str
+    slug: str
+    remit_to_address: Optional[str] = None
+    selected_carriers: List[str] = Field(default_factory=list)
+    has_signed_contract: bool = True
+    forwarding_verified: bool = False
+    inbound_email: str
+    dispute_tracking_email: str
+    is_completed: bool = False
+    updated_at: str
+
+
+class RegexFallbackExtractionResult(BaseModel):
+    carrier: str
+    pro_number: Optional[str] = None
+    invoice_number: Optional[str] = None
+    invoice_date: Optional[str] = None
+    total_weight_lbs: Optional[float] = None
+    net_charge_cents: Optional[int] = None
+    net_charge_dollars: Optional[float] = None
+    fuel_surcharge_cents: Optional[int] = None
+    fuel_surcharge_dollars: Optional[float] = None
+    total_amount_cents: Optional[int] = None
+    total_amount_dollars: Optional[float] = None
+    matched_rules: List[str] = Field(default_factory=list)
+    confidence_score: float = 0.90
+    parser_used: str = "regex_fallback"
+
+
+
 
 
 

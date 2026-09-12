@@ -1,0 +1,10 @@
+{
+  "carrier": "TForce Freight",
+  "invoice_number": "TF-INV-77210",
+  "pro_number": "TF-449120",
+  "invoice_date": "2026-08-22",
+  "total_weight_lbs": 1800.0,
+  "invoice_total": 480.00,
+  "invoice_total_cents": 48000,
+  "sample_document_text": "TFORCE FREIGHT (UPS FREIGHT)\nINVOICE: TF-INV-77210\nPRO#: TF-449120\nDATE: 2026-08-22\nWEIGHT: 1800 LBS\nLINEHAUL FREIGHT: $360.00\nFUEL SURCHARGE: $120.00\nTOTAL DUE: $480.00"
+}

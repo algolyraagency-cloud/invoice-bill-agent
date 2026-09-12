@@ -1,0 +1,10 @@
+{
+  "carrier": "Estes Express",
+  "invoice_number": "EST-9921401",
+  "pro_number": "ESTES-883921",
+  "invoice_date": "2026-08-20",
+  "total_weight_lbs": 1450.0,
+  "invoice_total": 412.50,
+  "invoice_total_cents": 41250,
+  "sample_document_text": "ESTES EXPRESS LINES INVOICE\nINVOICE: EST-9921401\nPRO#: ESTES-883921\nDATE: 2026-08-20\nSHIPPER: ACME IMPORTS\nWEIGHT: 1450 LBS\nLINEHAUL BASE FREIGHT: $310.00\nFUEL SURCHARGE: $102.50\nTOTAL CHARGES: $412.50"
+}

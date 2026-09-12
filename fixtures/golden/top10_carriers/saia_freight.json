@@ -1,0 +1,10 @@
+{
+  "carrier": "Saia Freight",
+  "invoice_number": "SAIA-INV-88120",
+  "pro_number": "SAIA-992811",
+  "invoice_date": "2026-08-21",
+  "total_weight_lbs": 2100.0,
+  "invoice_total": 525.00,
+  "invoice_total_cents": 52500,
+  "sample_document_text": "SAIA LTL FREIGHT BILL\nINVOICE: SAIA-INV-88120\nPRO#: SAIA-992811\nDATE: 2026-08-21\nTOTAL WEIGHT: 2100 LBS\nLINEHAUL CHARGE: $390.00\nFUEL SURCHARGE: $135.00\nNET AMOUNT: $525.00"
+}
