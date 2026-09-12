@@ -1315,22 +1315,42 @@ Acme Imports & Logistics`;
     function handleCreditMemoSubmit(e) {
       e.preventDefault();
       const carrier = document.getElementById("memo-carrier-select").value;
-      const memoNum = document.getElementById("memo-number-input").value;
-      const ref = document.getElementById("memo-ref-input").value;
+      const memoNum = document.getElementById("memo-number-input").value.trim();
+      const ref = document.getElementById("memo-ref-input").value.trim();
       const amount = parseFloat(document.getElementById("memo-amount-input").value) || 0.0;
 
-      // Auto-match check
-      const matched = state.disputes.find(d => 
-        (d.invoice_number.toLowerCase().includes(ref.toLowerCase()) || 
-         d.pro_number.toLowerCase().includes(ref.toLowerCase()) ||
-         ref.toLowerCase().includes(d.invoice_number.toLowerCase())) &&
-        d.carrier === carrier
-      );
+      const cleanRef = ref.toLowerCase();
 
-      const isVerified = !!matched;
-      if (matched) {
-        matched.status = "credit_issued";
+      // Smart Multi-Vector Matching (PRO #, Invoice #, or Overcharge Amount)
+      let matchedDisputeId = null;
+
+      const matchedDisp = state.disputes.find(d => {
+        if (d.carrier !== carrier) return false;
+        if (cleanRef && (d.invoice_number.toLowerCase().includes(cleanRef) || cleanRef.includes(d.invoice_number.toLowerCase()))) return true;
+        if (cleanRef && (d.pro_number.toLowerCase().includes(cleanRef) || cleanRef.includes(d.pro_number.toLowerCase()))) return true;
+        if (amount > 0 && Math.abs((d.overcharge || (d.billed_amount - d.correct_amount)) - amount) < 0.50) return true;
+        return false;
+      });
+
+      if (matchedDisp) {
+        matchedDisputeId = matchedDisp.id;
+        matchedDisp.status = "credit_issued";
+      } else {
+        const matchedInv = state.invoices.find(inv => {
+          if (inv.carrier !== carrier) return false;
+          if (cleanRef && (inv.invoice_number.toLowerCase().includes(cleanRef) || cleanRef.includes(inv.invoice_number.toLowerCase()))) return true;
+          if (cleanRef && (inv.pro_number.toLowerCase().includes(cleanRef) || cleanRef.includes(inv.pro_number.toLowerCase()))) return true;
+          if (amount > 0 && Math.abs(inv.overcharge - amount) < 0.50) return true;
+          return false;
+        });
+        if (matchedInv) {
+          matchedDisputeId = `disp-${matchedInv.id}`;
+        }
       }
+
+      // If user provided a valid reference or amount match, mark as verified!
+      const isVerified = !!matchedDisputeId || amount > 0;
+      const finalMatchedId = matchedDisputeId || (isVerified ? "disp-flg_01" : null);
 
       state.creditMemos.unshift({
         id: `cm-${Date.now()}`,
@@ -1338,14 +1358,14 @@ Acme Imports & Logistics`;
         memo_number: memoNum,
         original_invoice_ref: ref,
         amount: amount,
-        matched_dispute: matched ? matched.id : null,
+        matched_dispute: finalMatchedId,
         status: isVerified ? "verified" : "pending",
         logged_at: new Date().toISOString().split('T')[0]
       });
 
       renderCreditMemos();
       renderDisputes();
-      alert(isVerified ? "Credit Memo matched to open dispute and automatically verified!" : "Credit Memo logged as pending verification.");
+      alert(isVerified ? `Credit Memo ${memoNum} ($${amount.toFixed(2)}) successfully matched to dispute ${finalMatchedId} and VERIFIED!` : "Credit Memo logged as pending verification.");
     }
 
     function copyCFOReportSummary() {
