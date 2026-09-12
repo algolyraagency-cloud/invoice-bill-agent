@@ -32,12 +32,19 @@ from packages.schemas.models import (
     OnboardingChecklist,
     OnboardingChecklistStep,
     RateMatrixJSON,
+    RecoveryAgreementRecord,
+    RecoveryAgreementRequiredError,
 )
 from apps.worker.dispute_generator import (
     DEFAULT_CARRIER_CONTACTS,
     generate_carrier_dispute_batch,
     generate_dispute_letter,
     transition_dispute_status,
+)
+from apps.worker.agreement_generator import (
+    render_recovery_agreement_pdf,
+    render_recovery_agreement_text,
+    verify_recovery_agreement_gate,
 )
 
 
@@ -533,6 +540,52 @@ class CustomerPortalService:
         ]
 
     # --------------------------------------------------------------------------
+    # Phase 5.4: Recovery Agreement Gate & E-Signature
+    # --------------------------------------------------------------------------
+
+    def sign_recovery_agreement(
+        self,
+        customer_id: str,
+        signer_name: str,
+        signer_title: str,
+        concierge_handling: bool = False,
+        output_dir: Optional[str] = None,
+    ) -> RecoveryAgreementRecord:
+        """
+        Executes e-signature for 1-page Recovery Agreement (Phase 5.4):
+        - Updates customer.recovery_agreement_signed_at timestamp
+        - Generates 1-page vector PDF in output_dir
+        - Unlocks dispute generation launch gate
+        """
+        customer = self._customers.get(customer_id)
+        if not customer:
+            raise ValueError(f"Customer organization '{customer_id}' not found.")
+
+        now_iso = datetime.now(timezone.utc).isoformat()
+        customer["recovery_agreement_signed_at"] = now_iso
+
+        pdf_bytes, pdf_path = render_recovery_agreement_pdf(
+            customer_name=customer["name"],
+            signer_name=signer_name,
+            signer_title=signer_title,
+            signed_at=now_iso,
+            concierge_handling=concierge_handling,
+            output_dir=output_dir or f"generated-pdfs/{customer['slug']}",
+        )
+
+        return RecoveryAgreementRecord(
+            agreement_id=f"AGR-{uuid.uuid4().hex[:8].upper()}",
+            customer_id=customer_id,
+            customer_name=customer["name"],
+            contingency_fee_pct=40.0 if concierge_handling else 35.0,
+            signed_at=now_iso,
+            signer_name=signer_name,
+            signer_title=signer_title,
+            pdf_path=pdf_path or f"generated-pdfs/{customer['slug']}/recovery_agreement.pdf",
+            is_active=True,
+        )
+
+    # --------------------------------------------------------------------------
     # Phase 5.5.3: Disputes, 1-Click Mailto & Credit Memo Intake
     # --------------------------------------------------------------------------
 
@@ -541,6 +594,7 @@ class CustomerPortalService:
         customer_id: str,
         carrier: Optional[str] = None,
         status: Optional[str] = None,
+        enforce_gate: bool = False,
     ) -> List[DisputeLetterItem]:
         """
         Compiles dispute items ready for shipper export:
@@ -548,10 +602,14 @@ class CustomerPortalService:
         - 1-click RFC 2368 pre-encoded mailto: links
         - Formatted plain-text & HTML dispute letters
         - Status state machine
+        - Enforces hard recovery agreement gate if enforce_gate=True
         """
         customer = self._customers.get(customer_id)
         if not customer:
             raise ValueError(f"Customer organization '{customer_id}' not found.")
+
+        if enforce_gate:
+            verify_recovery_agreement_gate(customer)
 
         cust_slug = customer["slug"]
         cust_name = customer["name"]

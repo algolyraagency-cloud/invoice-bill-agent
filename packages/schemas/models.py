@@ -467,5 +467,37 @@ class CustomerPortalSession(BaseModel):
     customer_slug: str
 
 
+class RecoveryAgreementRequiredError(Exception):
+    """Raised when an operation requiring a signed recovery agreement is attempted before signature."""
+    def __init__(self, customer_name: str = "Customer"):
+        self.customer_name = customer_name
+        super().__init__(
+            f"Recovery Agreement Launch Gate: Customer '{customer_name}' has not signed the 1-page "
+            "contingency recovery agreement. Dispute letter generation and carrier exports are strictly "
+            "gated until agreement signature (PRD Flow A & Implementation §5.4)."
+        )
+
+
+class RecoveryAgreementSignInput(BaseModel):
+    customer_id: str = Field(..., description="Customer organization UUID")
+    signer_name: str = Field(..., description="Full legal name of authorised officer")
+    signer_title: str = Field(..., description="Corporate title e.g. CFO, VP Finance, Controller")
+    concierge_handling: bool = Field(default=False, description="If true, 40% concierge fee applies; default 35%")
+    agree_terms: bool = Field(..., description="Explicit acknowledgement of 35% fee and Net-15 memo-basis terms")
+
+
+class RecoveryAgreementRecord(BaseModel):
+    agreement_id: str = Field(..., description="Agreement document UUID")
+    customer_id: str = Field(..., description="Customer organization UUID")
+    customer_name: str = Field(..., description="Customer company name")
+    contingency_fee_pct: float = Field(default=35.0, description="Contingency fee percentage")
+    signed_at: str = Field(..., description="Timestamp ISO string of signature")
+    signer_name: str = Field(..., description="Signer full name")
+    signer_title: str = Field(..., description="Signer corporate title")
+    pdf_path: str = Field(..., description="Path to generated agreement PDF in storage")
+    is_active: bool = Field(default=True, description="Active contract status")
+
+
+
 
 

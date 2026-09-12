@@ -48,3 +48,4 @@ Thumbs.db
 .coverage
 htmlcov/
 *.sqlite3
+generated-pdfs/

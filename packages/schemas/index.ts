@@ -495,5 +495,29 @@ export type CreditMemoIntakeRequest = z.infer<typeof CreditMemoIntakeRequestSche
 export type CreditMemoListItem = z.infer<typeof CreditMemoListItemSchema>;
 export type CustomerPortalSession = z.infer<typeof CustomerPortalSessionSchema>;
 
+export const RecoveryAgreementSignInputSchema = z.object({
+  customer_id: z.string(),
+  signer_name: z.string(),
+  signer_title: z.string(),
+  concierge_handling: z.boolean().default(false),
+  agree_terms: z.boolean(),
+});
+
+export const RecoveryAgreementRecordSchema = z.object({
+  agreement_id: z.string(),
+  customer_id: z.string(),
+  customer_name: z.string(),
+  contingency_fee_pct: z.number().default(35.0),
+  signed_at: z.string(),
+  signer_name: z.string(),
+  signer_title: z.string(),
+  pdf_path: z.string(),
+  is_active: z.boolean().default(true),
+});
+
+export type RecoveryAgreementSignInput = z.infer<typeof RecoveryAgreementSignInputSchema>;
+export type RecoveryAgreementRecord = z.infer<typeof RecoveryAgreementRecordSchema>;
+
+
 
 
