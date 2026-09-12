@@ -1577,6 +1577,100 @@ All discrepancies validated with deterministic proof against governing carrier r
       alert("CFO Executive Summary copied to clipboard!");
     }
 
+    // Phase 6.2: Commission Invoices Engine
+    function renderCommissionInvoices() {
+      const tbody = document.getElementById("commission-invoices-tbody");
+      if (!tbody) return;
+
+      if (!state.commissionInvoices) {
+        state.commissionInvoices = [
+          {
+            id: "inv_rg_202609_acme",
+            period: "Sept 2026",
+            verified_credits: 142.50,
+            rate_pct: 35.0,
+            fee_amount: 49.88,
+            due_date: "2026-09-27",
+            status: "sent"
+          }
+        ];
+      }
+
+      tbody.innerHTML = state.commissionInvoices.map(inv => `
+        <tr class="hover:bg-[#121212] transition">
+          <td class="py-3.5 px-4 font-mono text-white font-semibold">${inv.id}</td>
+          <td class="py-3.5 px-4">${inv.period}</td>
+          <td class="py-3.5 px-4 font-mono text-emerald-400">$${inv.verified_credits.toFixed(2)}</td>
+          <td class="py-3.5 px-4 font-mono">${inv.rate_pct.toFixed(1)}%</td>
+          <td class="py-3.5 px-4 font-mono text-white font-semibold">$${inv.fee_amount.toFixed(2)}</td>
+          <td class="py-3.5 px-4 font-mono text-neutral-300">${inv.due_date}</td>
+          <td class="py-3.5 px-4">
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-blue-950 text-blue-300 border border-blue-800 uppercase">${inv.status} (Net-15)</span>
+          </td>
+          <td class="py-3.5 px-4 text-right space-x-2">
+            <button onclick="alert('Downloading Commission Invoice ${inv.id} PDF...')" class="px-2.5 py-1 rounded bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-neutral-200 font-mono text-[11px] inline-flex items-center space-x-1">
+              <span>📄 PDF</span>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function generateCommissionInvoiceClient() {
+      const verifiedMemos = state.creditMemos.filter(m => m.status === 'verified');
+      const totalVerified = verifiedMemos.reduce((sum, m) => sum + m.amount, 0);
+      
+      if (totalVerified <= 0) {
+        alert("Revenue Control Rule: No verified credit memos found. Commission invoices are strictly generated ONLY from verified carrier credit memos.");
+        return;
+      }
+
+      const fee = totalVerified * 0.35;
+      const invId = `inv_rg_${Date.now().toString().slice(-6)}_acme`;
+      
+      if (!state.commissionInvoices) state.commissionInvoices = [];
+
+      state.commissionInvoices.unshift({
+        id: invId,
+        period: "Sept 2026",
+        verified_credits: totalVerified,
+        rate_pct: 35.0,
+        fee_amount: fee,
+        due_date: new Date(Date.now() + 15*86400000).toISOString().split('T')[0],
+        status: "sent"
+      });
+
+      renderCommissionInvoices();
+      alert(`⚡ Net-15 Commission Invoice ${invId} generated for $${fee.toFixed(2)} (35% on $${totalVerified.toFixed(2)} verified credits).`);
+    }
+
+    // Phase 7.4: Carrier Analytics & Overdue Nudges Engine
+    function renderCarrierAnalytics() {
+      const tbody = document.getElementById("carrier-analytics-tbody");
+      if (!tbody) return;
+
+      const data = [
+        { carrier: "ABF Freight", sent: 12, approved: 11, denied: 1, rate: 91.7, avg: "3.2 days", score: 0.45, badge: "Cooperative", color: "bg-emerald-950 text-emerald-300 border-emerald-800" },
+        { carrier: "Estes Express", sent: 5, approved: 4, denied: 0, rate: 80.0, avg: "4.5 days", score: 0.90, badge: "Friendly", color: "bg-emerald-950 text-emerald-300 border-emerald-800" },
+        { carrier: "FedEx Freight", sent: 8, approved: 3, denied: 4, rate: 37.5, avg: "18.2 days", score: 7.64, badge: "Hostile", color: "bg-rose-950 text-rose-300 border-rose-800" }
+      ];
+
+      tbody.innerHTML = data.map(d => `
+        <tr class="hover:bg-[#121212] transition">
+          <td class="py-3.5 px-4 font-bold text-white">${d.carrier}</td>
+          <td class="py-3.5 px-4 font-mono">${d.sent}</td>
+          <td class="py-3.5 px-4 font-mono text-emerald-400">${d.approved}</td>
+          <td class="py-3.5 px-4 font-mono text-rose-400">${d.denied}</td>
+          <td class="py-3.5 px-4 font-mono ${d.rate >= 70 ? 'text-emerald-400' : 'text-amber-400'} font-bold">${d.rate.toFixed(1)}%</td>
+          <td class="py-3.5 px-4 font-mono">${d.avg}</td>
+          <td class="py-3.5 px-4 font-mono font-bold ${d.score > 5.0 ? 'text-rose-400' : 'text-emerald-400'}">${d.score.toFixed(2)}</td>
+          <td class="py-3.5 px-4">
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono border uppercase ${d.color}">${d.badge}</span>
+          </td>
+        </tr>
+      `).join('');
+    }
+
     function renderAll() {
       renderChecklist();
       renderCarrierSummary();
@@ -1585,6 +1679,8 @@ All discrepancies validated with deterministic proof against governing carrier r
       renderContractsTable();
       renderDisputes();
       renderCreditMemos();
+      renderCommissionInvoices();
+      renderCarrierAnalytics();
     }
 
     // Initialize on load
