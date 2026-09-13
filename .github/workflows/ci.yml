@@ -1,0 +1,42 @@
+name: RateGuard AI CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-and-validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov pydantic fastapi httpx pymupdf instructor
+
+      - name: Execute Full Pytest Test Suite
+        run: |
+          pytest -v
+
+      - name: Run Quality Gate Calibration Harness (Phase 2.0.3)
+        run: |
+          python scripts/calibrate.py
+
+      - name: Run Pilot 1 End-to-End Gate Verification
+        run: |
+          python scripts/run_pilot_end_to_end.py
+
+      - name: Run 2,500 Invoice Scale Benchmark
+        run: |
+          python scripts/benchmark_2500_invoices.py

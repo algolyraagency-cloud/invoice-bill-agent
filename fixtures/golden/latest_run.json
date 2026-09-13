@@ -1,5 +1,5 @@
 {
-  "commit_sha": "108bc3a3c8b79332d6b4a064b84093d480af2ebf",
+  "commit_sha": "712d966ae930cfbeb84befb04498450d9e389704",
   "golden_set_version": "v1.0.0",
   "total_invoices_audited": 14,
   "gate_passed": true,

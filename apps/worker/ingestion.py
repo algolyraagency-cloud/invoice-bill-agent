@@ -1,6 +1,11 @@
 """
 Python Ingestion Module for RateGuard AI.
 Handles Postmark webhook decoding, attachment extraction, ZIP unpacking, and CSV manifest parsing.
+Supports explicit classification of email ingestion failure modes:
+- 'processed': Valid PDF attachments extracted
+- 'no_attachments': Email received with 0 attachments
+- 'unsupported_format': Attachment is not a PDF (e.g. .docx, .xlsx, .exe)
+- 'corrupt_pdf': PDF attachment failed magic byte check or decode
 """
 import base64
 import csv
@@ -22,7 +27,6 @@ def extract_slug_and_stream(email_address: str) -> Tuple[Optional[str], bool]:
     if not email_address:
         return None, False
 
-    # Check if address targets RateGuard domain
     rg_match = re.search(r"([a-zA-Z0-9_\-\+]+)@(?:[a-zA-Z0-9_\-]+\.)?rateguard\.(?:app|ai)", email_address, re.IGNORECASE)
     if rg_match:
         local_part = rg_match.group(1).lower()
@@ -54,7 +58,8 @@ def is_pdf_magic_bytes(data: bytes) -> bool:
 def parse_postmark_inbound_json(payload: Dict[str, Any]) -> Dict[str, Any]:
     """
     Parses a Postmark inbound JSON webhook dictionary.
-    Extracts customer slug, recipient type, email metadata, and decodes attachments.
+    Extracts customer slug, recipient type, email metadata, decodes attachments,
+    and classifies status into: 'processed', 'no_attachments', 'unsupported_format', 'corrupt_pdf'.
     """
     recipients: List[str] = []
     if payload.get("To"):
@@ -71,7 +76,6 @@ def parse_postmark_inbound_json(payload: Dict[str, Any]) -> Dict[str, Any]:
     resolved_slug: Optional[str] = None
     is_dispute = False
 
-    # Prioritize RateGuard recipient addresses first
     for rec in recipients:
         if "rateguard" in rec.lower():
             slug, dispute = extract_slug_and_stream(rec)
@@ -88,16 +92,28 @@ def parse_postmark_inbound_json(payload: Dict[str, Any]) -> Dict[str, Any]:
                 is_dispute = dispute
                 break
 
-    # Parse and decode PDF attachments
     attachments = payload.get("Attachments", [])
     extracted_pdfs: List[Dict[str, Any]] = []
 
-    for att in attachments:
-        name = att.get("Name", "invoice.pdf")
-        content_type = att.get("ContentType", "")
-        content_b64 = att.get("Content", "")
+    processed_status = "processed"
+    failure_reason: Optional[str] = None
 
-        if content_type == "application/pdf" or name.lower().endswith(".pdf"):
+    if not attachments:
+        processed_status = "no_attachments"
+        failure_reason = "Inbound email contained zero attachments."
+    else:
+        has_non_pdf = False
+        has_corrupt_pdf = False
+
+        for att in attachments:
+            name = att.get("Name", "invoice.pdf")
+            content_type = att.get("ContentType", "")
+            content_b64 = att.get("Content", "")
+
+            if not (content_type == "application/pdf" or name.lower().endswith(".pdf")):
+                has_non_pdf = True
+                continue
+
             try:
                 pdf_bytes = base64.b64decode(content_b64)
                 if is_pdf_magic_bytes(pdf_bytes):
@@ -107,8 +123,21 @@ def parse_postmark_inbound_json(payload: Dict[str, Any]) -> Dict[str, Any]:
                         "sha256": compute_sha256(pdf_bytes),
                         "size_bytes": len(pdf_bytes)
                     })
+                else:
+                    has_corrupt_pdf = True
             except Exception:
-                continue
+                has_corrupt_pdf = True
+
+        if not extracted_pdfs:
+            if has_corrupt_pdf:
+                processed_status = "corrupt_pdf"
+                failure_reason = "Attachment failed PDF magic-byte validation or decoding."
+            elif has_non_pdf:
+                processed_status = "unsupported_format"
+                failure_reason = "Attachments contained unsupported file formats (non-PDF)."
+            else:
+                processed_status = "no_attachments"
+                failure_reason = "No valid PDF attachments found in email payload."
 
     return {
         "slug": resolved_slug,
@@ -118,14 +147,14 @@ def parse_postmark_inbound_json(payload: Dict[str, Any]) -> Dict[str, Any]:
         "date": payload.get("Date", ""),
         "body_text": payload.get("TextBody", ""),
         "body_html": payload.get("HtmlBody", ""),
-        "pdf_attachments": extracted_pdfs
+        "pdf_attachments": extracted_pdfs,
+        "processed_status": processed_status,
+        "failure_reason": failure_reason,
     }
 
 
 def parse_csv_manifest(csv_text: str) -> Dict[str, Dict[str, Any]]:
-    """
-    Parses CSV manifest text mapping filename -> invoice metadata.
-    """
+    """Parses CSV manifest text mapping filename -> invoice metadata."""
     manifest: Dict[str, Dict[str, Any]] = {}
     f = io.StringIO(csv_text.strip())
     reader = csv.reader(f)
@@ -134,7 +163,6 @@ def parse_csv_manifest(csv_text: str) -> Dict[str, Dict[str, Any]]:
     except StopIteration:
         return manifest
 
-    # Resolve column indexes
     file_col = next((i for i, h in enumerate(headers) if "file" in h or "name" in h), -1)
     if file_col == -1:
         return manifest
@@ -182,18 +210,15 @@ def unpack_zip_invoices(zip_bytes: bytes) -> Tuple[List[Dict[str, Any]], Optiona
 
     with zipfile.ZipFile(io.BytesIO(zip_bytes)) as z:
         for info in z.infolist():
-            # Zip slip protection: skip paths with traversal
             if ".." in info.filename or info.filename.startswith("/"):
                 continue
 
-            # Skip directories and files over 25MB
             if info.is_dir() or info.file_size > 25 * 1024 * 1024:
                 continue
 
             content = z.read(info.filename)
             base_name = os.path.basename(info.filename)
 
-            # Check for CSV manifest
             if base_name.lower().endswith(".csv") and manifest_csv is None:
                 try:
                     manifest_csv = content.decode("utf-8")
@@ -201,7 +226,6 @@ def unpack_zip_invoices(zip_bytes: bytes) -> Tuple[List[Dict[str, Any]], Optiona
                     pass
                 continue
 
-            # Check for PDF
             if is_pdf_magic_bytes(content):
                 extracted_pdfs.append({
                     "filename": base_name,
