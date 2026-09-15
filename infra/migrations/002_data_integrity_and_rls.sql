@@ -106,3 +106,39 @@ CREATE POLICY tenant_isolation_commission_invoices ON commission_invoices
         OR current_setting('role', true) = 'service_role'
         OR current_setting('app.current_customer_id', true) IS NULL
     );
+
+DROP POLICY IF EXISTS tenant_isolation_inbound_emails ON inbound_emails;
+CREATE POLICY tenant_isolation_inbound_emails ON inbound_emails
+    FOR ALL
+    USING (
+        customer_id = NULLIF(current_setting('app.current_customer_id', true), '')::uuid
+        OR current_setting('role', true) = 'service_role'
+        OR current_setting('app.current_customer_id', true) IS NULL
+    );
+
+DROP POLICY IF EXISTS tenant_isolation_audit_runs ON audit_runs;
+CREATE POLICY tenant_isolation_audit_runs ON audit_runs
+    FOR ALL
+    USING (
+        customer_id = NULLIF(current_setting('app.current_customer_id', true), '')::uuid
+        OR current_setting('role', true) = 'service_role'
+        OR current_setting('app.current_customer_id', true) IS NULL
+    );
+
+DROP POLICY IF EXISTS tenant_isolation_users ON users;
+CREATE POLICY tenant_isolation_users ON users
+    FOR ALL
+    USING (
+        customer_id = NULLIF(current_setting('app.current_customer_id', true), '')::uuid
+        OR current_setting('role', true) = 'service_role'
+        OR current_setting('app.current_customer_id', true) IS NULL
+    );
+
+DROP POLICY IF EXISTS tenant_isolation_onboarding_wizard_state ON onboarding_wizard_state;
+CREATE POLICY tenant_isolation_onboarding_wizard_state ON onboarding_wizard_state
+    FOR ALL
+    USING (
+        customer_id = NULLIF(current_setting('app.current_customer_id', true), '')::uuid
+        OR current_setting('role', true) = 'service_role'
+        OR current_setting('app.current_customer_id', true) IS NULL
+    );
