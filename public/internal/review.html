@@ -532,277 +532,40 @@
     let timerSeconds = 0.0;
     let sessionDurations = [];
 
-    // Sample golden flags initialized from Phase 2 / Phase 3 fixtures
-    let flagsData = [
-      {
-        id: "flag_abf_01",
-        invoice_id: "inv_abf_001",
-        carrier: "ABF Freight",
-        pro_number: "042-889123",
-        invoice_number: "INV-ABF-7712",
-        invoice_date: "2026-08-16",
-        invoice_total: 862.50,
-        check_type: "RATE",
-        overcharge_cents: 7625,
-        confidence: 0.98,
-        review_status: "pending",
-        reject_reason_code: null,
-        evidence_json: {
-          invoice_ref: "INV-ABF-7712",
-          carrier: "ABF Freight",
-          contract_clause: "Item 100-D (Deficit Weight Bumping)",
-          page_number: 14,
-          billed_weight: 4250,
-          billed_rate: 18.50,
-          billed_value: 786.25,
-          bumped_break: "M5M (5,000 lbs)",
-          correct_rate: 14.20,
-          correct_value: 710.00,
-          overcharge_cents: 7625,
-          lane: "303 -> 606"
-        },
-        file_path: "invoices/inv_abf_001.pdf"
-      },
-      {
-        id: "flag_xpo_02",
-        invoice_id: "inv_xpo_002",
-        carrier: "XPO Logistics",
-        pro_number: "XPO-551928",
-        invoice_number: "INV-XPO-9914",
-        invoice_date: "2026-08-18",
-        invoice_total: 512.40,
-        check_type: "FSC",
-        overcharge_cents: 1850,
-        confidence: 0.99,
-        review_status: "pending",
-        reject_reason_code: null,
-        evidence_json: {
-          invoice_ref: "INV-XPO-9914",
-          carrier: "XPO Logistics",
-          contract_clause: "Item 220-A (EIA Fuel Surcharge Scale)",
-          page_number: 7,
-          eia_price: 3.82,
-          billed_value: 34.50,
-          correct_value: 32.40,
-          overcharge_cents: 1850,
-          notes: "DOE diesel index was $3.82 for week of 2026-08-10, contracted bracket is 32.40%."
-        },
-        file_path: "invoices/inv_xpo_002.pdf"
-      },
-      {
-        id: "flag_rr_03",
-        invoice_id: "inv_rr_003",
-        carrier: "Roadrunner",
-        pro_number: "RR-771122",
-        invoice_number: "INV-RR-4401",
-        invoice_date: "2026-08-19",
-        invoice_total: 440.00,
-        check_type: "DUP",
-        overcharge_cents: 44000,
-        confidence: 1.0,
-        review_status: "pending",
-        reject_reason_code: null,
-        evidence_json: {
-          invoice_ref: "INV-RR-4401",
-          carrier: "Roadrunner",
-          contract_clause: "Rule 12 (Duplicate Invoice Defense)",
-          page_number: 3,
-          billed_value: 440.00,
-          correct_value: 0.00,
-          overcharge_cents: 44000,
-          duplicate_pro: "RR-771122",
-          original_invoice: "INV-RR-4398",
-          original_date: "2026-08-17"
-        },
-        file_path: "invoices/inv_rr_003.pdf"
-      },
-      {
-        id: "flag_abf_04",
-        invoice_id: "inv_abf_004",
-        carrier: "ABF Freight",
-        pro_number: "042-990441",
-        invoice_number: "INV-ABF-8819",
-        invoice_date: "2026-08-20",
-        invoice_total: 615.00,
-        check_type: "ARITH",
-        overcharge_cents: 1500,
-        confidence: 0.97,
-        review_status: "pending",
-        reject_reason_code: null,
-        evidence_json: {
-          invoice_ref: "INV-ABF-8819",
-          carrier: "ABF Freight",
-          contract_clause: "Reconciliation Check (Line Items Sum)",
-          page_number: 1,
-          billed_value: 615.00,
-          correct_value: 600.00,
-          overcharge_cents: 1500,
-          line_items_sum: 600.00
-        },
-        file_path: "invoices/inv_abf_004.pdf"
-      },
-      // Seeded pilot review data (Phase 4.2 feedback loop)
-      {
-        id: "flag_abf_p01",
-        invoice_id: "inv_abf_p01",
-        carrier: "ABF Freight",
-        pro_number: "042-101111",
-        invoice_number: "INV-ABF-1011",
-        invoice_date: "2026-08-01",
-        invoice_total: 950.00,
-        check_type: "RATE",
-        overcharge_cents: 8500,
-        confidence: 0.99,
-        review_status: "approved",
-        reject_reason_code: null,
-        evidence_json: { contract_clause: "Item 100-D", correct_value: 865.00 },
-        file_path: "invoices/inv_abf_p01.pdf"
-      },
-      {
-        id: "flag_abf_p02",
-        invoice_id: "inv_abf_p02",
-        carrier: "ABF Freight",
-        pro_number: "042-101112",
-        invoice_number: "INV-ABF-1012",
-        invoice_date: "2026-08-02",
-        invoice_total: 420.00,
-        check_type: "FSC",
-        overcharge_cents: 2200,
-        confidence: 0.98,
-        review_status: "approved",
-        reject_reason_code: null,
-        evidence_json: { contract_clause: "Item 220-A", correct_value: 398.00 },
-        file_path: "invoices/inv_abf_p02.pdf"
-      },
-      {
-        id: "flag_xpo_p03",
-        invoice_id: "inv_xpo_p03",
-        carrier: "XPO Logistics",
-        pro_number: "XPO-202201",
-        invoice_number: "INV-XPO-2021",
-        invoice_date: "2026-08-03",
-        invoice_total: 780.00,
-        check_type: "RATE",
-        overcharge_cents: 6400,
-        confidence: 0.97,
-        review_status: "approved",
-        reject_reason_code: null,
-        evidence_json: { contract_clause: "Tariff 100", correct_value: 716.00 },
-        file_path: "invoices/inv_xpo_p03.pdf"
-      },
-      {
-        id: "flag_xpo_p04",
-        invoice_id: "inv_xpo_p04",
-        carrier: "XPO Logistics",
-        pro_number: "XPO-202202",
-        invoice_number: "INV-XPO-2022",
-        invoice_date: "2026-08-04",
-        invoice_total: 610.00,
-        check_type: "FSC",
-        overcharge_cents: 1950,
-        confidence: 0.99,
-        review_status: "approved",
-        reject_reason_code: null,
-        evidence_json: { contract_clause: "Item 220-A", correct_value: 590.50 },
-        file_path: "invoices/inv_xpo_p04.pdf"
-      },
-      {
-        id: "flag_rr_p05",
-        invoice_id: "inv_rr_p05",
-        carrier: "Roadrunner",
-        pro_number: "RR-303301",
-        invoice_number: "INV-RR-3031",
-        invoice_date: "2026-08-05",
-        invoice_total: 350.00,
-        check_type: "DUP",
-        overcharge_cents: 35000,
-        confidence: 1.0,
-        review_status: "approved",
-        reject_reason_code: null,
-        evidence_json: { contract_clause: "Duplicate Defense", correct_value: 0.00 },
-        file_path: "invoices/inv_rr_p05.pdf"
-      },
-      {
-        id: "flag_rr_p06",
-        invoice_id: "inv_rr_p06",
-        carrier: "Roadrunner",
-        pro_number: "RR-303302",
-        invoice_number: "INV-RR-3032",
-        invoice_date: "2026-08-06",
-        invoice_total: 480.00,
-        check_type: "RATE",
-        overcharge_cents: 3800,
-        confidence: 0.96,
-        review_status: "approved",
-        reject_reason_code: null,
-        evidence_json: { contract_clause: "Item 400", correct_value: 442.00 },
-        file_path: "invoices/inv_rr_p06.pdf"
-      },
-      {
-        id: "flag_abf_p07",
-        invoice_id: "inv_abf_p07",
-        carrier: "ABF Freight",
-        pro_number: "042-101113",
-        invoice_number: "INV-ABF-1013",
-        invoice_date: "2026-08-07",
-        invoice_total: 820.00,
-        check_type: "ARITH",
-        overcharge_cents: 2000,
-        confidence: 0.99,
-        review_status: "approved",
-        reject_reason_code: null,
-        evidence_json: { contract_clause: "Reconciliation Check", correct_value: 800.00 },
-        file_path: "invoices/inv_abf_p07.pdf"
-      },
-      {
-        id: "flag_xpo_p08",
-        invoice_id: "inv_xpo_p08",
-        carrier: "XPO Logistics",
-        pro_number: "XPO-202203",
-        invoice_number: "INV-XPO-2023",
-        invoice_date: "2026-08-08",
-        invoice_total: 690.00,
-        check_type: "RATE",
-        overcharge_cents: 5100,
-        confidence: 0.97,
-        review_status: "approved",
-        reject_reason_code: null,
-        evidence_json: { contract_clause: "Item 100-D", correct_value: 639.00 },
-        file_path: "invoices/inv_xpo_p08.pdf"
-      },
-      {
-        id: "flag_rr_p09",
-        invoice_id: "inv_rr_p09",
-        carrier: "Roadrunner",
-        pro_number: "RR-303303",
-        invoice_number: "INV-RR-3033",
-        invoice_date: "2026-08-09",
-        invoice_total: 540.00,
-        check_type: "FSC",
-        overcharge_cents: 2100,
-        confidence: 0.98,
-        review_status: "approved",
-        reject_reason_code: null,
-        evidence_json: { contract_clause: "Item 220-A", correct_value: 519.00 },
-        file_path: "invoices/inv_rr_p09.pdf"
-      },
-      {
-        id: "flag_rej_01",
-        invoice_id: "inv_rej_001",
-        carrier: "ABF Freight",
-        pro_number: "042-999001",
-        invoice_number: "INV-ABF-9901",
-        invoice_date: "2026-08-10",
-        invoice_total: 450.00,
-        check_type: "RATE",
-        overcharge_cents: 4500,
-        confidence: 0.85,
-        review_status: "rejected",
-        reject_reason_code: "wrong-matrix-row",
-        evidence_json: { contract_clause: "Item 100-D", notes: "Extractor selected 303 lane instead of 302 exception row" },
-        file_path: "invoices/inv_rej_001.pdf"
+    // Dynamic Review Queue Data Store (Zero Fake Hardcoded Data)
+    let flagsData = [];
+
+    async function loadReviewQueueFromAPI() {
+      try {
+        const res = await fetch("/api/v1/review/queue?role=internal_reviewer", {
+          headers: { "X-RateGuard-Role": "internal_reviewer" }
+        });
+        if (!res.ok) return;
+        const serverFlags = await res.json();
+        if (Array.isArray(serverFlags) && serverFlags.length > 0) {
+          flagsData = serverFlags.map(f => ({
+            id: f.id,
+            invoice_id: f.invoice_id,
+            carrier: f.carrier || "Carrier",
+            pro_number: f.evidence?.pro_number || "PRO-UNKNOWN",
+            invoice_number: f.invoice_ref || "INV-UNKNOWN",
+            invoice_date: f.evidence?.invoice_date || new Date().toISOString().split('T')[0],
+            invoice_total: f.evidence?.billed_value || f.overcharge_dollars,
+            check_type: f.check_type,
+            overcharge_cents: Math.round(f.overcharge_dollars * 100),
+            confidence: 0.98,
+            review_status: f.review_status || "pending",
+            reject_reason_code: null,
+            evidence_json: f.evidence || {},
+            file_path: "invoices/uploaded_invoice.pdf"
+          }));
+        }
+        updateCounts();
+        renderActiveCard();
+      } catch (err) {
+        console.warn("Review queue API load fallback:", err);
       }
-    ];
+    }
 
     function startTimer() {
       if (timerInterval) clearInterval(timerInterval);
