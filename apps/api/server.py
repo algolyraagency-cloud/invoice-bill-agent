@@ -147,55 +147,13 @@ def seed_initial_organizations():
     )
     portal_service.seed_user("usr_vanguard_dir", "cust_vanguard_04", "brokerage-ap@vanguardfreight.com", role="owner")
 
-    # Seed Master Carrier Contracts
+    # Master Carrier Contracts (Ready for Dynamic Audit Execution)
     portal_service.submit_contract("cust_acme_01", "ABF Freight", "A", True, "abf_pricing_2026.pdf")
     portal_service.submit_contract("cust_acme_01", "XPO Logistics", "A", True, "xpo_pricing_2026.pdf")
     portal_service.submit_contract("cust_acme_01", "Roadrunner", "B", True, "rrts_quote_2026.pdf")
 
     portal_service.submit_contract("cust_vanguard_04", "Estes Express", "A", True, "estes_broker_agreement_2026.pdf")
     portal_service.submit_contract("cust_vanguard_04", "Saia Freight", "A", True, "saia_broker_agreement_2026.pdf")
-
-    # Seed Initial Invoices & Discrepancy Flags for Acme
-    inv1 = "inv_abf_8812"
-    portal_service.seed_invoice(inv1, "cust_acme_01", "ABF Freight", "INV-8812", "PRO-042-881234", "2026-08-12", 842.50, "audited", "upload")
-    portal_service.seed_flag("flg_01", inv1, "RATE", 1650, {
-        "invoice_ref": "INV-8812", "carrier": "ABF Freight", "contract_clause": "Item 100-D (Deficit Bumping)",
-        "billed_value": 412.50, "correct_value": 396.00, "overcharge_cents": 1650
-    }, "approved")
-
-    inv2 = "inv_xpo_9941"
-    portal_service.seed_invoice(inv2, "cust_acme_01", "XPO Logistics", "INV-9941", "PRO-098-994100", "2026-08-14", 1204.00, "audited", "email")
-    portal_service.seed_flag("flg_02", inv2, "FSC", 4500, {
-        "invoice_ref": "INV-9941", "carrier": "XPO Logistics", "contract_clause": "Item 220-A (Fuel Scale)",
-        "billed_value": 42.0, "correct_value": 38.0, "overcharge_cents": 4500
-    }, "approved")
-
-    inv3 = "inv_rrts_1102"
-    portal_service.seed_invoice(inv3, "cust_acme_01", "Roadrunner", "INV-1102", "PRO-111-223344", "2026-08-18", 650.00, "audited", "upload")
-    portal_service.seed_flag("flg_03", inv3, "DUP", 65000, {
-        "invoice_ref": "INV-1102", "carrier": "Roadrunner", "contract_clause": "Duplicate Billing (Ref: INV-1090)",
-        "billed_value": 650.00, "correct_value": 0.00, "overcharge_cents": 65000
-    }, "pending")
-
-    # Seed Disputes & Credit Memos
-    portal_service.seed_dispute("disp_abf_01", "flg_01", "sent", "dispute_abf_8812.pdf", "cust_acme_01")
-    portal_service.seed_dispute("disp_xpo_02", "flg_02", "drafted", "dispute_xpo_9941.pdf", "cust_acme_01")
-
-    portal_service._credit_memos["cm_abf_1001"] = {
-        "id": "cm_abf_1001",
-        "customer_id": "cust_acme_01",
-        "dispute_id": "disp_abf_01",
-        "carrier": "ABF Freight",
-        "memo_number": "CM-8812-A",
-        "original_invoice_ref": "INV-8812",
-        "amount_cents": 14250,
-        "amount": 142.50,
-        "matched_dispute": "disp_abf_01",
-        "status": "verified",
-        "verification_status": "verified",
-        "detected_via": "stream",
-        "logged_at": "2026-08-25"
-    }
 
 seed_initial_organizations()
 

@@ -161,7 +161,7 @@
         
         <div class="bg-[#0b0b0b] border border-[#1e1e1e] rounded-xl p-5 relative overflow-hidden">
           <div class="text-[11px] uppercase font-mono tracking-wider text-neutral-500">Gross Recoverable</div>
-          <div id="kpi-gross-recoverable" class="text-2xl font-bold text-emerald-400 mt-1.5">$207.50</div>
+          <div id="kpi-gross-recoverable" class="text-2xl font-bold text-emerald-400 mt-1.5">$0.00</div>
           <div class="text-xs text-neutral-400 mt-1 flex items-center space-x-1">
             <span>Verified claims detected</span>
           </div>
@@ -169,7 +169,7 @@
 
         <div class="bg-[#0b0b0b] border border-[#1e1e1e] rounded-xl p-5 relative overflow-hidden">
           <div class="text-[11px] uppercase font-mono tracking-wider text-neutral-500">Shipper Net Recovery</div>
-          <div id="kpi-net-recovery" class="text-2xl font-bold text-white mt-1.5">$134.88</div>
+          <div id="kpi-net-recovery" class="text-2xl font-bold text-white mt-1.5">$0.00</div>
           <div class="text-xs text-emerald-500 mt-1">
             65% client share
           </div>
@@ -177,7 +177,7 @@
 
         <div class="bg-[#0b0b0b] border border-[#1e1e1e] rounded-xl p-5 relative overflow-hidden">
           <div class="text-[11px] uppercase font-mono tracking-wider text-neutral-500">Open Disputes</div>
-          <div id="kpi-open-disputes" class="text-2xl font-bold text-blue-400 mt-1.5">2 Claims</div>
+          <div id="kpi-open-disputes" class="text-2xl font-bold text-blue-400 mt-1.5">0 Claims</div>
           <div class="text-xs text-neutral-400 mt-1">
             Drafted & dispatched
           </div>
@@ -185,9 +185,9 @@
 
         <div class="bg-[#0b0b0b] border border-[#1e1e1e] rounded-xl p-5 relative overflow-hidden">
           <div class="text-[11px] uppercase font-mono tracking-wider text-neutral-500">Verified Credit Memos</div>
-          <div id="kpi-verified-credits" class="text-2xl font-bold text-purple-400 mt-1.5">$142.50</div>
+          <div id="kpi-verified-credits" class="text-2xl font-bold text-purple-400 mt-1.5">$0.00</div>
           <div class="text-xs text-neutral-400 mt-1">
-            1 memo matched
+            0 memos matched
           </div>
         </div>
 
@@ -939,13 +939,17 @@
         const data = await res.json();
 
         if (data.kpis) {
-          const kpiRec = document.getElementById("kpi-recoverable-dollars");
-          if (kpiRec) kpiRec.innerText = `$${data.kpis.total_recoverable_dollars.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
-          const kpiNet = document.getElementById("kpi-shipper-net");
-          if (kpiNet) kpiNet.innerText = `$${data.kpis.estimated_shipper_net_dollars.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
-          const kpiFee = document.getElementById("kpi-fee-dollars");
-          if (kpiFee) kpiFee.innerText = `$${data.kpis.contingency_fee_dollars.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+          const kpiRec = document.getElementById("kpi-gross-recoverable");
+          if (kpiRec) kpiRec.innerText = `$${(data.kpis.total_recoverable_dollars || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+          const kpiNet = document.getElementById("kpi-net-recovery");
+          if (kpiNet) kpiNet.innerText = `$${(data.kpis.estimated_shipper_net_dollars || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+          const kpiDisputes = document.getElementById("kpi-open-disputes");
+          if (kpiDisputes) kpiDisputes.innerText = `${data.kpis.open_disputes_count || 0} Claims`;
+          const kpiCredits = document.getElementById("kpi-verified-credits");
+          if (kpiCredits) kpiCredits.innerText = `$${(data.kpis.verified_credit_memos_dollars || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         }
+        if (data.carrier_summary) state.carrierSummary = data.carrier_summary;
+        if (data.recent_activity) state.recentActivity = data.recent_activity;
         renderAll();
       } catch (err) {
         console.warn("API session load fallback:", err);
@@ -1051,21 +1055,26 @@
 
     // Render Carrier Summary
     function renderCarrierSummary() {
-      const carriers = [
-        { name: "ABF Freight", invoices: 1, claims: 1, recoverable: 142.50 },
-        { name: "XPO Logistics", invoices: 1, claims: 1, recoverable: 65.00 },
-        { name: "Roadrunner", invoices: 0, claims: 0, recoverable: 0.00 }
-      ];
-
       const container = document.getElementById("carrier-summary-list");
-      container.innerHTML = carriers.map(c => `
+      const summaryItems = state.carrierSummary ? Object.values(state.carrierSummary) : [];
+
+      if (summaryItems.length === 0) {
+        container.innerHTML = `
+          <div class="p-4 rounded-xl bg-[#0e0e0e] border border-[#1c1c1c] text-center text-xs text-neutral-500 font-mono">
+            No carrier bills audited yet. Upload PDFs or set up email forwarding to populate distribution.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = summaryItems.map(c => `
         <div class="p-3 rounded-xl bg-[#0e0e0e] border border-[#1c1c1c] flex items-center justify-between">
           <div>
-            <div class="font-bold text-white text-xs">${c.name}</div>
-            <div class="text-[11px] text-neutral-500 font-mono">${c.invoices} audited bills · ${c.claims} approved claims</div>
+            <div class="font-bold text-white text-xs">${c.carrier}</div>
+            <div class="text-[11px] text-neutral-500 font-mono">${c.invoices_count || 0} audited bills · ${c.flagged_count || 0} approved claims</div>
           </div>
           <div class="text-right font-mono">
-            <div class="text-xs font-bold text-emerald-400">$${c.recoverable.toFixed(2)}</div>
+            <div class="text-xs font-bold text-emerald-400">$${(c.overcharge_dollars || 0).toFixed(2)}</div>
             <div class="text-[10px] text-neutral-500">Disputed</div>
           </div>
         </div>
@@ -1074,18 +1083,23 @@
 
     // Render Recent Activity
     function renderRecentActivity() {
-      const items = [
-        { title: "Credit Memo Verified", desc: "$142.50 from ABF Freight (CM-ABF-7741)", time: "10m ago" },
-        { title: "Dispute Notice Dispatched", desc: "PRO #042-881234 sent to carrier AP", time: "1h ago" },
-        { title: "Audit Batch Completed", desc: "2 invoices audited with zero errors", time: "3h ago" }
-      ];
-
       const container = document.getElementById("recent-activity-list");
+      const items = state.recentActivity || [];
+
+      if (items.length === 0) {
+        container.innerHTML = `
+          <div class="p-4 rounded-xl bg-[#0e0e0e] border border-[#1c1c1c] text-center text-xs text-neutral-500 font-mono">
+            No activity feed recorded yet. Real-time audit events will stream here.
+          </div>
+        `;
+        return;
+      }
+
       container.innerHTML = items.map(i => `
         <div class="text-xs border-l-2 border-emerald-500 pl-3 py-1 space-y-0.5">
-          <div class="font-semibold text-neutral-200">${i.title}</div>
-          <div class="text-[11px] text-neutral-400 font-mono">${i.desc}</div>
-          <div class="text-[10px] text-neutral-500 font-mono">${i.time}</div>
+          <div class="font-semibold text-neutral-200">${i.title || i.type || 'Audit Event'}</div>
+          <div class="text-[11px] text-neutral-400 font-mono">${i.desc || i.message || ''}</div>
+          <div class="text-[10px] text-neutral-500 font-mono">${i.time || i.timestamp || ''}</div>
         </div>
       `).join('');
     }
@@ -1554,33 +1568,24 @@ All discrepancies validated with deterministic proof against governing carrier r
       const tbody = document.getElementById("commission-invoices-tbody");
       if (!tbody) return;
 
-      if (!state.commissionInvoices) {
-        state.commissionInvoices = [
-          {
-            id: "inv_rg_202609_acme",
-            period: "Sept 2026",
-            verified_credits: 142.50,
-            rate_pct: 35.0,
-            fee_amount: 49.88,
-            due_date: "2026-09-27",
-            status: "sent"
-          }
-        ];
+      if (!state.commissionInvoices || state.commissionInvoices.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-neutral-500 font-mono text-xs">No commission invoices generated yet. Invoices trigger automatically upon carrier credit memo verification.</td></tr>`;
+        return;
       }
 
       tbody.innerHTML = state.commissionInvoices.map(inv => `
         <tr class="hover:bg-[#121212] transition">
           <td class="py-3.5 px-4 font-mono text-white font-semibold">${inv.id}</td>
-          <td class="py-3.5 px-4">${inv.period}</td>
-          <td class="py-3.5 px-4 font-mono text-emerald-400">$${inv.verified_credits.toFixed(2)}</td>
-          <td class="py-3.5 px-4 font-mono">${inv.rate_pct.toFixed(1)}%</td>
-          <td class="py-3.5 px-4 font-mono text-white font-semibold">$${inv.fee_amount.toFixed(2)}</td>
-          <td class="py-3.5 px-4 font-mono text-neutral-300">${inv.due_date}</td>
+          <td class="py-3.5 px-4">${inv.period || 'Current Period'}</td>
+          <td class="py-3.5 px-4 font-mono text-emerald-400">$${(inv.verified_credits || 0).toFixed(2)}</td>
+          <td class="py-3.5 px-4 font-mono">${(inv.rate_pct || 35.0).toFixed(1)}%</td>
+          <td class="py-3.5 px-4 font-mono text-white font-semibold">$${(inv.fee_amount || 0).toFixed(2)}</td>
+          <td class="py-3.5 px-4 font-mono text-neutral-300">${inv.due_date || 'Net-15'}</td>
           <td class="py-3.5 px-4">
-            <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-blue-950 text-blue-300 border border-blue-800 uppercase">${inv.status} (Net-15)</span>
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-blue-950 text-blue-300 border border-blue-800 uppercase">${inv.status || 'draft'} (Net-15)</span>
           </td>
           <td class="py-3.5 px-4 text-right space-x-2">
-            <button onclick="alert('Downloading Commission Invoice ${inv.id} PDF...')" class="px-2.5 py-1 rounded bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-neutral-200 font-mono text-[11px] inline-flex items-center space-x-1">
+            <button onclick="alert('Commission Invoice PDF: ${inv.id}')" class="px-2.5 py-1 rounded bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-neutral-200 font-mono text-[11px] inline-flex items-center space-x-1">
               <span>📄 PDF</span>
             </button>
           </td>
