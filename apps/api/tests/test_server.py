@@ -43,7 +43,8 @@ def test_review_queue_role_protection():
     assert response_unauth.status_code == 403
     assert "Access Denied" in response_unauth.json()["detail"]
 
-    # Request with valid internal_reviewer role header
+    # Seed a flag for test review queue verification
+    portal_service.seed_flag("flg_test_01", "inv_test_01", "RATE", 1000, {"invoice_ref": "INV-TEST-01", "overcharge_cents": 1000}, "pending")
     response_auth = client.get("/api/v1/review/queue", headers={"X-RateGuard-Role": "internal_reviewer"})
     assert response_auth.status_code == 200
     flags = response_auth.json()
