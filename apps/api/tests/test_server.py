@@ -111,8 +111,8 @@ def test_file_upload_validation_and_magic_bytes():
     assert response_fake.status_code == 400
     assert "Invalid file format" in response_fake.json()["detail"]
 
-    # Valid PDF with %PDF- magic bytes
-    valid_pdf_bytes = b"%PDF-1.5 %Valid PDF document header\n%%EOF"
+    # Valid PDF with %PDF- magic bytes and some dummy text that satisfies the fallback parser
+    valid_pdf_bytes = b"%PDF-1.5 %Valid PDF document header\nPRO: 042-123456 \n Total Amount: $250.00 \n%%EOF"
     response_valid = client.post(
         "/api/v1/upload",
         files={"file": ("abf_invoice.pdf", valid_pdf_bytes, "application/pdf")},

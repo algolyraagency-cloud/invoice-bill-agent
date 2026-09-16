@@ -80,19 +80,25 @@ def _simulate_llm_invoice_extraction(document_text: str, carrier_hint: str | Non
     and budget safety when no API key is available.
     Uses RegexFallbackParser for Top-10 carrier formats.
     """
+    if not document_text.strip():
+        raise ValueError("OCR Required: The uploaded document contains no extractable text.")
+
     regex_res = RegexFallbackParser.parse_text(document_text, carrier_hint=carrier_hint or "")
-    carrier = regex_res.carrier if regex_res.carrier != "Unknown Carrier" else (carrier_hint or "Generic Carrier")
+    carrier = regex_res.carrier if regex_res.carrier != "Unknown Carrier" else (carrier_hint or "Unknown Carrier")
     text_lower = document_text.lower()
 
-    pro_number = regex_res.pro_number or "PRO-000000"
+    pro_number = regex_res.pro_number
+
+    if not pro_number:
+        raise ValueError("Document parsing failed: Could not detect a valid PRO number. Please ensure this is a valid LTL freight invoice.")
 
     invoice_number = regex_res.invoice_number or f"INV-{pro_number}"
     invoice_date = regex_res.invoice_date or "2026-08-15"
 
 
     # Extract Zip codes (stay on same line or within line)
-    origin_zip = "60601"
-    dest_zip = "48201"
+    origin_zip = "00000"
+    dest_zip = "00000"
     orig_match = re.search(r"(?:origin|ship\s*from)[^\n\r]*?([0-9]{5})", document_text, re.IGNORECASE)
     dest_match = re.search(r"(?:dest|destination|ship\s*to)[^\n\r]*?([0-9]{5})", document_text, re.IGNORECASE)
     if orig_match:
@@ -102,11 +108,11 @@ def _simulate_llm_invoice_extraction(document_text: str, carrier_hint: str | Non
 
     # Extract Weight
     weight_match = re.search(r"(?:weight|lbs|wt)[\s:]*([0-9]+(?:\.[0-9]+)?)", document_text, re.IGNORECASE)
-    billed_weight = float(weight_match.group(1)) if weight_match else 1200.0
+    billed_weight = float(weight_match.group(1)) if weight_match else 0.0
 
     # Extract Totals and charges
     total_match = re.search(r"(?:total|balance\s*due|amount\s*due)[\s$:]*([0-9]+(?:\.[0-9]{2})?)", document_text, re.IGNORECASE)
-    invoice_total = float(total_match.group(1)) if total_match else 250.00
+    invoice_total = float(total_match.group(1)) if total_match else 0.00
 
     # Extract Line items
     line_items = []
@@ -118,7 +124,7 @@ def _simulate_llm_invoice_extraction(document_text: str, carrier_hint: str | Non
     # Search for FSC
     fsc_match = re.search(r"(?:fuel(?:\s*surcharge)?|fsc)[\s$:]*([0-9]+(?:\.[0-9]{2})?)", document_text, re.IGNORECASE)
     fsc_pct_match = re.search(r"(?:fuel|fsc)[\s\w]*?([0-9]{1,2}(?:\.[0-9]{1,2})?)\s*%", document_text, re.IGNORECASE)
-    fsc_pct = float(fsc_pct_match.group(1)) if fsc_pct_match else 33.5
+    fsc_pct = float(fsc_pct_match.group(1)) if fsc_pct_match else 0.0
     fsc_amount = float(fsc_match.group(1)) if fsc_match else round(invoice_total - lh_amount, 2)
     line_items.append(LineItem(description=f"Fuel Surcharge ({fsc_pct}%)", charge_code="FSC", amount=fsc_amount))
 
@@ -126,7 +132,7 @@ def _simulate_llm_invoice_extraction(document_text: str, carrier_hint: str | Non
     accessorials = []
     if "liftgate" in text_lower:
         lg_match = re.search(r"liftgate[\s$:]*([0-9]+(?:\.[0-9]{2})?)", document_text, re.IGNORECASE)
-        lg_amt = float(lg_match.group(1)) if lg_match else 75.00
+        lg_amt = float(lg_match.group(1)) if lg_match else 0.0
         line_items.append(LineItem(description="Liftgate Delivery", charge_code="LGT", amount=lg_amt))
         accessorials.append(Accessorial(type="liftgate", amount=lg_amt, authorized=True))
 

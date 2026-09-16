@@ -53,6 +53,9 @@ def _simulate_contract_extraction(
     High-fidelity deterministic simulation parser for contract pricing agreements
     supporting Quality Ladder Rungs A, B, and C.
     """
+    if not document_text.strip():
+        raise ValueError("Document parsing failed: The uploaded contract document contains no extractable text.")
+
     text_lower = document_text.lower()
     carrier = carrier_hint or "Carrier Partner"
     if "abf" in text_lower:

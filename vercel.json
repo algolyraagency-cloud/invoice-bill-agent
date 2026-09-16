@@ -4,6 +4,10 @@
   "cleanUrls": true,
   "rewrites": [
     {
+      "source": "/api/(.*)",
+      "destination": "/api/index.py"
+    },
+    {
       "source": "/setup-forwarding",
       "destination": "/setup-forwarding.html"
     },
@@ -19,6 +23,5 @@
       "source": "/onboarding",
       "destination": "/onboarding.html"
     }
-
   ]
 }

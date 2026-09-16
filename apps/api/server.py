@@ -342,11 +342,17 @@ async def handle_invoice_upload(
     # DYNAMIC PARSING: Extract real text & JSON schema from uploaded document
     carrier_hint = "ABF Freight" if "abf" in fname_lower else ("XPO Logistics" if "xpo" in fname_lower else ("Roadrunner" if "rrts" in fname_lower or "roadrunner" in fname_lower else None))
     
-    parsed_inv, val_result, _meta = parse_invoice(
-        document_input=file_bytes,
-        carrier_hint=carrier_hint,
-        use_cache=True
-    )
+    try:
+        parsed_inv, val_result, _meta = parse_invoice(
+            document_input=file_bytes,
+            carrier_hint=carrier_hint,
+            use_cache=True
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
 
     inv_id = f"inv_{uuid.uuid4().hex[:8]}"
     pro_num = parsed_inv.pro_number
