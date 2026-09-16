@@ -111,28 +111,28 @@ def _simulate_llm_invoice_extraction(document_text: str, carrier_hint: str | Non
     billed_weight = float(weight_match.group(1)) if weight_match else 0.0
 
     # Extract Totals and charges
-    total_match = re.search(r"(?:total|balance\s*due|amount\s*due)[\s$:]*([0-9]+(?:\.[0-9]{2})?)", document_text, re.IGNORECASE)
-    invoice_total = float(total_match.group(1)) if total_match else 0.00
+    total_match = re.search(r"(?:total|balance\s*due|amount\s*due)[\s$:]*([0-9][0-9,]*(?:\.[0-9]{2})?)", document_text, re.IGNORECASE)
+    invoice_total = float(total_match.group(1).replace(",", "")) if total_match else 0.00
 
     # Extract Line items
     line_items = []
     # Search for linehaul
-    lh_match = re.search(r"(?:linehaul|base|freight)[\s$:]*([0-9]+(?:\.[0-9]{2})?)", document_text, re.IGNORECASE)
-    lh_amount = float(lh_match.group(1)) if lh_match else round(invoice_total * 0.75, 2)
+    lh_match = re.search(r"(?:linehaul|base|freight)[\s$:]*([0-9][0-9,]*(?:\.[0-9]{2})?)", document_text, re.IGNORECASE)
+    lh_amount = float(lh_match.group(1).replace(",", "")) if lh_match else round(invoice_total * 0.75, 2)
     line_items.append(LineItem(description="Linehaul Base Freight", charge_code="400", amount=lh_amount))
 
     # Search for FSC
-    fsc_match = re.search(r"(?:fuel(?:\s*surcharge)?|fsc)[\s$:]*([0-9]+(?:\.[0-9]{2})?)", document_text, re.IGNORECASE)
+    fsc_match = re.search(r"(?:fuel(?:\s*surcharge)?|fsc)[\s$:]*([0-9][0-9,]*(?:\.[0-9]{2})?)", document_text, re.IGNORECASE)
     fsc_pct_match = re.search(r"(?:fuel|fsc)[\s\w]*?([0-9]{1,2}(?:\.[0-9]{1,2})?)\s*%", document_text, re.IGNORECASE)
     fsc_pct = float(fsc_pct_match.group(1)) if fsc_pct_match else 0.0
-    fsc_amount = float(fsc_match.group(1)) if fsc_match else round(invoice_total - lh_amount, 2)
+    fsc_amount = float(fsc_match.group(1).replace(",", "")) if fsc_match else round(invoice_total - lh_amount, 2)
     line_items.append(LineItem(description=f"Fuel Surcharge ({fsc_pct}%)", charge_code="FSC", amount=fsc_amount))
 
     # Accessorials
     accessorials = []
     if "liftgate" in text_lower:
-        lg_match = re.search(r"liftgate[\s$:]*([0-9]+(?:\.[0-9]{2})?)", document_text, re.IGNORECASE)
-        lg_amt = float(lg_match.group(1)) if lg_match else 0.0
+        lg_match = re.search(r"liftgate[\s$:]*([0-9][0-9,]*(?:\.[0-9]{2})?)", document_text, re.IGNORECASE)
+        lg_amt = float(lg_match.group(1).replace(",", "")) if lg_match else 0.0
         line_items.append(LineItem(description="Liftgate Delivery", charge_code="LGT", amount=lg_amt))
         accessorials.append(Accessorial(type="liftgate", amount=lg_amt, authorized=True))
 
