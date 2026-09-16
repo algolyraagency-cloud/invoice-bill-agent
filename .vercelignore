@@ -1,5 +1,4 @@
 # Ignore test files, docs, and fixtures from the Vercel serverless function bundle
-public/
 fixtures/
 docs/
 scripts/

@@ -85,7 +85,7 @@ def test_invoice_parse_sha256_caching():
     raw_doc = """
     Roadrunner Freight
     Invoice: RR-1002
-    PRO#: 552-990011
+    PRO#: 552990011
     Date: 2026-08-18
     From: 90001 To: 85001
     Weight: 950 lbs

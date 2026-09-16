@@ -118,7 +118,7 @@ def test_process_parse_invoice_job_failure_routes_to_calibration():
     # Sum of items = $250.00, but Total = $350.00 ($100 drift)
     corrupt_text = (
         "Carrier: ABF Freight\n"
-        "PRO Number: 042-CORRUPT\n"
+        "PRO Number: 042-123456\n"
         "Invoice: INV-CORRUPT\n"
         "Date: 2026-08-12\n"
         "Weight: 500 lbs\n"
