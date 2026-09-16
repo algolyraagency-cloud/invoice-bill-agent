@@ -51,28 +51,28 @@ PARTIES:
   Date:     {date_str}
 
 1. PURPOSE & SCOPE OF ENGAGEMENT
-Shipper engages RateGuard to audit freight billing, carrier rate tariffs, fuel surcharges, 
+Shipper engages RateGuard to audit freight billing, carrier rate tariffs, fuel surcharges,
 and accessorial charges across Shipper's LTL carrier invoice stream.
 
 2. CONTINGENCY PRICING & PAYMENT TERMS (NO RECOVERY = ZERO OWED)
   (a) Contingency Fee: Shipper agrees to pay RateGuard {fee_pct:.1f}% of all verified overcharge recoveries, credit memos, or refund checks issued by carriers.
-  (b) Billing Trigger: RateGuard invoices Shipper upon carrier issuance of a verified credit memo 
+  (b) Billing Trigger: RateGuard invoices Shipper upon carrier issuance of a verified credit memo
       or refund check ("Memo-Basis Trigger"), regardless of cash flow application.
   (c) Payment Terms: Net-15 days from date of RateGuard commission invoice.
 
 3. DISPUTE MECHANISM — "WE DRAFT, YOU SEND"
-  (a) RateGuard prepares mathematically verified dispute notices citing exact carrier contract 
+  (a) RateGuard prepares mathematically verified dispute notices citing exact carrier contract
       clauses and overcharges.
-  (b) RateGuard shall not act as a direct legal party or communicate directly with carriers 
+  (b) RateGuard shall not act as a direct legal party or communicate directly with carriers
       without Shipper involvement. Shipper dispatches dispute notices directly to carriers.
   (c) All dispute email correspondence shall CC disputes+slug@in.rateguard.app for status tracking.
 
 4. CONFIDENTIALITY & DATA SECURITY
-RateGuard agrees to maintain strict confidentiality of Shipper's rate contracts, lane volumes, 
+RateGuard agrees to maintain strict confidentiality of Shipper's rate contracts, lane volumes,
 and invoice documentation in accordance with SOC-2 guidelines. Data shall never be sold or shared.
 
 5. EXECUTION & ACKNOWLEDGEMENT
-By checking the agreement box and submitting e-signature, the undersigned officer certifies 
+By checking the agreement box and submitting e-signature, the undersigned officer certifies
 authority to bind Shipper to this 1-page contingency recovery agreement.
 
 STATUS: {sig_status}
@@ -132,7 +132,7 @@ def render_recovery_agreement_pdf(
     for title, text in terms:
         page.insert_text(fitz.Point(36, y_pos), title, fontsize=10, color=brand_blue, fontname="helv")
         y_pos += 14
-        
+
         # Multiline text insertion
         rect = fitz.Rect(36, y_pos, 576, y_pos + 45)
         page.insert_textbox(rect, text, fontsize=8.5, color=text_dark, fontname="helv", align=0)

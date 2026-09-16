@@ -74,7 +74,7 @@ def validate_invoice_extraction(
     """
     Deterministically re-derives invoice arithmetic from extracted line items
     and evaluates field integrity to assign a composite confidence score.
-    
+
     If arithmetic or critical fields fail, flags invoice for calibration queue.
     """
     checks: list[ExtractionCheckDetail] = []
@@ -92,7 +92,7 @@ def validate_invoice_extraction(
     if not invoice.invoice_number or len(invoice.invoice_number.strip()) < 2:
         headers_valid = False
         notes.append("Invoice number missing or malformed")
-    
+
     # Date validation YYYY-MM-DD
     try:
         datetime.strptime(invoice.invoice_date.strip()[:10], "%Y-%m-%d")
@@ -149,7 +149,7 @@ def validate_invoice_extraction(
     # If accessorials or FSC were populated separately from line items, verify component coherence
     components_sum = round(base_linehaul + fsc_val + accessorials_sum, 2)
     comp_diff = round(abs(invoice.invoice_total - components_sum), 2)
-    
+
     # Linehaul component match is considered valid if components sum matches total OR if line items already match total
     linehaul_fsc_accessorial_match = (comp_diff <= max(0.50, rounding_tolerance)) or arithmetic_sum_match
 

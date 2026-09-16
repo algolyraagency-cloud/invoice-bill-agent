@@ -65,7 +65,7 @@ def compile_recovery_report(
         invoice_date = str(flag_dict.get("invoice_date", datetime.now(timezone.utc).strftime("%Y-%m-%d")))
         carrier = str(flag_dict.get("carrier", "Unknown Carrier"))
         check_type = str(flag_dict.get("check_type", "RATE"))
-        
+
         overcharge_cents = int(flag_dict.get("overcharge_cents", 0))
         overcharge_dollars = round(overcharge_cents / 100.0, 2)
         total_recoverable_cents += overcharge_cents
@@ -300,7 +300,7 @@ def render_report_html(report: RecoveryReportSummary) -> str:
     <!-- PAGE 1: EXECUTIVE SUMMARY (CFO READABLE IN < 5 MINUTES)                  -->
     <!-- ========================================================================= -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 sm:p-12">
-      
+
       <!-- Top Brand Header -->
       <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-gray-200 pb-6 mb-8 gap-4">
         <div>
@@ -332,7 +332,7 @@ def render_report_html(report: RecoveryReportSummary) -> str:
             ${report.total_recoverable_dollars:,.2f}
           </div>
           <p class="text-xs sm:text-sm text-emerald-950 max-w-2xl leading-relaxed">
-            Deterministic freight audit across {report.total_invoices_audited:,} carrier invoices detected and validated 
+            Deterministic freight audit across {report.total_invoices_audited:,} carrier invoices detected and validated
             <strong>{report.total_approved_claims} erroneous billing claims</strong> across {report.total_flagged_invoices} invoices.
           </p>
         </div>
@@ -356,7 +356,7 @@ def render_report_html(report: RecoveryReportSummary) -> str:
 
       <!-- Summary Tables: Carrier Distribution & Check Types -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        
+
         <!-- By Carrier -->
         <div class="border border-gray-200 rounded-xl overflow-hidden">
           <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
@@ -497,12 +497,12 @@ def render_report_pdf(report: RecoveryReportSummary) -> bytes:
     # PAGE 1: EXECUTIVE SUMMARY
     # -------------------------------------------------------------------------
     p1 = doc.new_page(width=page_width, height=page_height)
-    
+
     # Header branding
     # Emerald brand pill
     p1.draw_rect(fitz.Rect(margin, 40, margin + 28, 64), color=(0.02, 0.58, 0.41), fill=(0.02, 0.58, 0.41))
     p1.insert_text(fitz.Point(margin + 6, 57), "RG", fontsize=12, fontname="helv", color=(1, 1, 1))
-    
+
     p1.insert_text(fitz.Point(margin + 36, 52), "RateGuard AI — FREIGHT AUDIT & RECOVERY", fontsize=9, fontname="helv", color=(0.05, 0.45, 0.32))
     p1.insert_text(fitz.Point(margin + 36, 64), report.report_title, fontsize=14, fontname="helv", color=(0.1, 0.1, 0.1))
 
@@ -517,10 +517,10 @@ def render_report_pdf(report: RecoveryReportSummary) -> bytes:
     # HERO BOX: Total Recoverable Dollars
     hero_rect = fitz.Rect(margin, 90, page_width - margin, 210)
     p1.draw_rect(hero_rect, color=(0.8, 0.92, 0.86), fill=(0.95, 0.98, 0.96), width=1)
-    
+
     p1.insert_text(fitz.Point(margin + 16, 112), "TOTAL CONFIRMED OVERCHARGE RECOVERY", fontsize=9, fontname="helv", color=(0.05, 0.45, 0.32))
     p1.insert_text(fitz.Point(margin + 16, 150), f"${report.total_recoverable_dollars:,.2f}", fontsize=32, fontname="helv", color=(0.04, 0.42, 0.28))
-    
+
     hero_desc = (
         f"Audited {report.total_invoices_audited:,} invoices across carrier billing feeds. "
         f"Detected and verified {report.total_approved_claims} actionable overcharge claims."
@@ -530,7 +530,7 @@ def render_report_pdf(report: RecoveryReportSummary) -> bytes:
     # Economics 3-tile grid inside hero box
     tile_w = (page_width - margin * 2 - 32) / 3.0
     tile_y = 176
-    
+
     # Tile 1: Gross
     t1_rect = fitz.Rect(margin + 8, tile_y, margin + 8 + tile_w, tile_y + 26)
     p1.draw_rect(t1_rect, color=(0.85, 0.85, 0.85), fill=(1, 1, 1), width=0.5)
@@ -620,7 +620,7 @@ def render_report_pdf(report: RecoveryReportSummary) -> bytes:
             # Add continuation page if claim list is very long
             p2 = doc.new_page(width=page_width, height=page_height)
             row_y = 60
-        
+
         p2.draw_line(fitz.Point(margin, row_y + 14), fitz.Point(page_width - margin, row_y + 14), color=(0.92, 0.92, 0.92), width=0.5)
         p2.insert_text(fitz.Point(margin + 4, row_y + 10), str(idx), fontsize=7, color=(0.5, 0.5, 0.5))
         p2.insert_text(fitz.Point(margin + 20, row_y + 10), c.pro_number[:13], fontsize=7, color=(0.1, 0.1, 0.1))
@@ -656,11 +656,11 @@ def render_report_pdf(report: RecoveryReportSummary) -> bytes:
         # Details
         page_info = f" (p. {c.page_number})" if c.page_number else ""
         p3.insert_text(fitz.Point(margin + 8, app_y + 28), f"Contract Clause: {c.contract_clause}{page_info}", fontsize=7, color=(0.25, 0.25, 0.25))
-        
+
         # Summary text (truncated safely for single line or wrapped)
         summary = c.evidence_summary[:115] + ("..." if len(c.evidence_summary) > 115 else "")
         p3.insert_text(fitz.Point(margin + 8, app_y + 40), f"Audit Finding: {summary}", fontsize=7, color=(0.35, 0.35, 0.35))
-        
+
         app_y += 66
 
     pdf_bytes = doc.tobytes()

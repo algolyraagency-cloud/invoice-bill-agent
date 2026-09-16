@@ -23,7 +23,7 @@ from packages.schemas.models import (
 )
 
 try:
-    from cost_guard import global_cost_guard
+    pass
     from invoice_parser import parse_invoice, persist_parsed_invoice
 except ImportError:
     from apps.worker.invoice_parser import parse_invoice, persist_parsed_invoice

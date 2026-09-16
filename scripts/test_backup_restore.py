@@ -21,7 +21,7 @@ def run_backup_restore_test():
     print("\n[STEP 1] Generating Point-in-Time Database Backup Snapshot...")
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     backup_file = BASE_DIR / "infra" / f"backup_snapshot_{timestamp}.sql"
-    
+
     mig_file = BASE_DIR / "infra" / "migrations" / "001_initial_schema.sql"
     if mig_file.exists():
         backup_content = mig_file.read_text(encoding="utf-8")

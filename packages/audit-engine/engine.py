@@ -441,7 +441,7 @@ def check_accessorials(
     """
     flags: list[Flag] = []
     matrix = select_effective_matrix(invoice.invoice_date, rate_matrix_versions) if rate_matrix_versions else None
-    
+
     # Combined contract approved accessorial rates (lowercased keys)
     contract_approved: dict[str, float] = {}
     if approved_accessorials:
@@ -510,7 +510,7 @@ def check_accessorials(
                 if key in desc_clean:
                     matched_key = key
                     break
-            
+
             if matched_key:
                 approved_rate = contract_approved[matched_key]
                 if item.amount > approved_rate + 0.50:
@@ -550,7 +550,7 @@ def check_reweigh_dimension(
     Flags unauthorized reweigh fees or uncertified weight increases (> 50 lbs over BOL weight).
     """
     flags: list[Flag] = []
-    
+
     # 1. Check for explicit reweigh / inspection fee line items
     for item in invoice.line_items:
         desc_clean = item.description.strip().lower()
@@ -622,7 +622,7 @@ def check_guaranteed_sla(
     Flags late delivery on guaranteed shipments (100% money-back guarantee under Item 780).
     """
     flags: list[Flag] = []
-    
+
     # Detect guaranteed service line item or argument
     guarantee_line_amount = 0.0
     for item in invoice.line_items:
@@ -638,7 +638,7 @@ def check_guaranteed_sla(
     if promised_delivery_date and actual_delivery_date:
         promised_dt = parse_date(promised_delivery_date)
         actual_dt = parse_date(actual_delivery_date)
-        
+
         if actual_dt > promised_dt:
             # SLA Missed! Full money-back guarantee refund applies
             # Overcharge is guaranteed fee plus total freight or guaranteed fee amount
@@ -675,7 +675,7 @@ def check_freight_tax(
     Flags sales/transportation taxes billed on tax-exempt interstate freight shipments.
     """
     flags: list[Flag] = []
-    
+
     # Determine interstate status: different zip prefixes or explicit param
     orig_prefix = invoice.origin_zip[:3] if invoice.origin_zip else ""
     dest_prefix = invoice.dest_zip[:3] if invoice.dest_zip else ""

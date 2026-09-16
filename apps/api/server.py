@@ -98,7 +98,7 @@ def seed_initial_organizations():
         forwarding_configured=True,
     )
     portal_service.seed_user("usr_acme_cfo", "cust_acme_01", "controller@acmeimports.com", role="owner")
-    
+
     # 2. Pacific Supply Corp (Distributor)
     portal_service.seed_customer(
         customer_id="cust_pacific_02",
@@ -201,7 +201,7 @@ def readiness_check():
 @app.get("/api/v1/admin/health-summary")
 def get_admin_health_summary(x_rateguard_role: str | None = Header(None)):
     verify_internal_reviewer_role(x_rateguard_role, "internal_reviewer")
-    
+
     total_invoices = len(portal_service._invoices)
     parse_failed_count = sum(1 for i in portal_service._invoices.values() if i.get("status") == "parse_failed")
     parse_failure_rate = round((parse_failed_count / total_invoices * 100.0), 2) if total_invoices > 0 else 0.0
@@ -283,7 +283,7 @@ def get_portal_session(customer_id: str = Query("cust_acme_01")):
     customer = portal_service.get_customer(customer_id)
     if not customer:
         raise HTTPException(status_code=404, detail="Customer organization not found")
-    
+
     session = portal_service.get_dashboard(customer_id)
     return session
 
@@ -341,7 +341,7 @@ async def handle_invoice_upload(
 
     # DYNAMIC PARSING: Extract real text & JSON schema from uploaded document
     carrier_hint = "ABF Freight" if "abf" in fname_lower else ("XPO Logistics" if "xpo" in fname_lower else ("Roadrunner" if "rrts" in fname_lower or "roadrunner" in fname_lower else None))
-    
+
     try:
         parsed_inv, val_result, _meta = parse_invoice(
             document_input=file_bytes,
@@ -466,7 +466,7 @@ def get_review_queue(
     role: str | None = Query(None)
 ):
     verify_internal_reviewer_role(x_rateguard_role, role)
-    
+
     pending_flags = []
     for f in portal_service._flags.values():
         inv = portal_service._invoices.get(f["invoice_id"], {})

@@ -440,10 +440,10 @@ def render_dispute_pdf(letter: DisputeLetterItem) -> bytes:
     # Audit Findings Narrative
     fy = 325
     p.insert_text(fitz.Point(margin, fy), "AUDIT FINDINGS & CONTRACTUAL JUSTIFICATION:", fontsize=9, fontname="helv", color=(0.1, 0.1, 0.1))
-    
+
     rect_narrative = fitz.Rect(margin, fy + 8, page_width - margin, fy + 88)
     p.draw_rect(rect_narrative, color=(0.9, 0.9, 0.9), fill=(0.98, 0.98, 0.98), width=0.5)
-    
+
     # Render text lines cleanly
     p.insert_textbox(rect_narrative, f"\n{letter.dispute_reason_text}", fontsize=8, color=(0.25, 0.25, 0.25))
 

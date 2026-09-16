@@ -106,7 +106,7 @@ def test_compute_carrier_hostility_analytics():
 def test_portal_service_dispute_automation():
     service = CustomerPortalService()
     service.seed_customer("cust_test", "Test Shipper", "test-shipper")
-    
+
     service.seed_invoice("inv_1", "cust_test", "Estes Express", "INV-101", "PRO-101", "2026-08-01", 500.0)
     service.seed_flag("flag_1", "inv_1", "RATE", 5000, {"note": "Overcharge"}, review_status="approved")
     service.seed_dispute("disp_1", "flag_1", status="sent", customer_id="cust_test")

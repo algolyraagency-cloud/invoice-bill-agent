@@ -181,7 +181,7 @@ def test_render_report_pdf(sample_approved_flags):
     import pymupdf as fitz
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
     assert doc.page_count >= 3
-    
+
     # Page 1 text inspection
     p1_text = doc[0].get_text()
     assert "RateGuard AI" in p1_text

@@ -26,12 +26,12 @@ def get_active_eia_price(
 ) -> dict[str, Any] | None:
     """
     Resolves the official EIA Weekly Diesel Benchmark price in effect on the shipment date.
-    
+
     DOE/EIA publishes the National Average On-Highway Diesel price on Mondays at 4:00 PM Eastern.
     In standard LTL carrier tariffs (ABF Item 220-A, XPO, Roadrunner), the Monday benchmark becomes
     effective for shipments moving from the following Tuesday through the subsequent Monday
     (or for the Monday week cycle).
-    
+
     If shipment date falls between Monday publication and next Monday, matches that benchmark.
     Returns the most recent active EIA benchmark on or before the shipment date.
     """
@@ -67,7 +67,7 @@ def get_fsc(
 ) -> tuple[float | None, dict[str, Any] | None]:
     """
     Returns exactly one verified FSC percentage and evidence metadata for the carrier and shipment date.
-    
+
     Evaluation order:
     1. Filter carrier schedules.
     2. Resolve EIA diesel benchmark price for the shipment date.
@@ -75,7 +75,7 @@ def get_fsc(
        - min_diesel_price <= eia_price <= max_diesel_price
        - effective date range matching (effective_week_start / effective_week_end) if present.
     4. Fallback to monthly index matching (YYYY-MM) if carrier uses monthly table pegging.
-    
+
     Returns:
         (fsc_pct, evidence_json) or (None, None) if out of scope.
     """

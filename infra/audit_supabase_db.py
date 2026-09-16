@@ -35,9 +35,9 @@ EXPECTED_TABLES = [
 ]
 
 cur.execute("""
-    SELECT table_name 
-    FROM information_schema.tables 
-    WHERE table_schema = 'public' 
+    SELECT table_name
+    FROM information_schema.tables
+    WHERE table_schema = 'public'
     ORDER BY table_name;
 """)
 existing_tables = [r[0] for r in cur.fetchall()]
@@ -67,8 +67,8 @@ EXPECTED_INDEXES = [
 ]
 
 cur.execute("""
-    SELECT indexname, indexdef 
-    FROM pg_indexes 
+    SELECT indexname, indexdef
+    FROM pg_indexes
     WHERE schemaname = 'public';
 """)
 existing_indexes = {r[0]: r[1] for r in cur.fetchall()}
@@ -90,9 +90,9 @@ RLS_TABLES = [
 ]
 
 cur.execute("""
-    SELECT relname, relrowsecurity 
-    FROM pg_class 
-    JOIN pg_namespace ON pg_namespace.oid = pg_class.relnamespace 
+    SELECT relname, relrowsecurity
+    FROM pg_class
+    JOIN pg_namespace ON pg_namespace.oid = pg_class.relnamespace
     WHERE pg_namespace.nspname = 'public' AND relkind = 'r';
 """)
 rls_map = {r[0]: r[1] for r in cur.fetchall()}
@@ -105,8 +105,8 @@ for t in RLS_TABLES:
         print(f"  [WARNING] RLS NOT Enabled on '{t}'!")
 
 cur.execute("""
-    SELECT tablename, policyname, cmd 
-    FROM pg_policies 
+    SELECT tablename, policyname, cmd
+    FROM pg_policies
     WHERE schemaname = 'public';
 """)
 policies = cur.fetchall()
