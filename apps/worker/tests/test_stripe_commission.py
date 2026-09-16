@@ -5,9 +5,11 @@ and denied dispute resend workflows.
 """
 
 import os
+
 import pytest
+
 from apps.worker.stripe_commission import StripeCommissionService
-from packages.schemas.models import UnverifiedMemoBillingError, CommissionInvoiceRecord
+from packages.schemas.models import UnverifiedMemoBillingError
 
 
 def test_generate_monthly_commission_invoice_success(tmp_path):

@@ -5,8 +5,8 @@ research resolution workflow, and throughput statistics.
 """
 import pytest
 
+from apps.worker.review_queue import STANDARD_REASON_CODES, ReviewQueueService
 from packages.schemas.models import ReviewActionRequest
-from apps.worker.review_queue import ReviewQueueService, STANDARD_REASON_CODES
 
 
 @pytest.fixture

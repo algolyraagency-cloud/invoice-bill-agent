@@ -8,8 +8,9 @@ Tests:
 """
 
 import base64
-import pytest
+
 from apps.worker.ingestion import parse_postmark_inbound_json
+
 
 def test_email_mode_no_attachments():
     payload = {

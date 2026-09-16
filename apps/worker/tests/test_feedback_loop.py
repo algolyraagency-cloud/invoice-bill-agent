@@ -5,13 +5,13 @@ automated parser/prompt ticket generation, and monthly retrospective reports.
 """
 import pytest
 
-from packages.schemas.models import MonthlyRetroReport, PrecisionReportItem
 from apps.worker.feedback_loop import (
     FeedbackLoopService,
     compute_precision_score,
     evaluate_trajectory_status,
     format_retro_markdown,
 )
+from packages.schemas.models import MonthlyRetroReport, PrecisionReportItem
 
 
 def test_precision_calculation_and_division_by_zero():

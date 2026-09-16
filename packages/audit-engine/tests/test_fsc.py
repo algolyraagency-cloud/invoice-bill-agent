@@ -5,6 +5,7 @@ and scale monotonicity validation.
 """
 import sys
 from pathlib import Path
+
 import pytest
 
 root_dir = Path(__file__).resolve().parents[3]
@@ -18,9 +19,9 @@ from fsc import get_active_eia_price, get_fsc
 from fsc_ingestion import (
     STANDARD_CARRIER_FSC_SCALES,
     STANDARD_EIA_INDICES,
-    ingest_carrier_fsc_scale,
     validate_scale_rows,
 )
+
 from packages.schemas.models import FSCEntry
 
 

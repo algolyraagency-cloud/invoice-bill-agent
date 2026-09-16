@@ -8,13 +8,12 @@ Generates carrier dispute letters & batch packets ("We Draft, Shipper Sends"):
 - Dispute status state machine: drafted -> sent -> responded -> credit_issued | denied
 """
 
-import os
 import sys
 import urllib.parse
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 # Ensure packages path is accessible
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -24,12 +23,11 @@ if str(BASE_DIR) not in sys.path:
 from packages.schemas.models import (
     DisputeBatchPacket,
     DisputeLetterItem,
-    DisputeStatus,
     ReviewQueueItem,
 )
 
 # Seeded default carrier contacts (mirroring DB carrier_contacts table)
-DEFAULT_CARRIER_CONTACTS: Dict[str, Dict[str, str]] = {
+DEFAULT_CARRIER_CONTACTS: dict[str, dict[str, str]] = {
     "ABF Freight": {
         "dispute_email": "freightbilling@abf.com",
         "billing_phone": "800-610-5544",
@@ -48,7 +46,7 @@ DEFAULT_CARRIER_CONTACTS: Dict[str, Dict[str, str]] = {
 }
 
 # Legal status transition table (PRD §5.6, §5.7)
-VALID_STATUS_TRANSITIONS: Dict[str, List[str]] = {
+VALID_STATUS_TRANSITIONS: dict[str, list[str]] = {
     "drafted": ["sent"],
     "sent": ["responded", "credit_issued", "denied"],
     "responded": ["credit_issued", "denied", "sent"],  # 'sent' allows re-escalation with stronger evidence
@@ -57,7 +55,7 @@ VALID_STATUS_TRANSITIONS: Dict[str, List[str]] = {
 }
 
 
-def get_carrier_contact(carrier: str, override_contact: Optional[Dict[str, str]] = None) -> Dict[str, str]:
+def get_carrier_contact(carrier: str, override_contact: dict[str, str] | None = None) -> dict[str, str]:
     """Resolves carrier dispute contact with fallback."""
     if override_contact and override_contact.get("dispute_email"):
         return override_contact
@@ -94,10 +92,10 @@ def transition_dispute_status(current_status: str, next_status: str) -> str:
 
 
 def generate_dispute_letter(
-    flag: Union[ReviewQueueItem, Dict[str, Any]],
+    flag: ReviewQueueItem | dict[str, Any],
     customer_name: str,
     customer_slug: str,
-    carrier_contact: Optional[Dict[str, str]] = None,
+    carrier_contact: dict[str, str] | None = None,
 ) -> DisputeLetterItem:
     """
     Generates a single, professional dispute letter for an approved discrepancy.
@@ -286,17 +284,17 @@ Freight Accounts Payable
 
 
 def generate_carrier_dispute_batch(
-    approved_flags: List[Union[ReviewQueueItem, Dict[str, Any]]],
+    approved_flags: list[ReviewQueueItem | dict[str, Any]],
     carrier: str,
     customer_name: str,
     customer_slug: str,
-    carrier_contact: Optional[Dict[str, str]] = None,
+    carrier_contact: dict[str, str] | None = None,
 ) -> DisputeBatchPacket:
     """
     Consolidates multiple claims for a single carrier into an organized dispute package.
     Generates combined mailto: link for one-click transmission of all claims in the batch.
     """
-    disputes: List[DisputeLetterItem] = []
+    disputes: list[DisputeLetterItem] = []
     total_disputed_dollars = 0.0
 
     for raw_flag in approved_flags:
@@ -465,7 +463,7 @@ def render_dispute_pdf(letter: DisputeLetterItem) -> bytes:
     # Shipper Signature block
     sy = dy + 95
     p.insert_text(fitz.Point(margin, sy), "SUBMITTED BY:", fontsize=8, fontname="helv", color=(0.4, 0.4, 0.4))
-    p.insert_text(fitz.Point(margin, sy + 14), f"Accounts Payable / Freight Recovery Department", fontsize=8, color=(0.2, 0.2, 0.2))
+    p.insert_text(fitz.Point(margin, sy + 14), "Accounts Payable / Freight Recovery Department", fontsize=8, color=(0.2, 0.2, 0.2))
     p.insert_text(fitz.Point(margin, sy + 26), letter.customer_name, fontsize=8, fontname="helv", color=(0.1, 0.1, 0.1))
     p.insert_text(fitz.Point(margin, sy + 38), f"Email: disputes+{letter.customer_slug}@in.rateguard.app", fontsize=8, color=(0.3, 0.3, 0.3))
 

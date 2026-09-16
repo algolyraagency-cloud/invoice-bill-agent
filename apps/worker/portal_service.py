@@ -7,60 +7,47 @@ Covers:
   and automated dispute-to-credit memo matching with instant verification.
 """
 
-import os
 import sys
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 # Ensure root directory is on sys.path
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
+from apps.worker.agreement_generator import (
+    render_recovery_agreement_pdf,
+    verify_recovery_agreement_gate,
+)
+from apps.worker.dispute_generator import (
+    DEFAULT_CARRIER_CONTACTS,
+    generate_dispute_letter,
+    transition_dispute_status,
+)
+from apps.worker.dispute_tracker_automation import (
+    compute_carrier_hostility_analytics,
+    scan_overdue_disputes,
+)
+from apps.worker.stripe_commission import StripeCommissionService
 from packages.schemas.models import (
-    ContractIntakeRequest,
+    CarrierAnalyticsReport,
+    CommissionInvoiceRecord,
     ContractListItem,
-    CreditMemoIntakeRequest,
     CreditMemoListItem,
     CustomerDashboardKPIs,
     CustomerDashboardResponse,
     CustomerPortalSession,
     DisputeLetterItem,
+    DisputeReminderNudge,
     DisputeStatus,
     OnboardingChecklist,
     OnboardingChecklistStep,
-    RateMatrixJSON,
     RecoveryAgreementRecord,
-    RecoveryAgreementRequiredError,
-    CommissionInvoiceRecord,
-    CommissionInvoiceItem,
     UnverifiedMemoBillingError,
-    UnrecoverableDisputeRecord,
 )
-from apps.worker.dispute_generator import (
-    DEFAULT_CARRIER_CONTACTS,
-    generate_carrier_dispute_batch,
-    generate_dispute_letter,
-    transition_dispute_status,
-)
-from apps.worker.agreement_generator import (
-    render_recovery_agreement_pdf,
-    render_recovery_agreement_text,
-    verify_recovery_agreement_gate,
-)
-from apps.worker.credit_memo_service import CreditMemoService
-from apps.worker.stripe_commission import StripeCommissionService
-from apps.worker.dispute_tracker_automation import (
-    compute_carrier_hostility_analytics,
-    scan_overdue_disputes,
-)
-from packages.schemas.models import (
-    CarrierAnalyticsReport,
-    DisputeReminderNudge,
-)
-
 
 
 class CustomerPortalService:
@@ -72,15 +59,15 @@ class CustomerPortalService:
 
     def __init__(self, conn=None):
         self.conn = conn
-        self._customers: Dict[str, Dict[str, Any]] = {}
-        self._users: Dict[str, Dict[str, Any]] = {}
-        self._invoices: Dict[str, Dict[str, Any]] = {}
-        self._contracts: Dict[str, Dict[str, Any]] = {}
-        self._flags: Dict[str, Dict[str, Any]] = {}
-        self._disputes: Dict[str, Dict[str, Any]] = {}
-        self._credit_memos: Dict[str, Dict[str, Any]] = {}
-        self._commission_invoices: Dict[str, Dict[str, Any]] = {}
-        self._forwarding_rules: Dict[str, bool] = {}
+        self._customers: dict[str, dict[str, Any]] = {}
+        self._users: dict[str, dict[str, Any]] = {}
+        self._invoices: dict[str, dict[str, Any]] = {}
+        self._contracts: dict[str, dict[str, Any]] = {}
+        self._flags: dict[str, dict[str, Any]] = {}
+        self._disputes: dict[str, dict[str, Any]] = {}
+        self._credit_memos: dict[str, dict[str, Any]] = {}
+        self._commission_invoices: dict[str, dict[str, Any]] = {}
+        self._forwarding_rules: dict[str, bool] = {}
 
 
     # --------------------------------------------------------------------------
@@ -94,7 +81,7 @@ class CustomerPortalService:
         slug: str,
         industry: str = "Manufacturing",
         freight_spend_est: float = 5000000.0,
-        recovery_agreement_signed_at: Optional[str] = None,
+        recovery_agreement_signed_at: str | None = None,
         forwarding_configured: bool = False,
     ) -> None:
         self._customers[customer_id] = {
@@ -109,7 +96,7 @@ class CustomerPortalService:
         }
         self._forwarding_rules[customer_id] = forwarding_configured
 
-    def get_customer(self, customer_id: str) -> Optional[Dict[str, Any]]:
+    def get_customer(self, customer_id: str) -> dict[str, Any] | None:
         return self._customers.get(customer_id)
 
     def seed_user(
@@ -137,7 +124,7 @@ class CustomerPortalService:
         invoice_total: float,
         status: str = "audited",
         source: str = "upload",
-        file_path: Optional[str] = None,
+        file_path: str | None = None,
     ) -> None:
         self._invoices[invoice_id] = {
             "id": invoice_id,
@@ -159,7 +146,7 @@ class CustomerPortalService:
         invoice_id: str,
         check_type: str,
         overcharge_cents: int,
-        evidence_json: Dict[str, Any],
+        evidence_json: dict[str, Any],
         review_status: str = "approved",
     ) -> None:
         self._flags[flag_id] = {
@@ -177,8 +164,8 @@ class CustomerPortalService:
         dispute_id: str,
         flag_id: str,
         status: DisputeStatus = "drafted",
-        letter_path: Optional[str] = None,
-        customer_id: Optional[str] = None,
+        letter_path: str | None = None,
+        customer_id: str | None = None,
     ) -> None:
         self._disputes[dispute_id] = {
             "id": dispute_id,
@@ -195,7 +182,7 @@ class CustomerPortalService:
     # Phase 5.5.1: Customer Auth & Dashboard Skeleton
     # --------------------------------------------------------------------------
 
-    def authenticate_session(self, email: str) -> Optional[CustomerPortalSession]:
+    def authenticate_session(self, email: str) -> CustomerPortalSession | None:
         """
         Retrieves active customer user session by email for passwordless magic link flow.
         """
@@ -270,7 +257,7 @@ class CustomerPortalService:
             estimated_shipper_net_dollars=estimated_shipper_net_dollars,
             contingency_fee_dollars=contingency_fee_dollars,
             total_invoices_audited=len(cust_invoices),
-            total_flagged_invoices=len(set(f["invoice_id"] for f in approved_flags)),
+            total_flagged_invoices=len({f["invoice_id"] for f in approved_flags}),
             open_disputes_count=len(open_disputes),
             verified_credit_memos_count=len(verified_memos),
             verified_credit_memos_dollars=verified_credits_dollars,
@@ -349,7 +336,7 @@ class CustomerPortalService:
         )
 
         # Carrier Breakdown Summary
-        carrier_summary: Dict[str, Dict[str, Any]] = {}
+        carrier_summary: dict[str, dict[str, Any]] = {}
         for inv in cust_invoices:
             c_name = inv["carrier"]
             if c_name not in carrier_summary:
@@ -374,7 +361,7 @@ class CustomerPortalService:
                     )
 
         # Recent Activity Log
-        recent_activity: List[Dict[str, Any]] = []
+        recent_activity: list[dict[str, Any]] = []
         for inv in sorted(cust_invoices, key=lambda x: x["created_at"], reverse=True)[:5]:
             recent_activity.append({
                 "type": "invoice_ingested",
@@ -411,12 +398,12 @@ class CustomerPortalService:
     def list_invoices(
         self,
         customer_id: str,
-        carrier: Optional[str] = None,
-        status: Optional[str] = None,
-        search: Optional[str] = None,
+        carrier: str | None = None,
+        status: str | None = None,
+        search: str | None = None,
         page: int = 1,
         limit: int = 50,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Lists customer invoices with flag counts, overcharge totals, and signed URL references.
         """
@@ -480,8 +467,8 @@ class CustomerPortalService:
         rung: str,
         has_signed_agreement: bool = True,
         filename: str = "contract.pdf",
-        content_bytes: Optional[bytes] = None,
-        notes: Optional[str] = None,
+        content_bytes: bytes | None = None,
+        notes: str | None = None,
     ) -> ContractListItem:
         """
         Evaluates the PRD Quality Ladder Rung intake:
@@ -539,7 +526,7 @@ class CustomerPortalService:
             created_at=created_at,
         )
 
-    def list_contracts(self, customer_id: str) -> List[ContractListItem]:
+    def list_contracts(self, customer_id: str) -> list[ContractListItem]:
         """
         Lists all contracts for a customer organization.
         """
@@ -572,7 +559,7 @@ class CustomerPortalService:
         signer_name: str,
         signer_title: str,
         concierge_handling: bool = False,
-        output_dir: Optional[str] = None,
+        output_dir: str | None = None,
     ) -> RecoveryAgreementRecord:
         """
         Executes e-signature for 1-page Recovery Agreement (Phase 5.4):
@@ -587,7 +574,7 @@ class CustomerPortalService:
         now_iso = datetime.now(timezone.utc).isoformat()
         customer["recovery_agreement_signed_at"] = now_iso
 
-        pdf_bytes, pdf_path = render_recovery_agreement_pdf(
+        _pdf_bytes, pdf_path = render_recovery_agreement_pdf(
             customer_name=customer["name"],
             signer_name=signer_name,
             signer_title=signer_title,
@@ -615,10 +602,10 @@ class CustomerPortalService:
     def list_disputes(
         self,
         customer_id: str,
-        carrier: Optional[str] = None,
-        status: Optional[str] = None,
+        carrier: str | None = None,
+        status: str | None = None,
         enforce_gate: bool = False,
-    ) -> List[DisputeLetterItem]:
+    ) -> list[DisputeLetterItem]:
         """
         Compiles dispute items ready for shipper export:
         - Carrier contacts
@@ -639,7 +626,7 @@ class CustomerPortalService:
 
         # Collect approved flags for this customer
         cust_invoices = {i["id"]: i for i in self._invoices.values() if i["customer_id"] == customer_id}
-        dispute_items: List[DisputeLetterItem] = []
+        dispute_items: list[DisputeLetterItem] = []
 
         for flag in self._flags.values():
             if flag.get("review_status") != "approved":
@@ -746,7 +733,7 @@ class CustomerPortalService:
         amount_cents: int,
         kind: str = "credit_memo",
         detected_via: str = "manual",
-        notes: Optional[str] = None,
+        notes: str | None = None,
     ) -> CreditMemoListItem:
         """
         Registers carrier credit memo and executes PRD §5.7 automatic matching:
@@ -760,8 +747,8 @@ class CustomerPortalService:
         created_at = datetime.now(timezone.utc).isoformat()
 
         # Search for matching dispute
-        matched_dispute_id: Optional[str] = None
-        verified_at: Optional[str] = None
+        matched_dispute_id: str | None = None
+        verified_at: str | None = None
         verification_status = "pending"
 
         cust_invoices = {i["id"]: i for i in self._invoices.values() if i["customer_id"] == customer_id}
@@ -835,7 +822,7 @@ class CustomerPortalService:
             created_at=created_at,
         )
 
-    def list_credit_memos(self, customer_id: str) -> List[CreditMemoListItem]:
+    def list_credit_memos(self, customer_id: str) -> list[CreditMemoListItem]:
         """
         Lists customer's credit memos with verification badges and matched disputes.
         """
@@ -913,7 +900,7 @@ class CustomerPortalService:
         self._commission_invoices[record.id] = record.model_dump()
         return record
 
-    def list_commission_invoices(self, customer_id: str) -> List[CommissionInvoiceRecord]:
+    def list_commission_invoices(self, customer_id: str) -> list[CommissionInvoiceRecord]:
         """Lists all generated commission invoices for customer."""
         records = [
             CommissionInvoiceRecord(**r)
@@ -928,7 +915,7 @@ class CustomerPortalService:
         customer_id: str,
         dispute_id: str,
         stronger_evidence_notes: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Executes automated resend for denied dispute or marks unrecoverable if previously resent."""
         disp = self._disputes.get(dispute_id)
         if not disp or disp.get("customer_id") != customer_id:
@@ -944,7 +931,7 @@ class CustomerPortalService:
         self,
         customer_id: str,
         days_threshold: int = 14,
-    ) -> List[DisputeReminderNudge]:
+    ) -> list[DisputeReminderNudge]:
         """
         Lists overdue dispute reminder nudges (>14 days in 'sent' state) for the customer portal.
         """

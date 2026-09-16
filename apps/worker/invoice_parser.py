@@ -6,12 +6,11 @@ using Instructor-wrapped LLMs, carrier-specific format hints, and Phase 2.0 self
 Core Law: LLMs understand, code calculates. Never the reverse.
 """
 import hashlib
-import json
 import os
 import re
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any
 
 # Add root and audit-engine to sys.path
 root_dir = Path(__file__).resolve().parents[2]
@@ -22,18 +21,23 @@ if str(audit_engine_dir) not in sys.path:
     sys.path.insert(0, str(audit_engine_dir))
 
 import instructor
-from packages.schemas.models import Accessorial, InvoiceJSON, InvoiceValidationResult, LineItem
 from validation import validate_invoice_extraction
+
 from apps.worker.extractor import extract_document_bytes, extract_document_text
 from apps.worker.regex_fallback_parser import RegexFallbackParser
-
+from packages.schemas.models import (
+    Accessorial,
+    InvoiceJSON,
+    InvoiceValidationResult,
+    LineItem,
+)
 
 PROMPT_VERSION = "v1.0"
 
 # In-memory LRU / parse cache to strictly enforce $0 cost on re-processing (PRD §9)
-_INVOICE_PARSE_CACHE: Dict[str, Dict[str, Any]] = {}
+_INVOICE_PARSE_CACHE: dict[str, dict[str, Any]] = {}
 
-CARRIER_FORMAT_HINTS: Dict[str, str] = {
+CARRIER_FORMAT_HINTS: dict[str, str] = {
     "abf freight": (
         "Carrier: ABF Freight. PRO# is usually 9 digits in format XXX-XXXXXX (e.g. 042-123456). "
         "Base freight is usually described as 'Linehaul' or 'Freight'. Fuel surcharge is labeled 'Fuel Surcharge' or 'FSC'."
@@ -49,7 +53,7 @@ CARRIER_FORMAT_HINTS: Dict[str, str] = {
 }
 
 
-def get_instructor_client(provider: Optional[str] = None):
+def get_instructor_client(provider: str | None = None):
     """
     Initializes instructor client with active LLM provider (OpenAI or Anthropic).
     Returns None if no API key is configured (allowing mock fallback).
@@ -70,7 +74,7 @@ def get_instructor_client(provider: Optional[str] = None):
     return None
 
 
-def _simulate_llm_invoice_extraction(document_text: str, carrier_hint: Optional[str] = None) -> InvoiceJSON:
+def _simulate_llm_invoice_extraction(document_text: str, carrier_hint: str | None = None) -> InvoiceJSON:
     """
     High-fidelity deterministic simulation parser for offline testing, CI regression,
     and budget safety when no API key is available.
@@ -144,12 +148,12 @@ def _simulate_llm_invoice_extraction(document_text: str, carrier_hint: Optional[
 
 
 def parse_invoice_document(
-    document_input: Union[str, Path, bytes],
-    carrier_hint: Optional[str] = None,
+    document_input: str | Path | bytes,
+    carrier_hint: str | None = None,
     client: Any = None,
     model: str = "gpt-4o-mini",
     use_cache: bool = True
-) -> Tuple[InvoiceJSON, InvoiceValidationResult, Dict[str, Any]]:
+) -> tuple[InvoiceJSON, InvoiceValidationResult, dict[str, Any]]:
     """
     Extracts structured InvoiceJSON from invoice text or PDF bytes.
     1. Extracts text with layout awareness.
@@ -170,7 +174,7 @@ def parse_invoice_document(
         content_hash = hashlib.sha256(extracted_text.encode("utf-8")).hexdigest()
 
     # 2. Check SHA-256 cache
-    cache_key = hashlib.sha256(f"{content_hash}_{PROMPT_VERSION}_{carrier_hint}".encode("utf-8")).hexdigest()
+    cache_key = hashlib.sha256(f"{content_hash}_{PROMPT_VERSION}_{carrier_hint}".encode()).hexdigest()
     if use_cache and cache_key in _INVOICE_PARSE_CACHE:
         cached_entry = _INVOICE_PARSE_CACHE[cache_key]
         invoice = InvoiceJSON(**cached_entry["invoice"])
@@ -277,7 +281,7 @@ def persist_parsed_invoice(
     invoice_id: str,
     invoice_json: InvoiceJSON,
     validation_result: InvoiceValidationResult
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Updates Supabase 'invoices' record with parsed_json, parse_confidence, and status.
     Guarantees that non-reconciling invoices enter 'parse_failed' status for the calibration queue.

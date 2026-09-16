@@ -16,7 +16,7 @@ Supported Carriers:
 """
 
 import re
-from typing import Any, Dict, List, Optional
+
 from packages.schemas.models import RegexFallbackExtractionResult
 
 # Top-10 Carrier Regex Compiled Rule Patterns
@@ -95,7 +95,7 @@ class RegexFallbackParser:
     def parse_text(cls, raw_text: str, carrier_hint: str = "") -> RegexFallbackExtractionResult:
         """Extracts mandatory invoice fields from raw document text using carrier-tuned regex rules."""
         text_upper = raw_text.upper()
-        matched_rules: List[str] = []
+        matched_rules: list[str] = []
 
         # Identify carrier if not explicitly provided
         carrier = carrier_hint or "Unknown Carrier"
@@ -124,7 +124,7 @@ class RegexFallbackParser:
         patterns = CARRIER_REGEX_PATTERNS.get(carrier, CARRIER_REGEX_PATTERNS["ABF Freight"])
 
         # Extract PRO Number
-        pro_number: Optional[str] = None
+        pro_number: str | None = None
         for p in patterns.get("pro", []):
             m = re.search(p, raw_text, re.IGNORECASE)
             if m:
@@ -133,7 +133,7 @@ class RegexFallbackParser:
                 break
 
         # Extract Invoice Number
-        invoice_number: Optional[str] = None
+        invoice_number: str | None = None
         for p in patterns.get("invoice", []):
             m = re.search(p, raw_text, re.IGNORECASE)
             if m:
@@ -151,7 +151,7 @@ class RegexFallbackParser:
             matched_rules.append("date:standard")
 
         # Extract Total Weight
-        weight_lbs: Optional[float] = None
+        weight_lbs: float | None = None
         for p in patterns.get("weight", []):
             m = re.search(p, raw_text, re.IGNORECASE)
             if m:
@@ -163,42 +163,42 @@ class RegexFallbackParser:
                     pass
 
         # Extract FSC Amount
-        fsc_cents: Optional[int] = None
-        fsc_dollars: Optional[float] = None
+        fsc_cents: int | None = None
+        fsc_dollars: float | None = None
         for p in patterns.get("fsc", []):
             m = re.search(p, raw_text, re.IGNORECASE)
             if m:
                 try:
                     fsc_dollars = float(m.group(1).replace(",", ""))
-                    fsc_cents = int(round(fsc_dollars * 100))
+                    fsc_cents = round(fsc_dollars * 100)
                     matched_rules.append(f"fsc:{p}")
                     break
                 except ValueError:
                     pass
 
         # Extract Net Freight Charge
-        net_cents: Optional[int] = None
-        net_dollars: Optional[float] = None
+        net_cents: int | None = None
+        net_dollars: float | None = None
         for p in patterns.get("net_charge", []):
             m = re.search(p, raw_text, re.IGNORECASE)
             if m:
                 try:
                     net_dollars = float(m.group(1).replace(",", ""))
-                    net_cents = int(round(net_dollars * 100))
+                    net_cents = round(net_dollars * 100)
                     matched_rules.append(f"net_charge:{p}")
                     break
                 except ValueError:
                     pass
 
         # Extract Total Amount
-        total_cents: Optional[int] = None
-        total_dollars: Optional[float] = None
+        total_cents: int | None = None
+        total_dollars: float | None = None
         for p in patterns.get("total", []):
             m = re.search(p, raw_text, re.IGNORECASE)
             if m:
                 try:
                     total_dollars = float(m.group(1).replace(",", ""))
-                    total_cents = int(round(total_dollars * 100))
+                    total_cents = round(total_dollars * 100)
                     matched_rules.append(f"total:{p}")
                     break
                 except ValueError:
@@ -210,7 +210,7 @@ class RegexFallbackParser:
             if all_amounts:
                 parsed_amts = [float(a.replace(",", "")) for a in all_amounts]
                 total_dollars = max(parsed_amts)
-                total_cents = int(round(total_dollars * 100))
+                total_cents = round(total_dollars * 100)
                 matched_rules.append("total:max_dollar_regex")
 
         confidence = 0.95 if (pro_number and total_dollars is not None) else 0.80

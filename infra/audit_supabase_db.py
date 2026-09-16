@@ -4,8 +4,8 @@ Directly verifies Supabase Postgres instance against implementation.md schema re
 """
 
 import urllib.parse
+
 import psycopg2
-import sys
 
 RAW_URL = 'postgresql://postgres:99NRU%25$4.YY6-eg@db.ojolpdbveutbaxqmaffv.supabase.co:5432/postgres'
 

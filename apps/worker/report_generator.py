@@ -6,12 +6,11 @@ Generates CFO-grade Freight Audit & Recovery Reports:
 - Produces native vector PDF reports using PyMuPDF (fitz)
 """
 
-import os
 import sys
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 # Ensure packages path is accessible
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -30,12 +29,12 @@ def _format_dollars(amount: float) -> str:
 
 
 def compile_recovery_report(
-    approved_flags: List[Union[ReviewQueueItem, Dict[str, Any]]],
+    approved_flags: list[ReviewQueueItem | dict[str, Any]],
     customer_id: str,
     customer_name: str,
     period_start: str = "2026-03-01",
     period_end: str = "2026-08-31",
-    total_invoices_audited: Optional[int] = None,
+    total_invoices_audited: int | None = None,
     report_title: str = "Freight Audit & Recovery Report",
 ) -> RecoveryReportSummary:
     """
@@ -45,13 +44,13 @@ def compile_recovery_report(
     - shipper_net = 65% of recoverable
     - contingency_fee = 35% of recoverable
     """
-    claims: List[RecoveryReportClaimItem] = []
+    claims: list[RecoveryReportClaimItem] = []
     total_recoverable_cents = 0
 
-    carrier_counts: Dict[str, int] = {}
-    carrier_cents: Dict[str, int] = {}
-    check_type_counts: Dict[str, int] = {}
-    check_type_cents: Dict[str, int] = {}
+    carrier_counts: dict[str, int] = {}
+    carrier_cents: dict[str, int] = {}
+    check_type_counts: dict[str, int] = {}
+    check_type_cents: dict[str, int] = {}
 
     for idx, raw_flag in enumerate(approved_flags, start=1):
         if isinstance(raw_flag, ReviewQueueItem):
@@ -94,11 +93,11 @@ def compile_recovery_report(
             if check_type == "RATE":
                 explanation = f"Billed rate ${billed_amount:,.2f} exceeded contracted lane rate ${contract_amount:,.2f} under {contract_clause}."
             elif check_type == "FSC":
-                explanation = f"Fuel surcharge miscalculation: billed rate does not match DOE/EIA weekly diesel index for shipment week."
+                explanation = "Fuel surcharge miscalculation: billed rate does not match DOE/EIA weekly diesel index for shipment week."
             elif check_type == "DUP":
                 explanation = f"Duplicate invoice identified for PRO #{pro_number} matching prior processed billing."
             elif check_type == "ARITH":
-                explanation = f"Line item arithmetic sum does not match invoice stated total."
+                explanation = "Line item arithmetic sum does not match invoice stated total."
             else:
                 explanation = f"Discrepancy identified under {contract_clause}."
 
@@ -134,7 +133,7 @@ def compile_recovery_report(
     contingency_fee_dollars = round(total_recoverable_dollars * 0.35, 2)
 
     # Carrier breakdown dictionary
-    by_carrier: Dict[str, Dict[str, Any]] = {}
+    by_carrier: dict[str, dict[str, Any]] = {}
     for carrier, count in carrier_counts.items():
         cents = carrier_cents[carrier]
         dollars = round(cents / 100.0, 2)
@@ -147,7 +146,7 @@ def compile_recovery_report(
         }
 
     # Check type breakdown dictionary
-    by_check_type: Dict[str, Dict[str, Any]] = {}
+    by_check_type: dict[str, dict[str, Any]] = {}
     for ctype, count in check_type_counts.items():
         cents = check_type_cents[ctype]
         dollars = round(cents / 100.0, 2)

@@ -5,8 +5,9 @@ Postmark webhook auth, upload magic-byte validation, rate limiting, and agreemen
 """
 
 import os
-import pytest
+
 from fastapi.testclient import TestClient
+
 from apps.api.server import app, portal_service
 
 client = TestClient(app)

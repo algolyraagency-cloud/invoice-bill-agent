@@ -3,9 +3,10 @@ Unit tests for RateGuard AI Audit Run Orchestrator (Phase 3.1).
 Tests single-invoice auditing, batch backfill execution, metric aggregation,
 scope handling, and persistence formatting.
 """
-from pathlib import Path
 import sys
+from pathlib import Path
 from unittest.mock import MagicMock
+
 import pytest
 
 root_dir = Path(__file__).resolve().parents[3]
@@ -15,6 +16,7 @@ for p in [str(root_dir), str(engine_dir)]:
         sys.path.insert(0, p)
 
 from orchestrator import audit_batch, audit_invoice, persist_audit_run_result
+
 from packages.schemas.models import (
     FSCEntry,
     InvoiceJSON,

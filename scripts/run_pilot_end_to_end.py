@@ -13,10 +13,7 @@ Executes the complete concierge pilot workflow end-to-end:
 10. Register & auto-verify carrier credit memo -> confirm 35% commission calculation
 """
 
-import os
 import sys
-import uuid
-from datetime import datetime, timezone
 from pathlib import Path
 
 # Ensure root directory is on sys.path
@@ -24,21 +21,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
-from apps.worker.agreement_generator import (
-    render_recovery_agreement_pdf,
-    render_recovery_agreement_text,
-    verify_recovery_agreement_gate,
-)
-from apps.worker.dispute_generator import (
-    generate_carrier_dispute_batch,
-    generate_dispute_letter,
-    transition_dispute_status,
-)
 from apps.worker.portal_service import CustomerPortalService
-from apps.worker.report_generator import compile_recovery_report, render_report_pdf
 from apps.worker.review_queue import ReviewQueueService
 from packages.schemas.models import (
-    RecoveryAgreementRecord,
     RecoveryAgreementRequiredError,
 )
 

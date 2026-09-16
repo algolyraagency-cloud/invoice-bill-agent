@@ -38,7 +38,7 @@ def run_backup_restore_test():
     # Cleanup snapshot artifact
     if backup_file.exists():
         backup_file.unlink()
-        print(f"  [OK] Temporary test snapshot cleaned up.")
+        print("  [OK] Temporary test snapshot cleaned up.")
 
     print("\n================================================================================")
     print("BACKUP RESTORE VERIFICATION RESULT: PASSED (GO FOR DISASTER RECOVERY)")

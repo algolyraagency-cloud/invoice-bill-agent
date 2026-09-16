@@ -3,7 +3,7 @@ Customer onboarding & multi-tenant view helper for Python runtime.
 """
 import re
 import uuid
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 
 def generate_slug(name: str) -> str:
@@ -18,7 +18,7 @@ def onboard_pilot_customer(
     contact_email: str,
     industry: str = "Manufacturing",
     freight_spend_est: float = 5000000.00
-) -> Tuple[bool, Optional[str], Optional[str], Optional[str]]:
+) -> tuple[bool, str | None, str | None, str | None]:
     """
     Onboards a pilot customer organization into Supabase Postgres.
     Returns: (success, customer_id, slug, error)
@@ -55,7 +55,7 @@ def onboard_pilot_customer(
         return False, None, None, str(e)
 
 
-def list_customer_invoices(conn, customer_id: str, limit: int = 50) -> List[Dict[str, Any]]:
+def list_customer_invoices(conn, customer_id: str, limit: int = 50) -> list[dict[str, Any]]:
     """
     Lists invoices for a customer with flag counts and overcharge summaries.
     """

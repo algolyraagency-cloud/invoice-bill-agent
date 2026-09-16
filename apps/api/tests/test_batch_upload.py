@@ -4,7 +4,11 @@ Tests for Batch Upload, ZIP Unpacking, and CSV Manifest Parsing (Phase 1.2).
 import io
 import zipfile
 
-from apps.worker.ingestion import is_pdf_magic_bytes, parse_csv_manifest, unpack_zip_invoices
+from apps.worker.ingestion import (
+    is_pdf_magic_bytes,
+    parse_csv_manifest,
+    unpack_zip_invoices,
+)
 
 
 def create_synthetic_zip(num_pdfs: int = 5, include_csv: bool = True) -> bytes:

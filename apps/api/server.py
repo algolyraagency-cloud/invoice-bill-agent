@@ -9,16 +9,25 @@ Now updated with DYNAMIC invoice parsing and audit execution (zero hardcoded fak
 
 import os
 import sys
-import uuid
-import json
 import time
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from fastapi import FastAPI, File, Form, Header, HTTPException, Request, Query, UploadFile, status
+from fastapi import (
+    FastAPI,
+    File,
+    Form,
+    Header,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+    status,
+)
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 # Ensure project root is in sys.path
@@ -30,42 +39,21 @@ if str(ENGINE_DIR) not in sys.path:
     sys.path.insert(0, str(ENGINE_DIR))
 
 # Import domain services, schemas, cost guard, and DLQ
-from packages.schemas.models import (
-    ContractIntakeRequest,
-    CreditMemoIntakeRequest,
-    CustomerPortalSession,
-    DisputeStatus,
-    InvoiceJSON,
-    RateMatrixJSON,
-    RateMatrixRow,
-    RecoveryAgreementRecord,
-    RecoveryAgreementRequiredError,
-)
+from orchestrator import audit_invoice
+
+from apps.worker.cost_guard import CircuitBreakerTrippedError, global_cost_guard
+from apps.worker.credit_memo_service import CreditMemoService
+from apps.worker.feedback_loop import FeedbackLoopService
+from apps.worker.ingestion import is_pdf_magic_bytes
+from apps.worker.invoice_parser import parse_invoice
+from apps.worker.onboarding_wizard import OnboardingWizardService
+from apps.worker.pipeline import global_dlq
 from apps.worker.portal_service import CustomerPortalService
 from apps.worker.review_queue import ReviewQueueService
-from apps.worker.feedback_loop import FeedbackLoopService
-from apps.worker.onboarding_wizard import OnboardingWizardService
-from apps.worker.report_generator import compile_recovery_report, render_report_pdf
-from apps.worker.dispute_generator import (
-    generate_dispute_letter,
-    generate_carrier_dispute_batch,
-    transition_dispute_status,
-)
-from apps.worker.agreement_generator import (
-    render_recovery_agreement_pdf,
-    verify_recovery_agreement_gate,
-)
-from apps.worker.credit_memo_service import CreditMemoService
 from apps.worker.stripe_commission import StripeCommissionService
-from apps.worker.dispute_tracker_automation import (
-    compute_carrier_hostility_analytics,
-    scan_overdue_disputes,
+from packages.schemas.models import (
+    RateMatrixJSON,
 )
-from apps.worker.cost_guard import global_cost_guard, CircuitBreakerTrippedError
-from apps.worker.ingestion import is_pdf_magic_bytes, compute_sha256
-from apps.worker.pipeline import global_dlq
-from apps.worker.invoice_parser import parse_invoice
-from orchestrator import audit_invoice
 
 app = FastAPI(
     title="RateGuard AI — Freight Audit & Recovery API",
@@ -91,7 +79,7 @@ credit_memo_service = CreditMemoService()
 stripe_service = StripeCommissionService()
 
 # In-memory IP rate limiter: ip -> list of timestamps
-UPLOAD_RATE_LIMITS: Dict[str, List[float]] = {}
+UPLOAD_RATE_LIMITS: dict[str, list[float]] = {}
 MAX_UPLOADS_PER_MINUTE = 30
 MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024  # 25MB cap
 
@@ -161,7 +149,7 @@ seed_initial_organizations()
 # Security & Auth Helpers
 # ------------------------------------------------------------------------------
 
-def verify_postmark_token(x_postmark_server_token: Optional[str] = Header(None)):
+def verify_postmark_token(x_postmark_server_token: str | None = Header(None)):
     expected_token = os.environ.get("POSTMARK_SERVER_TOKEN")
     if expected_token and x_postmark_server_token != expected_token:
         raise HTTPException(
@@ -170,8 +158,8 @@ def verify_postmark_token(x_postmark_server_token: Optional[str] = Header(None))
         )
 
 def verify_internal_reviewer_role(
-    x_rateguard_role: Optional[str] = Header(None),
-    role: Optional[str] = Query(None)
+    x_rateguard_role: str | None = Header(None),
+    role: str | None = Query(None)
 ):
     user_role = x_rateguard_role or role
     if user_role != "internal_reviewer":
@@ -211,7 +199,7 @@ def readiness_check():
     }
 
 @app.get("/api/v1/admin/health-summary")
-def get_admin_health_summary(x_rateguard_role: Optional[str] = Header(None)):
+def get_admin_health_summary(x_rateguard_role: str | None = Header(None)):
     verify_internal_reviewer_role(x_rateguard_role, "internal_reviewer")
     
     total_invoices = len(portal_service._invoices)
@@ -354,7 +342,7 @@ async def handle_invoice_upload(
     # DYNAMIC PARSING: Extract real text & JSON schema from uploaded document
     carrier_hint = "ABF Freight" if "abf" in fname_lower else ("XPO Logistics" if "xpo" in fname_lower else ("Roadrunner" if "rrts" in fname_lower or "roadrunner" in fname_lower else None))
     
-    parsed_inv, val_result, meta = parse_invoice(
+    parsed_inv, val_result, _meta = parse_invoice(
         document_input=file_bytes,
         carrier_hint=carrier_hint,
         use_cache=True
@@ -381,7 +369,7 @@ async def handle_invoice_upload(
 
     # DYNAMIC AUDIT ENGINE EXECUTION against customer contracts
     cust_contracts = [c for c in portal_service._contracts.values() if c["customer_id"] == customer_id]
-    matrices: List[RateMatrixJSON] = []
+    matrices: list[RateMatrixJSON] = []
     for c in cust_contracts:
         if c.get("rate_matrix_json"):
             try:
@@ -442,8 +430,8 @@ async def handle_contract_upload(
 @app.post("/api/webhooks/postmark")
 @app.post("/api/v1/webhooks/postmark")
 def handle_postmark_webhook(
-    payload: Dict[str, Any],
-    x_postmark_server_token: Optional[str] = Header(None)
+    payload: dict[str, Any],
+    x_postmark_server_token: str | None = Header(None)
 ):
     verify_postmark_token(x_postmark_server_token)
     return {
@@ -456,8 +444,8 @@ def handle_postmark_webhook(
 @app.post("/api/webhooks/stripe")
 @app.post("/api/v1/webhooks/stripe")
 def handle_stripe_webhook(
-    payload: Dict[str, Any],
-    stripe_signature: Optional[str] = Header(None)
+    payload: dict[str, Any],
+    stripe_signature: str | None = Header(None)
 ):
     return {
         "status": "success",
@@ -468,8 +456,8 @@ def handle_stripe_webhook(
 
 @app.get("/api/v1/review/queue")
 def get_review_queue(
-    x_rateguard_role: Optional[str] = Header(None),
-    role: Optional[str] = Query(None)
+    x_rateguard_role: str | None = Header(None),
+    role: str | None = Query(None)
 ):
     verify_internal_reviewer_role(x_rateguard_role, role)
     
@@ -493,9 +481,9 @@ def get_review_queue(
 def submit_review_action(
     flag_id: str = Form(...),
     action: str = Form(...),
-    reason_code: Optional[str] = Form(None),
+    reason_code: str | None = Form(None),
     reviewer_id: str = Form("rev_auditor_01"),
-    x_rateguard_role: Optional[str] = Header(None)
+    x_rateguard_role: str | None = Header(None)
 ):
     verify_internal_reviewer_role(x_rateguard_role, "internal_reviewer")
     if flag_id in portal_service._flags:
@@ -503,7 +491,7 @@ def submit_review_action(
     return {"status": "success", "flag_id": flag_id, "action": action, "reason_code": reason_code}
 
 @app.get("/api/v1/review/feedback")
-def get_review_feedback(x_rateguard_role: Optional[str] = Header(None)):
+def get_review_feedback(x_rateguard_role: str | None = Header(None)):
     verify_internal_reviewer_role(x_rateguard_role, "internal_reviewer")
     return {
         "overall_precision": 96.5,
@@ -558,7 +546,7 @@ def log_credit_memo(
     original_invoice_ref: str = Form(...),
     amount: float = Form(...)
 ):
-    amount_cents = int(round(amount * 100))
+    amount_cents = round(amount * 100)
     memo_id = f"cm_{uuid.uuid4().hex[:6]}"
     portal_service._credit_memos[memo_id] = {
         "id": memo_id,
@@ -641,8 +629,8 @@ def serve_onboarding():
 
 @app.get("/internal/review", response_class=HTMLResponse)
 def serve_review(
-    x_rateguard_role: Optional[str] = Header(None),
-    role: Optional[str] = Query(None)
+    x_rateguard_role: str | None = Header(None),
+    role: str | None = Query(None)
 ):
     verify_internal_reviewer_role(x_rateguard_role, role)
     review_file = PUBLIC_DIR / "internal" / "review.html"
@@ -652,8 +640,8 @@ def serve_review(
 
 @app.get("/internal/health", response_class=HTMLResponse)
 def serve_internal_health(
-    x_rateguard_role: Optional[str] = Header(None),
-    role: Optional[str] = Query(None)
+    x_rateguard_role: str | None = Header(None),
+    role: str | None = Query(None)
 ):
     verify_internal_reviewer_role(x_rateguard_role, role)
     return """<!DOCTYPE html>

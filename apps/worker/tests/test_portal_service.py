@@ -7,6 +7,7 @@ Verifies:
 """
 
 import pytest
+
 from apps.worker.portal_service import CustomerPortalService
 
 

@@ -8,19 +8,18 @@ Features:
 3. Monthly Circuit Breaker: Tracks cumulative estimated spend; halts LLM calls when spend exceeds threshold.
 4. Token Cap Guard: Strict per-job token ceilings to avoid runaway context.
 """
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
 import hashlib
-import json
 import logging
-import os
-from typing import Any, Callable, Dict, Optional, Tuple, Union
+from collections.abc import Callable
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from typing import Any
 
 logger = logging.getLogger("rateguard.cost_guard")
 
 # Default Pricing per 1,000,000 tokens (USD)
 # Prices updated to standard OpenAI / Anthropic rates
-MODEL_PRICING: Dict[str, Dict[str, float]] = {
+MODEL_PRICING: dict[str, dict[str, float]] = {
     # Tier 1 Cheap Models
     "gpt-4o-mini": {"input_per_m": 0.15, "output_per_m": 0.60},
     "claude-3-5-haiku-20241022": {"input_per_m": 0.80, "output_per_m": 4.00},
@@ -33,7 +32,6 @@ MODEL_PRICING: Dict[str, Dict[str, float]] = {
 
 class CircuitBreakerTrippedError(RuntimeError):
     """Raised when monthly LLM spend exceeds the configured safety ceiling."""
-    pass
 
 
 @dataclass
@@ -54,8 +52,8 @@ class CostGuard:
     def __init__(
         self,
         monthly_budget_usd: float = 150.00,
-        circuit_breaker_threshold_usd: Optional[float] = None,
-        alert_callback: Optional[Callable[[str, float], None]] = None,
+        circuit_breaker_threshold_usd: float | None = None,
+        alert_callback: Callable[[str, float], None] | None = None,
     ):
         # Default ceiling is $150 of the $200/mo operating budget (leaving $50 for Postmark, Supabase, etc.)
         self.monthly_budget_usd = monthly_budget_usd
@@ -70,7 +68,7 @@ class CostGuard:
         self._tripped = False
 
         # In-memory SHA-256 parse cache: sha256(content + prompt_version) -> result dict
-        self._parse_cache: Dict[str, Dict[str, Any]] = {}
+        self._parse_cache: dict[str, dict[str, Any]] = {}
 
     @property
     def is_tripped(self) -> bool:
@@ -134,7 +132,7 @@ class CostGuard:
                 "Halting further API calls to protect budget."
             )
 
-    def get_cache_key(self, content: Union[str, bytes], prompt_version: str = "v1.0") -> str:
+    def get_cache_key(self, content: str | bytes, prompt_version: str = "v1.0") -> str:
         """Generates deterministic SHA-256 cache key from content bytes/text and prompt version."""
         if isinstance(content, str):
             content_bytes = content.encode("utf-8")
@@ -142,11 +140,11 @@ class CostGuard:
             content_bytes = content
         return hashlib.sha256(content_bytes + prompt_version.encode("utf-8")).hexdigest()
 
-    def get_cached(self, key: str) -> Optional[Dict[str, Any]]:
+    def get_cached(self, key: str) -> dict[str, Any] | None:
         """Retrieves cached extraction result ($0 spend)."""
         return self._parse_cache.get(key)
 
-    def set_cached(self, key: str, value: Dict[str, Any]):
+    def set_cached(self, key: str, value: dict[str, Any]):
         """Persists extraction result in memory cache."""
         self._parse_cache[key] = value
 

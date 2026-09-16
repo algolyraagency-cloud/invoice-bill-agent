@@ -17,7 +17,13 @@ if str(engine_dir) not in sys.path:
 
 from engine import check_arithmetic, check_duplicates, check_fsc, check_rates
 
-from packages.schemas.models import FSCEntry, InvoiceJSON, LineItem, RateMatrixJSON, RateMatrixRow
+from packages.schemas.models import (
+    FSCEntry,
+    InvoiceJSON,
+    LineItem,
+    RateMatrixJSON,
+    RateMatrixRow,
+)
 
 
 @pytest.fixture

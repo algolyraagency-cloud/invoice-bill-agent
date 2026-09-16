@@ -7,12 +7,11 @@ Integrates with Phase 2.0 contract sanity checks and spot-verification protocols
 Core Law: LLMs understand, code calculates. Never the reverse.
 """
 import hashlib
-import json
 import os
 import re
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 # Add root and audit-engine to sys.path
 root_dir = Path(__file__).resolve().parents[2]
@@ -22,19 +21,18 @@ if str(root_dir) not in sys.path:
 if str(audit_engine_dir) not in sys.path:
     sys.path.insert(0, str(audit_engine_dir))
 
-import instructor
+from validation import validate_contract_matrix
+
+from apps.worker.extractor import extract_document_bytes, extract_document_text
 from packages.schemas.models import (
     ContractValidationResult,
     FSCEntry,
     RateMatrixJSON,
     RateMatrixRow,
-    SpotCheckItem,
 )
-from validation import generate_spot_check_sample, validate_contract_matrix
-from apps.worker.extractor import extract_document_bytes, extract_document_text
 
 PROMPT_VERSION = "v1.0"
-_CONTRACT_PARSE_CACHE: Dict[str, Dict[str, Any]] = {}
+_CONTRACT_PARSE_CACHE: dict[str, dict[str, Any]] = {}
 
 STANDARD_WEIGHT_BREAKS = [
     ("L5C", 0.0),
@@ -48,7 +46,7 @@ STANDARD_WEIGHT_BREAKS = [
 
 def _simulate_contract_extraction(
     document_text: str,
-    carrier_hint: Optional[str] = None,
+    carrier_hint: str | None = None,
     rung: str = "A"
 ) -> RateMatrixJSON:
     """
@@ -94,7 +92,7 @@ def _simulate_contract_extraction(
     if dest_m:
         dest_prefix = (dest_m.group(1) or dest_m.group(2))[:3]
 
-    rates: List[RateMatrixRow] = []
+    rates: list[RateMatrixRow] = []
 
     # Quality Ladder Rung Handling
     if rung == "C":
@@ -177,14 +175,14 @@ def _simulate_contract_extraction(
 
 
 def parse_contract_document(
-    document_input: Union[str, Path, bytes],
-    carrier_hint: Optional[str] = None,
+    document_input: str | Path | bytes,
+    carrier_hint: str | None = None,
     rung: str = "A",
     client: Any = None,
     model: str = "gpt-4o-mini",
-    fsc_tables: Optional[List[FSCEntry]] = None,
+    fsc_tables: list[FSCEntry] | None = None,
     use_cache: bool = True
-) -> Tuple[RateMatrixJSON, ContractValidationResult, Dict[str, Any]]:
+) -> tuple[RateMatrixJSON, ContractValidationResult, dict[str, Any]]:
     """
     Parses contract PDFs or email digests into RateMatrixJSON.
     1. Extracts tables and text via layout extractor.
@@ -203,7 +201,7 @@ def parse_contract_document(
         content_hash = hashlib.sha256(extracted_text.encode("utf-8")).hexdigest()
 
     # 2. Check SHA-256 parse cache
-    cache_key = hashlib.sha256(f"{content_hash}_{PROMPT_VERSION}_{rung}_{carrier_hint}".encode("utf-8")).hexdigest()
+    cache_key = hashlib.sha256(f"{content_hash}_{PROMPT_VERSION}_{rung}_{carrier_hint}".encode()).hexdigest()
     if use_cache and cache_key in _CONTRACT_PARSE_CACHE:
         cached = _CONTRACT_PARSE_CACHE[cache_key]
         matrix = RateMatrixJSON(**cached["matrix"])
@@ -268,7 +266,7 @@ def persist_parsed_contract(
     contract_id: str,
     matrix_json: RateMatrixJSON,
     validation_result: ContractValidationResult
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Persists parsed contract into Supabase 'contracts' and materializes
     individual rows into the 'rate_matrices' table for fast sub-millisecond lane queries.

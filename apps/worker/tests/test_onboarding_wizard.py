@@ -3,9 +3,7 @@ RateGuard AI — Onboarding Wizard Service Unit Tests (Phase 7.1)
 Tests 6-step self-serve onboarding state progression, inputs, and completion handler.
 """
 
-import pytest
 from apps.worker.onboarding_wizard import OnboardingWizardService
-from packages.schemas.models import OnboardingWizardState
 
 
 def test_wizard_init_and_step1_progression():

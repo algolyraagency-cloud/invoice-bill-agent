@@ -10,7 +10,7 @@ Acceptance Criteria: get_fsc(carrier, shipment_date) returns exactly one verifie
 for any invoice date in scope.
 """
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from packages.schemas.models import FSCEntry
 
@@ -22,8 +22,8 @@ def parse_date(date_str: str) -> datetime:
 
 def get_active_eia_price(
     shipment_date_str: str,
-    eia_indices: List[Dict[str, Any]]
-) -> Optional[Dict[str, Any]]:
+    eia_indices: list[dict[str, Any]]
+) -> dict[str, Any] | None:
     """
     Resolves the official EIA Weekly Diesel Benchmark price in effect on the shipment date.
     
@@ -62,9 +62,9 @@ def get_active_eia_price(
 def get_fsc(
     carrier: str,
     shipment_date: str,
-    fsc_tables: List[FSCEntry],
-    eia_indices: Optional[List[Dict[str, Any]]] = None
-) -> Tuple[Optional[float], Optional[Dict[str, Any]]]:
+    fsc_tables: list[FSCEntry],
+    eia_indices: list[dict[str, Any]] | None = None
+) -> tuple[float | None, dict[str, Any] | None]:
     """
     Returns exactly one verified FSC percentage and evidence metadata for the carrier and shipment date.
     

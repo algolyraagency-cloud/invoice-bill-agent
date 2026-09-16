@@ -10,12 +10,12 @@ from .models import (
 )
 
 __all__ = [
-    "InvoiceJSON",
-    "LineItem",
     "Accessorial",
-    "RateMatrixJSON",
-    "RateMatrixRow",
+    "CreditMemo",
     "FSCEntry",
     "Flag",
-    "CreditMemo"
+    "InvoiceJSON",
+    "LineItem",
+    "RateMatrixJSON",
+    "RateMatrixRow"
 ]

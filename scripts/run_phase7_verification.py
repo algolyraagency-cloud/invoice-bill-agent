@@ -16,7 +16,6 @@ if str(BASE_DIR) not in sys.path:
 
 from apps.worker.onboarding_wizard import OnboardingWizardService
 from apps.worker.regex_fallback_parser import RegexFallbackParser
-from apps.worker.portal_service import CustomerPortalService
 
 
 def print_header(title: str):

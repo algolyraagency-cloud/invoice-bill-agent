@@ -6,8 +6,9 @@ Verifies:
 3. Monthly circuit breaker trips at configurable threshold and halts API calls.
 4. Token counting and cost computation accuracy.
 """
-from pathlib import Path
 import sys
+from pathlib import Path
+
 import pytest
 
 root_dir = Path(__file__).resolve().parents[3]
@@ -20,7 +21,6 @@ for p in [str(root_dir), str(worker_dir), str(audit_engine_dir)]:
 from cost_guard import (
     CircuitBreakerTrippedError,
     CostGuard,
-    MODEL_PRICING,
 )
 
 

@@ -5,7 +5,7 @@ computes carrier hostility scores based on approval/denial ratios and latency.
 """
 import urllib.parse
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from packages.schemas.models import (
     CarrierAnalyticsReport,
@@ -24,16 +24,16 @@ def parse_datetime(dt_str: str) -> datetime:
 
 
 def scan_overdue_disputes(
-    disputes_list: List[Dict[str, Any]],
+    disputes_list: list[dict[str, Any]],
     days_threshold: int = 14,
-    reference_date: Optional[datetime] = None,
-) -> List[DisputeReminderNudge]:
+    reference_date: datetime | None = None,
+) -> list[DisputeReminderNudge]:
     """
     Scans sent disputes and identifies those pending without carrier response for >= days_threshold days.
     Generates structured DisputeReminderNudge objects with RFC 2368 1-click mailto links.
     """
     ref_dt = reference_date or datetime.now(timezone.utc)
-    nudges: List[DisputeReminderNudge] = []
+    nudges: list[DisputeReminderNudge] = []
 
     for disp in disputes_list:
         status = str(disp.get("status", "")).lower()
@@ -102,7 +102,7 @@ def scan_overdue_disputes(
 
 
 def compute_carrier_hostility_analytics(
-    disputes_list: List[Dict[str, Any]],
+    disputes_list: list[dict[str, Any]],
     customer_id: str = "cust_default",
     period: str = "all_time",
 ) -> CarrierAnalyticsReport:
@@ -110,14 +110,14 @@ def compute_carrier_hostility_analytics(
     Computes per-carrier hostility metrics, approval/denial ratios, resolution latency,
     and overall hostility scores for all carriers interacting with the customer.
     """
-    carrier_buckets: Dict[str, List[Dict[str, Any]]] = {}
+    carrier_buckets: dict[str, list[dict[str, Any]]] = {}
     for disp in disputes_list:
         cname = str(disp.get("carrier", "Unknown Carrier")).strip()
         if cname not in carrier_buckets:
             carrier_buckets[cname] = []
         carrier_buckets[cname].append(disp)
 
-    carrier_metrics_list: List[CarrierHostilityMetrics] = []
+    carrier_metrics_list: list[CarrierHostilityMetrics] = []
     total_recovered_dollars = 0.0
     total_denied_dollars = 0.0
 
@@ -126,7 +126,7 @@ def compute_carrier_hostility_analytics(
         approved_count = 0
         denied_count = 0
         pending_count = 0
-        resolution_days_list: List[float] = []
+        resolution_days_list: list[float] = []
 
         for disp in carrier_disputes:
             st = str(disp.get("status", "")).lower()

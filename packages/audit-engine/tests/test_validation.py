@@ -18,6 +18,7 @@ from validation import (
     validate_invoice_extraction,
     validate_rejection_reason_code,
 )
+
 from packages.schemas.models import (
     Accessorial,
     FSCEntry,
@@ -25,11 +26,8 @@ from packages.schemas.models import (
     LineItem,
     RateMatrixJSON,
     RateMatrixRow,
-    SpotCheckItem,
     SpotVerificationResult,
 )
-
-
 
 # ==============================================================================
 # Phase 2.0.1: Extraction Self-Validation Tests

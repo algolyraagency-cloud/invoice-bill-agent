@@ -12,7 +12,7 @@ import sys
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any
 
 # Ensure root directory is accessible
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -20,18 +20,17 @@ if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
 import pymupdf as fitz
+
 from packages.schemas.models import (
-    RecoveryAgreementRecord,
     RecoveryAgreementRequiredError,
-    RecoveryAgreementSignInput,
 )
 
 
 def render_recovery_agreement_text(
     customer_name: str,
-    signer_name: Optional[str] = None,
-    signer_title: Optional[str] = None,
-    signed_at: Optional[str] = None,
+    signer_name: str | None = None,
+    signer_title: str | None = None,
+    signed_at: str | None = None,
     concierge_handling: bool = False,
 ) -> str:
     """
@@ -90,8 +89,8 @@ def render_recovery_agreement_pdf(
     signer_title: str,
     signed_at: str,
     concierge_handling: bool = False,
-    output_dir: Optional[str] = None,
-) -> Tuple[bytes, str]:
+    output_dir: str | None = None,
+) -> tuple[bytes, str]:
     """
     Generates a 1-page vector PDF agreement via PyMuPDF (fitz) with formal header,
     legal terms boxes, and e-signature audit stamp.
@@ -100,7 +99,6 @@ def render_recovery_agreement_pdf(
     page = doc.new_page(width=612, height=792)  # Standard Letter 8.5 x 11 inches
 
     # Colors
-    primary_color = (0.05, 0.05, 0.05)       # Charcoal / Near-black
     brand_blue = (0.10, 0.35, 0.75)          # Deep blue
     accent_emerald = (0.05, 0.55, 0.30)      # Emerald green
     neutral_bg = (0.96, 0.96, 0.97)          # Light grey
@@ -177,7 +175,7 @@ def render_recovery_agreement_pdf(
     return pdf_bytes, out_path
 
 
-def verify_recovery_agreement_gate(customer_record: Dict[str, Any]) -> bool:
+def verify_recovery_agreement_gate(customer_record: dict[str, Any]) -> bool:
     """
     Hard Code Gate (PRD Flow A & Implementation §5.4):
     Verifies if customer has signed the 1-page recovery agreement.

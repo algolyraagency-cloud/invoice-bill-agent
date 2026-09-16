@@ -3,9 +3,7 @@ RateGuard AI — Credit Memo Service Unit Tests (Phase 6.1)
 Tests stream detection, forwarded email parsing, and automated matching & verification.
 """
 
-import pytest
 from apps.worker.credit_memo_service import CreditMemoService
-from packages.schemas.models import CreditMemoDetectionCandidate, CreditMemoVerificationResult
 
 
 def test_stream_detection_negative_total():

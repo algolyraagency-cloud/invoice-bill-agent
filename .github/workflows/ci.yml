@@ -2,13 +2,21 @@ name: RateGuard AI CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, master ]
 
 jobs:
   test-and-validate:
     runs-on: ubuntu-latest
+
+    env:
+      ENVIRONMENT: test
+      DATABASE_URL: "sqlite:///./ci_test.db"
+      MOCK_EMAIL_CONNECTOR: "true"
+      SUPABASE_URL: "http://localhost:54321"
+      SUPABASE_ANON_KEY: "ci-placeholder-key"
+      SUPABASE_SERVICE_ROLE_KEY: "ci-placeholder-service-key"
 
     steps:
       - name: Checkout Code Repository
@@ -20,10 +28,15 @@ jobs:
           python-version: "3.12"
           cache: "pip"
 
-      - name: Install Python Dependencies
+      - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-cov pydantic fastapi httpx pymupdf instructor
+          pip install -r requirements.txt
+          pip install -e ".[dev]"
+
+      - name: Run Ruff Lint Check
+        run: |
+          ruff check .
 
       - name: Execute Full Pytest Test Suite
         run: |

@@ -15,8 +15,8 @@ if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
 from apps.worker.credit_memo_service import CreditMemoService
-from apps.worker.stripe_commission import StripeCommissionService
 from apps.worker.portal_service import CustomerPortalService
+from apps.worker.stripe_commission import StripeCommissionService
 from packages.schemas.models import UnverifiedMemoBillingError
 
 
@@ -65,12 +65,12 @@ def run_phase6_verification():
     portal.update_dispute_status("cust_acme_01", "disp_abf_01", "sent")
     portal.update_dispute_status("cust_acme_01", "disp_xpo_02", "sent")
 
-    disp1 = portal._disputes["disp_abf_01"]
-    disp2 = portal._disputes["disp_xpo_02"]
+    portal._disputes["disp_abf_01"]
+    portal._disputes["disp_xpo_02"]
 
     print_ok(f"Seeded Customer: '{cust['name']}' ({cust['id']})")
-    print_ok(f"Seeded Sent Dispute 1: ABF Freight PRO #042-881234 ($142.50 overcharge)")
-    print_ok(f"Seeded Sent Dispute 2: XPO Logistics PRO #065-992143 ($65.00 overcharge)")
+    print_ok("Seeded Sent Dispute 1: ABF Freight PRO #042-881234 ($142.50 overcharge)")
+    print_ok("Seeded Sent Dispute 2: XPO Logistics PRO #065-992143 ($65.00 overcharge)")
 
     # 2. Stream Detection (Phase 6.1)
     print_step(2, "Stream Detection of Carrier Credit Memos (Phase 6.1)")
@@ -192,7 +192,7 @@ def run_phase6_verification():
     )
     assert res2["action"] == "marked_unrecoverable"
     print_ok(f"Resend #2 Transition: {res2['message']}")
-    print_ok(f"Unrecoverable Record Logged ($0 fee charged).")
+    print_ok("Unrecoverable Record Logged ($0 fee charged).")
 
     print_header("PHASE 6 VERIFICATION RESULT: ALL GATES PASSED (100% COMPLETE)")
 

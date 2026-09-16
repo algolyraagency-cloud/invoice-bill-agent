@@ -9,32 +9,33 @@ Handles asynchronous job execution across the pipeline:
 Guarantees every invoice terminates in a canonical state:
 'parsed', 'parse_failed', 'audited', or 'error'.
 """
-from datetime import datetime, timezone
-import json
 import logging
-from typing import Any, Callable, Dict, List, Optional, Union
 import uuid
+from collections.abc import Callable
+from datetime import datetime, timezone
+from typing import Any
 
 from packages.schemas.models import (
     AuditRunResult,
-    Flag,
     FSCEntry,
     InvoiceJSON,
-    InvoiceValidationResult,
     RateMatrixJSON,
 )
 
 try:
-    from invoice_parser import parse_invoice, persist_parsed_invoice
     from cost_guard import global_cost_guard
+    from invoice_parser import parse_invoice, persist_parsed_invoice
 except ImportError:
     from apps.worker.invoice_parser import parse_invoice, persist_parsed_invoice
-    from apps.worker.cost_guard import global_cost_guard
 
 try:
     from orchestrator import audit_batch, audit_invoice, persist_audit_run_result
 except ImportError:
-    from packages.audit_engine.orchestrator import audit_batch, audit_invoice, persist_audit_run_result
+    from packages.audit_engine.orchestrator import (
+        audit_batch,
+        audit_invoice,
+        persist_audit_run_result,
+    )
 
 logger = logging.getLogger("rateguard.pipeline")
 
@@ -42,15 +43,15 @@ logger = logging.getLogger("rateguard.pipeline")
 class DeadLetterQueue:
     """In-memory and DB dead-letter tracker for failed jobs."""
 
-    def __init__(self, alert_callback: Optional[Callable[[str, Dict[str, Any]], None]] = None):
-        self.failed_jobs: List[Dict[str, Any]] = []
+    def __init__(self, alert_callback: Callable[[str, dict[str, Any]], None] | None = None):
+        self.failed_jobs: list[dict[str, Any]] = []
         self.alert_callback = alert_callback
 
     def record_failure(
         self,
         queue_name: str,
         job_id: str,
-        job_data: Dict[str, Any],
+        job_data: dict[str, Any],
         error_message: str,
         supabase_client: Any = None,
     ):
@@ -86,11 +87,11 @@ global_dlq = DeadLetterQueue()
 
 
 def process_parse_invoice_job(
-    job_data: Dict[str, Any],
+    job_data: dict[str, Any],
     db_client: Any = None,
-    enqueue_audit_fn: Optional[Callable[[Dict[str, Any]], Any]] = None,
+    enqueue_audit_fn: Callable[[dict[str, Any]], Any] | None = None,
     cost_guard_instance: Any = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Handler for 'parse-invoice' queue job.
     1. Extracts and structures PDF into InvoiceJSON.
@@ -161,13 +162,13 @@ def process_parse_invoice_job(
 
 
 def process_run_audit_for_invoice_job(
-    job_data: Dict[str, Any],
-    rate_matrices: List[RateMatrixJSON],
-    fsc_tables: Optional[List[FSCEntry]] = None,
-    all_invoices: Optional[List[InvoiceJSON]] = None,
+    job_data: dict[str, Any],
+    rate_matrices: list[RateMatrixJSON],
+    fsc_tables: list[FSCEntry] | None = None,
+    all_invoices: list[InvoiceJSON] | None = None,
     db_client: Any = None,
-    eia_diesel_price: Optional[float] = None,
-) -> Dict[str, Any]:
+    eia_diesel_price: float | None = None,
+) -> dict[str, Any]:
     """
     Handler for 'run-audit-for-invoice' queue job.
     Executes all 4 deterministic audit checks on arrival with audit idempotency keys.
@@ -240,12 +241,12 @@ def process_run_audit_for_invoice_job(
 
 
 def process_run_audit_batch_job(
-    job_data: Dict[str, Any],
-    invoices: List[InvoiceJSON],
-    rate_matrices: List[RateMatrixJSON],
-    fsc_tables: Optional[List[FSCEntry]] = None,
+    job_data: dict[str, Any],
+    invoices: list[InvoiceJSON],
+    rate_matrices: list[RateMatrixJSON],
+    fsc_tables: list[FSCEntry] | None = None,
     db_client: Any = None,
-    eia_diesel_price: Optional[float] = None,
+    eia_diesel_price: float | None = None,
 ) -> AuditRunResult:
     """
     Handler for 'run-audit-batch' job (e.g. 6-month historical onboarding backfills).
@@ -271,7 +272,7 @@ def process_run_audit_batch_job(
         persist_audit_run_result(db_client, result)
         # Update all processed invoices to 'audited'
         for inv in invoices:
-            inv_id = getattr(inv, "id", None) or inv.invoice_number
+            getattr(inv, "id", None) or inv.invoice_number
             db_client.table("invoices").update({"status": "audited"}).eq("invoice_number", inv.invoice_number).execute()
 
     logger.info(

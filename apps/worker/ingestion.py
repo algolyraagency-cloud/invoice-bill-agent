@@ -14,10 +14,10 @@ import io
 import os
 import re
 import zipfile
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 
-def extract_slug_and_stream(email_address: str) -> Tuple[Optional[str], bool]:
+def extract_slug_and_stream(email_address: str) -> tuple[str | None, bool]:
     """
     Extracts customer slug and stream type from an email address.
     e.g.:
@@ -55,13 +55,13 @@ def is_pdf_magic_bytes(data: bytes) -> bool:
     return len(data) >= 5 and data[:5] == b"%PDF-"
 
 
-def parse_postmark_inbound_json(payload: Dict[str, Any]) -> Dict[str, Any]:
+def parse_postmark_inbound_json(payload: dict[str, Any]) -> dict[str, Any]:
     """
     Parses a Postmark inbound JSON webhook dictionary.
     Extracts customer slug, recipient type, email metadata, decodes attachments,
     and classifies status into: 'processed', 'no_attachments', 'unsupported_format', 'corrupt_pdf'.
     """
-    recipients: List[str] = []
+    recipients: list[str] = []
     if payload.get("To"):
         recipients.append(str(payload["To"]))
     for r in payload.get("ToFull", []):
@@ -73,7 +73,7 @@ def parse_postmark_inbound_json(payload: Dict[str, Any]) -> Dict[str, Any]:
         if isinstance(r, dict) and r.get("Email"):
             recipients.append(str(r["Email"]))
 
-    resolved_slug: Optional[str] = None
+    resolved_slug: str | None = None
     is_dispute = False
 
     for rec in recipients:
@@ -93,10 +93,10 @@ def parse_postmark_inbound_json(payload: Dict[str, Any]) -> Dict[str, Any]:
                 break
 
     attachments = payload.get("Attachments", [])
-    extracted_pdfs: List[Dict[str, Any]] = []
+    extracted_pdfs: list[dict[str, Any]] = []
 
     processed_status = "processed"
-    failure_reason: Optional[str] = None
+    failure_reason: str | None = None
 
     if not attachments:
         processed_status = "no_attachments"
@@ -153,9 +153,9 @@ def parse_postmark_inbound_json(payload: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def parse_csv_manifest(csv_text: str) -> Dict[str, Dict[str, Any]]:
+def parse_csv_manifest(csv_text: str) -> dict[str, dict[str, Any]]:
     """Parses CSV manifest text mapping filename -> invoice metadata."""
-    manifest: Dict[str, Dict[str, Any]] = {}
+    manifest: dict[str, dict[str, Any]] = {}
     f = io.StringIO(csv_text.strip())
     reader = csv.reader(f)
     try:
@@ -180,7 +180,7 @@ def parse_csv_manifest(csv_text: str) -> Dict[str, Dict[str, Any]]:
         if not fname:
             continue
 
-        meta: Dict[str, Any] = {"file_name": fname}
+        meta: dict[str, Any] = {"file_name": fname}
         if carrier_col != -1 and len(row) > carrier_col:
             meta["carrier"] = row[carrier_col].strip()
         if inv_col != -1 and len(row) > inv_col:
@@ -200,13 +200,13 @@ def parse_csv_manifest(csv_text: str) -> Dict[str, Dict[str, Any]]:
     return manifest
 
 
-def unpack_zip_invoices(zip_bytes: bytes) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+def unpack_zip_invoices(zip_bytes: bytes) -> tuple[list[dict[str, Any]], str | None]:
     """
     Safely unpacks a ZIP archive in memory with zip-slip protection.
     Returns: (list_of_pdf_files, optional_csv_manifest_text)
     """
-    extracted_pdfs: List[Dict[str, Any]] = []
-    manifest_csv: Optional[str] = None
+    extracted_pdfs: list[dict[str, Any]] = []
+    manifest_csv: str | None = None
 
     with zipfile.ZipFile(io.BytesIO(zip_bytes)) as z:
         for info in z.infolist():

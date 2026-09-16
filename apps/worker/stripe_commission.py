@@ -9,15 +9,16 @@ Commission invoices can ONLY be generated from credit memos with verification_st
 """
 
 import os
-from datetime import datetime, date, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from datetime import datetime, timedelta, timezone
+from typing import Any
+
 import fitz  # PyMuPDF
 
 from packages.schemas.models import (
     CommissionInvoiceItem,
     CommissionInvoiceRecord,
-    UnverifiedMemoBillingError,
     UnrecoverableDisputeRecord,
+    UnverifiedMemoBillingError,
 )
 
 
@@ -30,15 +31,15 @@ class StripeCommissionService:
         customer_id: str,
         customer_name: str,
         billing_period: str,
-        verified_memos: List[Dict[str, Any]],
-        disputes_map: Dict[str, Dict[str, Any]],
+        verified_memos: list[dict[str, Any]],
+        disputes_map: dict[str, dict[str, Any]],
         contingency_fee_pct: float = 35.0,
     ) -> CommissionInvoiceRecord:
         """Aggregates verified credit memos into a single monthly Net-15 commission invoice.
 
         Raises UnverifiedMemoBillingError if any passed memo is not verified (Revenue Integrity Control).
         """
-        items: List[CommissionInvoiceItem] = []
+        items: list[CommissionInvoiceItem] = []
         total_gross_cents = 0
         total_commission_cents = 0
 
@@ -52,7 +53,7 @@ class StripeCommissionService:
 
             gross_cents = memo.get("amount_cents", 0)
             if gross_cents == 0 and "amount_dollars" in memo:
-                gross_cents = int(round(float(memo["amount_dollars"]) * 100))
+                gross_cents = round(float(memo["amount_dollars"]) * 100)
 
             gross_dollars = round(gross_cents / 100.0, 2)
 
@@ -64,7 +65,7 @@ class StripeCommissionService:
             # Check if concierge handled (40% fee) or standard (35% fee)
             effective_pct = 40.0 if dispute.get("is_concierge_handled") else contingency_fee_pct
 
-            commission_cents = int(round(gross_cents * (effective_pct / 100.0)))
+            commission_cents = round(gross_cents * (effective_pct / 100.0))
             commission_dollars = round(commission_cents / 100.0, 2)
 
             total_gross_cents += gross_cents
@@ -110,7 +111,7 @@ class StripeCommissionService:
     def sync_with_stripe(
         cls,
         record: CommissionInvoiceRecord,
-        stripe_api_key: Optional[str] = None,
+        stripe_api_key: str | None = None,
     ) -> CommissionInvoiceRecord:
         """Syncs commission invoice with Stripe Invoicing API or falls back to mock Stripe metadata."""
         api_key = stripe_api_key or os.environ.get("STRIPE_SECRET_KEY")
@@ -227,10 +228,10 @@ class StripeCommissionService:
     @classmethod
     def handle_denied_dispute(
         cls,
-        dispute: Dict[str, Any],
+        dispute: dict[str, Any],
         stronger_evidence_notes: str,
-        additional_clauses: Optional[List[str]] = None,
-    ) -> Dict[str, Any]:
+        additional_clauses: list[str] | None = None,
+    ) -> dict[str, Any]:
         """Handles denied dispute workflow per PRD Phase 6.2.
 
         - If resend_count < 1: triggers 1 automated resend task with stronger tariff evidence.

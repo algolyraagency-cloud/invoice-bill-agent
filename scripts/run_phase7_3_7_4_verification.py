@@ -7,8 +7,8 @@ Validates:
 4. Customer portal integration for nudges and carrier intelligence.
 """
 import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from datetime import datetime, timezone, timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 engine_dir = BASE_DIR / "packages" / "audit-engine"
@@ -16,19 +16,18 @@ for p in [str(BASE_DIR), str(engine_dir)]:
     if p not in sys.path:
         sys.path.insert(0, p)
 
-from packages.schemas.models import (
-    InvoiceJSON,
-    Accessorial,
-    LineItem,
-    RateMatrixJSON,
-)
 from orchestrator import audit_invoice
 
 from apps.worker.dispute_tracker_automation import (
-    scan_overdue_disputes,
     compute_carrier_hostility_analytics,
+    scan_overdue_disputes,
 )
 from apps.worker.portal_service import CustomerPortalService
+from packages.schemas.models import (
+    Accessorial,
+    InvoiceJSON,
+    LineItem,
+)
 
 
 def run_verification():
@@ -70,7 +69,7 @@ def run_verification():
     )
 
     check_types = {f.check_type for f in flags}
-    print(f"  -> Generated {len(flags)} flags across check types: {sorted(list(check_types))}")
+    print(f"  -> Generated {len(flags)} flags across check types: {sorted(check_types)}")
 
     assert "ACCESSORIAL" in check_types, "Check 5 (ACCESSORIAL) failed to trigger!"
     assert "REWEIGH" in check_types, "Check 6 (REWEIGH) failed to trigger!"

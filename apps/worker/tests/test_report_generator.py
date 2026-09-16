@@ -6,6 +6,7 @@ HTML report rendering, and vector PDF generation via PyMuPDF.
 
 import sys
 from pathlib import Path
+
 import pytest
 
 # Ensure root is in sys.path

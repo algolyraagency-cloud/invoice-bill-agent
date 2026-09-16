@@ -5,10 +5,10 @@ Tracks execution metrics, aggregates stats, and collects structured audit findin
 
 Zero LLM, zero network drift. Pure deterministic orchestration.
 """
-from datetime import datetime, timezone
 import time
-from typing import Any, Dict, List, Optional
 import uuid
+from datetime import datetime, timezone
+from typing import Any
 
 from packages.schemas.models import (
     AuditRunResult,
@@ -60,19 +60,19 @@ except ImportError:
 
 def audit_invoice(
     invoice: InvoiceJSON,
-    rate_matrices: List[RateMatrixJSON],
-    fsc_tables: Optional[List[FSCEntry]] = None,
-    all_invoices: Optional[List[InvoiceJSON]] = None,
-    eia_diesel_price: Optional[float] = None,
-    eia_indices: Optional[List[Dict[str, Any]]] = None,
-    approved_accessorials: Optional[Dict[str, float]] = None,
-    bol_weight: Optional[float] = None,
-    certified_reweigh: Optional[bool] = None,
-    guaranteed_service: Optional[bool] = None,
-    promised_delivery_date: Optional[str] = None,
-    actual_delivery_date: Optional[str] = None,
-    is_interstate: Optional[bool] = None,
-) -> List[Flag]:
+    rate_matrices: list[RateMatrixJSON],
+    fsc_tables: list[FSCEntry] | None = None,
+    all_invoices: list[InvoiceJSON] | None = None,
+    eia_diesel_price: float | None = None,
+    eia_indices: list[dict[str, Any]] | None = None,
+    approved_accessorials: dict[str, float] | None = None,
+    bol_weight: float | None = None,
+    certified_reweigh: bool | None = None,
+    guaranteed_service: bool | None = None,
+    promised_delivery_date: str | None = None,
+    actual_delivery_date: str | None = None,
+    is_interstate: bool | None = None,
+) -> list[Flag]:
     """
     Executes the 8 deterministic audit checks on a single invoice:
     1. Duplicates (DUP)
@@ -84,7 +84,7 @@ def audit_invoice(
     7. Guaranteed SLA & Money-Back Guarantee (GUARANTEE)
     8. Freight Tax Audit (TAX)
     """
-    flags: List[Flag] = []
+    flags: list[Flag] = []
     comparison_invoices = all_invoices or [invoice]
 
     # Check 1: Duplicate Detection
@@ -145,14 +145,14 @@ def audit_invoice(
 
 
 def audit_batch(
-    invoices: List[InvoiceJSON],
-    rate_matrices: List[RateMatrixJSON],
-    fsc_tables: Optional[List[FSCEntry]] = None,
+    invoices: list[InvoiceJSON],
+    rate_matrices: list[RateMatrixJSON],
+    fsc_tables: list[FSCEntry] | None = None,
     customer_id: str = "default_customer",
-    audit_run_id: Optional[str] = None,
-    scope: Optional[Dict[str, Any]] = None,
-    eia_indices: Optional[List[Dict[str, Any]]] = None,
-    eia_diesel_price: Optional[float] = None,
+    audit_run_id: str | None = None,
+    scope: dict[str, Any] | None = None,
+    eia_indices: list[dict[str, Any]] | None = None,
+    eia_diesel_price: float | None = None,
 ) -> AuditRunResult:
     """
     Executes batch audit over a collection of invoices (e.g. 6-month historical backfill or periodic batch).
@@ -179,11 +179,11 @@ def audit_batch(
         key=lambda inv: (parse_date(inv.invoice_date), inv.invoice_number)
     )
 
-    flags_by_invoice: Dict[str, List[Flag]] = {}
-    all_flags: List[Flag] = []
-    flags_by_check_type: Dict[str, int] = {}
-    flags_by_carrier: Dict[str, int] = {}
-    overcharge_by_check_type: Dict[str, int] = {}
+    flags_by_invoice: dict[str, list[Flag]] = {}
+    all_flags: list[Flag] = []
+    flags_by_check_type: dict[str, int] = {}
+    flags_by_carrier: dict[str, int] = {}
+    overcharge_by_check_type: dict[str, int] = {}
     total_overcharge_cents = 0
     clean_invoices_count = 0
     flagged_invoices_count = 0
@@ -243,7 +243,7 @@ def audit_batch(
     )
 
 
-def persist_audit_run_result(supabase_client, result: AuditRunResult) -> Dict[str, Any]:
+def persist_audit_run_result(supabase_client, result: AuditRunResult) -> dict[str, Any]:
     """
     Persists AuditRunResult into Supabase:
     1. Inserts audit_runs row.

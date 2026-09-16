@@ -4,7 +4,7 @@ Uses Postgres SELECT ... FOR UPDATE SKIP LOCKED to consume jobs directly from Su
 """
 import json
 import os
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 import psycopg2
 
@@ -21,7 +21,7 @@ def get_db_connection():
     )
 
 
-def fetch_next_job(cur, queue_name: str = "parse-invoice") -> Optional[Tuple[str, Dict[str, Any]]]:
+def fetch_next_job(cur, queue_name: str = "parse-invoice") -> tuple[str, dict[str, Any]] | None:
     """
     Atomically claims the next job from pgboss.job using FOR UPDATE SKIP LOCKED.
     Returns (job_id, job_data) or None if queue is empty.
@@ -49,7 +49,7 @@ def fetch_next_job(cur, queue_name: str = "parse-invoice") -> Optional[Tuple[str
         return None
 
 
-def complete_job(cur, job_id: str, output: Dict[str, Any]):
+def complete_job(cur, job_id: str, output: dict[str, Any]):
     cur.execute("""
         UPDATE pgboss.job
         SET state = 'completed', completedon = now(), output = %s

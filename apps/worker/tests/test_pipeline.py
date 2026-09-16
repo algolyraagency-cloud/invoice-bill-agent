@@ -7,9 +7,10 @@ Verifies:
 4. 'run-audit-batch' processes multi-invoice backfills unattended and produces complete stats.
 5. Dead-letter queue captures crashes, prevents infinite loops, and alerts.
 """
-from pathlib import Path
 import sys
+from pathlib import Path
 from unittest.mock import MagicMock
+
 import pytest
 
 root_dir = Path(__file__).resolve().parents[3]
@@ -25,6 +26,7 @@ from pipeline import (
     process_run_audit_batch_job,
     process_run_audit_for_invoice_job,
 )
+
 from packages.schemas.models import (
     FSCEntry,
     InvoiceJSON,

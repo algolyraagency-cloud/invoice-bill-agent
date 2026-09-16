@@ -8,14 +8,16 @@ Verifies:
 """
 
 import os
+
 import pytest
+
 from apps.worker.agreement_generator import (
     render_recovery_agreement_pdf,
     render_recovery_agreement_text,
     verify_recovery_agreement_gate,
 )
-from packages.schemas.models import RecoveryAgreementRequiredError
 from apps.worker.portal_service import CustomerPortalService
+from packages.schemas.models import RecoveryAgreementRequiredError
 
 
 def test_render_recovery_agreement_text():

@@ -5,7 +5,9 @@ Verifies 100% extraction accuracy across Top-10 US LTL carrier document formats.
 
 import json
 from pathlib import Path
+
 import pytest
+
 from apps.worker.regex_fallback_parser import RegexFallbackParser
 
 

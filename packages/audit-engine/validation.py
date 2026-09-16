@@ -9,7 +9,6 @@ Pure deterministic code. Zero LLM, zero network, zero I/O.
 import random
 import re
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Set, Tuple
 
 from packages.schemas.models import (
     ContractSanityIssue,
@@ -25,7 +24,7 @@ from packages.schemas.models import (
 )
 
 # Standard Reason-Code Taxonomy v1 (PRD §5.5, Phase 2.0.4)
-STANDARD_REASON_CODES: Set[str] = {
+STANDARD_REASON_CODES: set[str] = {
     "wrong-matrix-row",
     "misread-pdf-field",
     "contract-exception-misapplied",
@@ -37,7 +36,7 @@ STANDARD_REASON_CODES: Set[str] = {
 }
 
 # Standard LTL Weight Break Hierarchy (ordered from lowest to highest weight tier)
-WEIGHT_BREAK_ORDER: Dict[str, int] = {
+WEIGHT_BREAK_ORDER: dict[str, int] = {
     "MC": 0,
     "MIN": 0,
     "L5C": 1,
@@ -78,8 +77,8 @@ def validate_invoice_extraction(
     
     If arithmetic or critical fields fail, flags invoice for calibration queue.
     """
-    checks: List[ExtractionCheckDetail] = []
-    notes: List[str] = []
+    checks: list[ExtractionCheckDetail] = []
+    notes: list[str] = []
     confidence: float = 1.000
 
     # 1. Check Header & Identifiers
@@ -95,11 +94,9 @@ def validate_invoice_extraction(
         notes.append("Invoice number missing or malformed")
     
     # Date validation YYYY-MM-DD
-    date_valid = True
     try:
         datetime.strptime(invoice.invoice_date.strip()[:10], "%Y-%m-%d")
     except Exception:
-        date_valid = False
         headers_valid = False
         notes.append(f"Invalid invoice date format: {invoice.invoice_date}")
 
@@ -202,8 +199,8 @@ def validate_invoice_extraction(
 
 def validate_contract_matrix(
     matrix: RateMatrixJSON,
-    fsc_tables: Optional[List[FSCEntry]] = None,
-    in_scope_months: Optional[List[str]] = None
+    fsc_tables: list[FSCEntry] | None = None,
+    in_scope_months: list[str] | None = None
 ) -> ContractValidationResult:
     """
     Runs deterministic sanity checks on a parsed RateMatrixJSON before it can power audits:
@@ -214,7 +211,7 @@ def validate_contract_matrix(
     5. FSC table coverage across required months.
     6. Currency / zero / negative rate anomalies.
     """
-    issues: List[ContractSanityIssue] = []
+    issues: list[ContractSanityIssue] = []
     total_lanes = len(matrix.rates)
 
     if total_lanes == 0:
@@ -226,8 +223,8 @@ def validate_contract_matrix(
         ))
 
     # Group rates by lane key: (origin_zip_prefix, dest_zip_prefix)
-    lanes_map: Dict[Tuple[str, str], List[RateMatrixRow]] = {}
-    seen_row_signatures: Set[Tuple[str, str, str, str, str]] = set()
+    lanes_map: dict[tuple[str, str], list[RateMatrixRow]] = {}
+    seen_row_signatures: set[tuple[str, str, str, str, str]] = set()
 
     for row in matrix.rates:
         # Check non-positive rates
@@ -383,8 +380,8 @@ def validate_contract_matrix(
 def generate_spot_check_sample(
     matrix: RateMatrixJSON,
     n: int = 5,
-    seed: Optional[int] = None
-) -> List[SpotCheckItem]:
+    seed: int | None = None
+) -> list[SpotCheckItem]:
     """
     Selects N (default 5) stratified sample lanes from the parsed rate matrix
     for side-by-side human spot-verification against the contract PDF.
@@ -408,9 +405,9 @@ def generate_spot_check_sample(
         sampled_indices.append(idx)
 
     # Deduplicate while preserving order
-    unique_indices = sorted(list(set(sampled_indices)))
+    unique_indices = sorted(set(sampled_indices))
 
-    spot_items: List[SpotCheckItem] = []
+    spot_items: list[SpotCheckItem] = []
     for idx_num, idx in enumerate(unique_indices, start=1):
         row = matrix.rates[idx]
         spot_items.append(SpotCheckItem(
@@ -427,9 +424,9 @@ def generate_spot_check_sample(
 
 
 def evaluate_spot_verification(
-    spot_checks: List[SpotCheckItem],
-    user_results: List[SpotVerificationResult]
-) -> Tuple[bool, str]:
+    spot_checks: list[SpotCheckItem],
+    user_results: list[SpotVerificationResult]
+) -> tuple[bool, str]:
     """
     Evaluates spot verification results:
     All 5 sampled lanes must match exactly (100% agreement).

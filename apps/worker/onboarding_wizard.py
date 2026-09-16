@@ -12,7 +12,8 @@ Wizard Steps:
 """
 
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 from packages.schemas.models import OnboardingWizardState
 
 
@@ -21,7 +22,7 @@ class OnboardingWizardService:
 
     def __init__(self, portal_service=None):
         self.portal = portal_service
-        self._wizard_states: Dict[str, Dict[str, Any]] = {}
+        self._wizard_states: dict[str, dict[str, Any]] = {}
 
     def init_wizard(self, customer_id: str, company_name: str, slug: str) -> OnboardingWizardState:
         """Initializes wizard state for a new organization."""
@@ -81,7 +82,7 @@ class OnboardingWizardService:
     def advance_step_2_team_users(
         self,
         customer_id: str,
-        invited_users: List[Dict[str, str]],
+        invited_users: list[dict[str, str]],
     ) -> OnboardingWizardState:
         """Step 2: Add team members and AP clerks."""
         st = self.get_wizard_state(customer_id).model_dump()
@@ -94,7 +95,7 @@ class OnboardingWizardService:
     def advance_step_3_carrier_selection(
         self,
         customer_id: str,
-        carriers: List[str],
+        carriers: list[str],
     ) -> OnboardingWizardState:
         """Step 3: Select active carriers from Top-10 list."""
         st = self.get_wizard_state(customer_id).model_dump()

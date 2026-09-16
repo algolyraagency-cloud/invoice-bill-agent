@@ -4,18 +4,24 @@ Pure functions. No LLM, no network, no clock.
 Fully unit-testable.
 """
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
-from packages.schemas.models import Flag, FSCEntry, InvoiceJSON, RateMatrixJSON, RateMatrixRow
+from packages.schemas.models import (
+    Flag,
+    FSCEntry,
+    InvoiceJSON,
+    RateMatrixJSON,
+    RateMatrixRow,
+)
 
 try:
-    from fsc import get_fsc, get_active_eia_price
+    from fsc import get_active_eia_price, get_fsc
 except ImportError:
     try:
-        from .fsc import get_fsc, get_active_eia_price
+        from .fsc import get_active_eia_price, get_fsc
     except ImportError:
         try:
-            from packages.audit_engine.fsc import get_fsc, get_active_eia_price
+            from packages.audit_engine.fsc import get_active_eia_price, get_fsc
         except ImportError:
             get_fsc = None
             get_active_eia_price = None
@@ -26,7 +32,7 @@ def parse_date(date_str: str) -> datetime:
     return datetime.strptime(date_str.strip()[:10], "%Y-%m-%d")
 
 
-def check_duplicates(invoice: InvoiceJSON, all_invoices: List[InvoiceJSON]) -> List[Flag]:
+def check_duplicates(invoice: InvoiceJSON, all_invoices: list[InvoiceJSON]) -> list[Flag]:
     """
     Check 1: Duplicate Detection.
     Flags invoices with:
@@ -37,7 +43,7 @@ def check_duplicates(invoice: InvoiceJSON, all_invoices: List[InvoiceJSON]) -> L
     Ensures chronological directionality: The earlier invoice is the original;
     only the subsequent invoice is flagged as a duplicate rebill.
     """
-    flags: List[Flag] = []
+    flags: list[Flag] = []
     inv_date = parse_date(invoice.invoice_date)
 
     for other in all_invoices:
@@ -84,7 +90,7 @@ def check_duplicates(invoice: InvoiceJSON, all_invoices: List[InvoiceJSON]) -> L
             dup_reason = f"Identical amount (${invoice.invoice_total:.2f}) on lane {invoice.origin_zip}->{invoice.dest_zip} billed within {date_diff_days} day(s) of original Inv #{other.invoice_number} ({other.invoice_date})"
 
         if is_duplicate:
-            overcharge_cents = int(round(invoice.invoice_total * 100))
+            overcharge_cents = round(invoice.invoice_total * 100)
             flags.append(Flag(
                 invoice_id=getattr(invoice, "id", None),
                 check_type="DUP",
@@ -110,12 +116,12 @@ def check_duplicates(invoice: InvoiceJSON, all_invoices: List[InvoiceJSON]) -> L
     return flags
 
 
-def check_arithmetic(invoice: InvoiceJSON) -> List[Flag]:
+def check_arithmetic(invoice: InvoiceJSON) -> list[Flag]:
     """
     Check 7 (MVP Core): Arithmetic Reconciliation.
     Verifies that the sum of line items equals invoice_total within penny tolerance.
     """
-    flags: List[Flag] = []
+    flags: list[Flag] = []
     if not invoice.line_items:
         return flags
 
@@ -124,7 +130,7 @@ def check_arithmetic(invoice: InvoiceJSON) -> List[Flag]:
 
     # Allow 2 cents rounding difference; only flag when carrier overbilled
     if diff > 0.02:
-        overcharge_cents = int(round(diff * 100))
+        overcharge_cents = round(diff * 100)
         flags.append(Flag(
             invoice_id=getattr(invoice, "id", None),
             check_type="ARITH",
@@ -169,8 +175,8 @@ def match_lane_prefix(origin: str, dest: str, row: RateMatrixRow) -> int:
 
 def select_effective_matrix(
     invoice_date_str: str,
-    matrices: List[RateMatrixJSON]
-) -> Optional[RateMatrixJSON]:
+    matrices: list[RateMatrixJSON]
+) -> RateMatrixJSON | None:
     """Select the rate matrix in effect on invoice_date."""
     inv_date = parse_date(invoice_date_str)
 
@@ -189,7 +195,7 @@ def select_effective_matrix(
     return matrices[0] if matrices else None
 
 
-def check_rates(invoice: InvoiceJSON, rate_matrix_versions: List[RateMatrixJSON]) -> List[Flag]:
+def check_rates(invoice: InvoiceJSON, rate_matrix_versions: list[RateMatrixJSON]) -> list[Flag]:
     """
     Check 2: Rate Verification with Deficit Weight Bumping & 3-Digit Zip Prefix Matching.
 
@@ -199,13 +205,13 @@ def check_rates(invoice: InvoiceJSON, rate_matrix_versions: List[RateMatrixJSON]
     4. Applies discount percentage and minimum charge floor.
     5. Flags overcharges if billed rate exceeds contracted rate.
     """
-    flags: List[Flag] = []
+    flags: list[Flag] = []
     matrix = select_effective_matrix(invoice.invoice_date, rate_matrix_versions)
     if not matrix or not matrix.rates:
         return flags
 
     # Find matching lane rows
-    matching_rows: List[Tuple[int, RateMatrixRow]] = []
+    matching_rows: list[tuple[int, RateMatrixRow]] = []
     for row in matrix.rates:
         score = match_lane_prefix(invoice.origin_zip, invoice.dest_zip, row)
         if score > 0:
@@ -286,7 +292,7 @@ def check_rates(invoice: InvoiceJSON, rate_matrix_versions: List[RateMatrixJSON]
 
     diff = billed_base - contracted_base
     if diff > 1.00:  # Threshold > $1.00 to avoid rounding noise
-        overcharge_cents = int(round(diff * 100))
+        overcharge_cents = round(diff * 100)
         reason = "Deficit weight rating not applied" if bumped else "Billed lane rate exceeds contract tariff"
         flags.append(Flag(
             invoice_id=getattr(invoice, "id", None),
@@ -316,10 +322,10 @@ def check_rates(invoice: InvoiceJSON, rate_matrix_versions: List[RateMatrixJSON]
 
 def check_fsc(
     invoice: InvoiceJSON,
-    fsc_tables: Optional[List[FSCEntry]] = None,
-    eia_diesel_price: Optional[float] = None,
-    eia_indices: Optional[List[Dict[str, Any]]] = None
-) -> List[Flag]:
+    fsc_tables: list[FSCEntry] | None = None,
+    eia_diesel_price: float | None = None,
+    eia_indices: list[dict[str, Any]] | None = None
+) -> list[Flag]:
     """
     Check 3: Fuel Surcharge (FSC) Verification.
 
@@ -328,15 +334,15 @@ def check_fsc(
     2. Recalculates expected FSC against base net freight (not total amount or accessorials).
     3. Flags discrepancies where billed FSC exceeds authorized contract schedule.
     """
-    flags: List[Flag] = []
+    flags: list[Flag] = []
     if invoice.fsc_amount is None and invoice.fsc_pct is None:
         return flags
 
     fsc_tables = fsc_tables or []
     carrier_name = invoice.carrier.strip().lower()
 
-    matched_fsc_pct: Optional[float] = None
-    fsc_meta: Dict[str, Any] = {}
+    matched_fsc_pct: float | None = None
+    fsc_meta: dict[str, Any] = {}
 
     # 1. Match via EIA diesel price bracket if provided directly
     if eia_diesel_price is not None and fsc_tables:
@@ -398,7 +404,7 @@ def check_fsc(
     pct_discrepancy = (invoice.fsc_pct - matched_fsc_pct) if invoice.fsc_pct is not None else 0.0
 
     if (invoice.fsc_pct is not None and pct_discrepancy > 0.4) or (overcharge > 0.50):
-        overcharge_cents = max(int(round(overcharge * 100)), 50)
+        overcharge_cents = max(round(overcharge * 100), 50)
         benchmark_used = eia_diesel_price or fsc_meta.get("eia_diesel_price")
         flags.append(Flag(
             invoice_id=getattr(invoice, "id", None),
@@ -425,19 +431,19 @@ def check_fsc(
 
 def check_accessorials(
     invoice: InvoiceJSON,
-    rate_matrix_versions: Optional[List[RateMatrixJSON]] = None,
-    approved_accessorials: Optional[Dict[str, float]] = None
-) -> List[Flag]:
+    rate_matrix_versions: list[RateMatrixJSON] | None = None,
+    approved_accessorials: dict[str, float] | None = None
+) -> list[Flag]:
     """
     Check 5: Accessorial Audit.
     Verifies billed accessorial fees (Liftgate, Residential, Inside Delivery, Redelivery, etc.)
     against contract approved limits or authorization state.
     """
-    flags: List[Flag] = []
+    flags: list[Flag] = []
     matrix = select_effective_matrix(invoice.invoice_date, rate_matrix_versions) if rate_matrix_versions else None
     
     # Combined contract approved accessorial rates (lowercased keys)
-    contract_approved: Dict[str, float] = {}
+    contract_approved: dict[str, float] = {}
     if approved_accessorials:
         contract_approved.update({k.lower(): float(v) for k, v in approved_accessorials.items()})
     if matrix and matrix.approved_accessorials:
@@ -450,7 +456,7 @@ def check_accessorials(
 
         # Case A: Unauthorized accessorial explicitly marked
         if acc.authorized is False:
-            overcharge_cents = int(round(billed_amt * 100))
+            overcharge_cents = round(billed_amt * 100)
             if overcharge_cents > 0:
                 flags.append(Flag(
                     invoice_id=getattr(invoice, "id", None),
@@ -476,7 +482,7 @@ def check_accessorials(
             approved_rate = contract_approved[acc_type_clean]
             if billed_amt > approved_rate + 0.50:
                 diff = billed_amt - approved_rate
-                overcharge_cents = int(round(diff * 100))
+                overcharge_cents = round(diff * 100)
                 flags.append(Flag(
                     invoice_id=getattr(invoice, "id", None),
                     check_type="ACCESSORIAL",
@@ -509,7 +515,7 @@ def check_accessorials(
                 approved_rate = contract_approved[matched_key]
                 if item.amount > approved_rate + 0.50:
                     diff = item.amount - approved_rate
-                    overcharge_cents = int(round(diff * 100))
+                    overcharge_cents = round(diff * 100)
                     # Avoid duplicate flag if already covered in invoice.accessorials
                     already_flagged = any(f.check_type == "ACCESSORIAL" and f.evidence_json.get("billed_value") == round(item.amount, 2) for f in flags)
                     if not already_flagged:
@@ -521,7 +527,7 @@ def check_accessorials(
                             evidence_json={
                                 "invoice_ref": invoice.invoice_number,
                                 "carrier": invoice.carrier,
-                                "contract_clause": f"Item 550 — Accessorial Line Item Schedule",
+                                "contract_clause": "Item 550 — Accessorial Line Item Schedule",
                                 "page_number": 9,
                                 "accessorial_type": item.description,
                                 "billed_value": round(item.amount, 2),
@@ -536,21 +542,21 @@ def check_accessorials(
 
 def check_reweigh_dimension(
     invoice: InvoiceJSON,
-    bol_weight: Optional[float] = None,
-    certified_reweigh: Optional[bool] = None
-) -> List[Flag]:
+    bol_weight: float | None = None,
+    certified_reweigh: bool | None = None
+) -> list[Flag]:
     """
     Check 6: Reweigh & Dimension Discrepancy Audit.
     Flags unauthorized reweigh fees or uncertified weight increases (> 50 lbs over BOL weight).
     """
-    flags: List[Flag] = []
+    flags: list[Flag] = []
     
     # 1. Check for explicit reweigh / inspection fee line items
     for item in invoice.line_items:
         desc_clean = item.description.strip().lower()
         if "reweigh" in desc_clean or "weight adjustment" in desc_clean or "weight inspection" in desc_clean:
             if certified_reweigh is False or certified_reweigh is None:
-                overcharge_cents = int(round(item.amount * 100))
+                overcharge_cents = round(item.amount * 100)
                 if overcharge_cents > 0:
                     flags.append(Flag(
                         invoice_id=getattr(invoice, "id", None),
@@ -581,7 +587,7 @@ def check_reweigh_dimension(
                 # Estimated overcharge based on weight diff proportion or baseline penalty
                 cwt_diff = weight_diff / 100.0
                 estimated_overcharge = max(35.0, cwt_diff * 12.50)
-                overcharge_cents = int(round(estimated_overcharge * 100))
+                overcharge_cents = round(estimated_overcharge * 100)
                 flags.append(Flag(
                     invoice_id=getattr(invoice, "id", None),
                     check_type="REWEIGH",
@@ -607,15 +613,15 @@ def check_reweigh_dimension(
 
 def check_guaranteed_sla(
     invoice: InvoiceJSON,
-    guaranteed_service: Optional[bool] = None,
-    promised_delivery_date: Optional[str] = None,
-    actual_delivery_date: Optional[str] = None
-) -> List[Flag]:
+    guaranteed_service: bool | None = None,
+    promised_delivery_date: str | None = None,
+    actual_delivery_date: str | None = None
+) -> list[Flag]:
     """
     Check 7: Guaranteed SLA & On-Time Delivery Audit.
     Flags late delivery on guaranteed shipments (100% money-back guarantee under Item 780).
     """
-    flags: List[Flag] = []
+    flags: list[Flag] = []
     
     # Detect guaranteed service line item or argument
     guarantee_line_amount = 0.0
@@ -637,7 +643,7 @@ def check_guaranteed_sla(
             # SLA Missed! Full money-back guarantee refund applies
             # Overcharge is guaranteed fee plus total freight or guaranteed fee amount
             refundable_amount = guarantee_line_amount if guarantee_line_amount > 0.0 else invoice.invoice_total
-            overcharge_cents = int(round(refundable_amount * 100))
+            overcharge_cents = round(refundable_amount * 100)
             flags.append(Flag(
                 invoice_id=getattr(invoice, "id", None),
                 check_type="GUARANTEE",
@@ -662,13 +668,13 @@ def check_guaranteed_sla(
 
 def check_freight_tax(
     invoice: InvoiceJSON,
-    is_interstate: Optional[bool] = None
-) -> List[Flag]:
+    is_interstate: bool | None = None
+) -> list[Flag]:
     """
     Check 8: Freight Transportation Tax Audit.
     Flags sales/transportation taxes billed on tax-exempt interstate freight shipments.
     """
-    flags: List[Flag] = []
+    flags: list[Flag] = []
     
     # Determine interstate status: different zip prefixes or explicit param
     orig_prefix = invoice.origin_zip[:3] if invoice.origin_zip else ""
@@ -684,7 +690,7 @@ def check_freight_tax(
         if any(keyword in desc_clean for keyword in ["sales tax", "state tax", "transportation tax", "gst", "hst", "tax charge"]):
             tax_amount = item.amount
             if tax_amount > 0.0:
-                overcharge_cents = int(round(tax_amount * 100))
+                overcharge_cents = round(tax_amount * 100)
                 flags.append(Flag(
                     invoice_id=getattr(invoice, "id", None),
                     check_type="TAX",

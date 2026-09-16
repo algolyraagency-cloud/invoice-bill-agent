@@ -5,10 +5,10 @@ Guarantees manual invoices enter the exact same pipeline state ('pending') as em
 import hashlib
 import json
 import uuid
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 
-def build_canonical_manual_invoice(data: Dict[str, Any]) -> Dict[str, Any]:
+def build_canonical_manual_invoice(data: dict[str, Any]) -> dict[str, Any]:
     """
     Constructs a validated canonical InvoiceJSON structure from manual form input.
     """
@@ -42,7 +42,7 @@ def build_canonical_manual_invoice(data: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def insert_manual_invoice(conn, customer_id: str, data: Dict[str, Any]) -> Tuple[bool, Optional[str], Optional[str]]:
+def insert_manual_invoice(conn, customer_id: str, data: dict[str, Any]) -> tuple[bool, str | None, str | None]:
     """
     Inserts manual invoice into Supabase Postgres database.
     Returns: (success, invoice_id, error_message)

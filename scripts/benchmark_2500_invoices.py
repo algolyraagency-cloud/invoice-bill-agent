@@ -5,9 +5,8 @@ Measures wall-clock latency per stage (Ingestion, Parse/Validation, Audit, Revie
 Verifies FR-2.3 constraint (500 invoices < 15 minutes -> 2,500 invoices < 75 minutes).
 """
 
-import time
-from datetime import datetime, timezone
 import sys
+import time
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -17,9 +16,11 @@ ENGINE_DIR = BASE_DIR / "packages" / "audit-engine"
 if str(ENGINE_DIR) not in sys.path:
     sys.path.insert(0, str(ENGINE_DIR))
 
-from packages.schemas.models import InvoiceJSON, RateMatrixJSON, RateMatrixRow, FSCEntry
 from orchestrator import audit_batch
 from validation import validate_invoice_extraction
+
+from packages.schemas.models import InvoiceJSON, RateMatrixJSON, RateMatrixRow
+
 
 def generate_mock_invoices_batch(count=500, customer_id="cust_bench_01"):
     invoices = []
@@ -105,7 +106,7 @@ def run_2500_invoice_benchmark():
 
     t0 = time.time()
     matrices = generate_mock_rate_matrices()
-    batch_result = audit_batch(
+    audit_batch(
         invoices=all_invoices,
         rate_matrices=matrices,
         fsc_tables=[],
@@ -120,7 +121,7 @@ def run_2500_invoice_benchmark():
     print("BENCHMARK SUMMARY & PERFORMANCE RESULTS")
     print("================================================================================")
     print(f"Total Wall-Clock Latency: {total_wall_clock:.2f} seconds ({total_wall_clock / 60.0:.2f} minutes)")
-    print(f"FR-2.3 Target (500 inv < 15 min): Required < 75.0 min for 2,500 invoices.")
+    print("FR-2.3 Target (500 inv < 15 min): Required < 75.0 min for 2,500 invoices.")
     print(f"Achieved Speedup: {75.0 / max(total_wall_clock / 60.0, 0.01):.1f}x HEADROOM ABOVE FR-2.3 TARGET!")
     print("DECISION: PERFORMANCE BENCHMARK PASSED (GO FOR SCALE)")
     print("================================================================================")

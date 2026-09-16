@@ -6,10 +6,9 @@ as codified in Phase 0.2 spike.
 import hashlib
 import io
 from pathlib import Path
-from typing import Tuple, Union
 
 
-def extract_document_bytes(content_bytes: bytes, filename: str = "document.pdf") -> Tuple[str, str, str]:
+def extract_document_bytes(content_bytes: bytes, filename: str = "document.pdf") -> tuple[str, str, str]:
     """
     Extracts text and tabular content from PDF bytes.
     Returns: (extracted_content, method_used, content_sha256)
@@ -98,7 +97,7 @@ def extract_document_bytes(content_bytes: bytes, filename: str = "document.pdf")
     raise RuntimeError(f"All extraction engines failed to extract text from {filename}")
 
 
-def extract_document_text(file_path: Union[str, Path]) -> Tuple[str, str, str]:
+def extract_document_text(file_path: str | Path) -> tuple[str, str, str]:
     """
     Extracts text/markdown from PDF file on disk.
     Returns: (extracted_content, method_used, content_sha256)

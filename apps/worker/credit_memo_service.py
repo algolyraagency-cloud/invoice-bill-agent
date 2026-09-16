@@ -9,12 +9,11 @@ Commission invoices can ONLY be generated from credit memos with verification_st
 
 import re
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from packages.schemas.models import (
     CreditMemoDetectionCandidate,
     CreditMemoVerificationResult,
-    CreditMemoListItem,
 )
 
 # Standardized Credit Memo keywords
@@ -41,12 +40,12 @@ class CreditMemoService:
     @classmethod
     def detect_credit_memos_from_stream(
         cls,
-        parsed_invoice: Dict[str, Any],
-        raw_text: Optional[str] = None,
+        parsed_invoice: dict[str, Any],
+        raw_text: str | None = None,
         file_name: str = "",
-    ) -> List[CreditMemoDetectionCandidate]:
+    ) -> list[CreditMemoDetectionCandidate]:
         """Scans newly ingested invoices / documents for negative totals or credit memo patterns."""
-        candidates: List[CreditMemoDetectionCandidate] = []
+        candidates: list[CreditMemoDetectionCandidate] = []
 
         total_cents = parsed_invoice.get("invoice_total_cents", 0)
         total_dollars = parsed_invoice.get("invoice_total", 0.0)
@@ -93,7 +92,7 @@ class CreditMemoService:
         email_body: str,
         sender_email: str = "",
         carrier_hint: str = "",
-    ) -> Optional[CreditMemoDetectionCandidate]:
+    ) -> CreditMemoDetectionCandidate | None:
         """Parses customer-forwarded carrier credit memo emails sent to disputes+{slug}@in.rateguard.app."""
         full_content = f"{email_subject} {email_body}".upper()
         if not cls.is_credit_memo_text(full_content) and "CREDIT" not in full_content and "ADJUSTMENT" not in full_content:
@@ -110,7 +109,7 @@ class CreditMemoService:
         # Extract Amount
         amt_match = re.search(r"\$\s*([\d,]+\.\d{2})", full_content)
         amount_dollars = float(amt_match.group(1).replace(",", "")) if amt_match else 0.0
-        amount_cents = int(round(amount_dollars * 100))
+        amount_cents = round(amount_dollars * 100)
 
         carrier = carrier_hint or "Unknown Carrier"
         if "ABF" in full_content or "ARCBEST" in full_content:
@@ -135,8 +134,8 @@ class CreditMemoService:
     @classmethod
     def verify_credit_memo(
         cls,
-        candidate: Dict[str, Any],
-        active_disputes: List[Dict[str, Any]],
+        candidate: dict[str, Any],
+        active_disputes: list[dict[str, Any]],
         amount_tolerance_dollars: float = 1.00,
     ) -> CreditMemoVerificationResult:
         """Matches credit memo candidate against open/sent disputes in disputes repository.
@@ -153,7 +152,7 @@ class CreditMemoService:
         memo_ref = (candidate.get("original_invoice_ref") or candidate.get("pro_number") or "").lower().strip()
         memo_amount = float(candidate.get("amount_dollars") or (candidate.get("amount_cents", 0) / 100.0))
 
-        best_match: Optional[Dict[str, Any]] = None
+        best_match: dict[str, Any] | None = None
 
         for dispute in active_disputes:
             disp_carrier = (dispute.get("carrier") or "").lower().strip()

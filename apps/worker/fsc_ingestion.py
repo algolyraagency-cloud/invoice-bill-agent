@@ -5,7 +5,7 @@ into Supabase Postgres (fsc_tables and eia_diesel_indices).
 """
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 # Add root and audit-engine to sys.path
 root_dir = Path(__file__).resolve().parents[2]
@@ -14,10 +14,9 @@ for p in [str(root_dir), str(audit_engine_dir)]:
     if p not in sys.path:
         sys.path.insert(0, p)
 
-from packages.schemas.models import FSCEntry
 
 
-STANDARD_CARRIER_FSC_SCALES: Dict[str, List[Dict[str, Any]]] = {
+STANDARD_CARRIER_FSC_SCALES: dict[str, list[dict[str, Any]]] = {
     "ABF Freight": [
         {"min_diesel_price": 3.60, "max_diesel_price": 3.649, "fsc_pct": 31.50},
         {"min_diesel_price": 3.65, "max_diesel_price": 3.699, "fsc_pct": 32.00},
@@ -50,7 +49,7 @@ STANDARD_CARRIER_FSC_SCALES: Dict[str, List[Dict[str, Any]]] = {
     ],
 }
 
-STANDARD_EIA_INDICES: List[Dict[str, Any]] = [
+STANDARD_EIA_INDICES: list[dict[str, Any]] = [
     {"week_date": "2026-07-27", "national_average_price_cents": 375, "source_url": "https://www.eia.gov"},
     {"week_date": "2026-08-03", "national_average_price_cents": 378, "source_url": "https://www.eia.gov"},
     {"week_date": "2026-08-10", "national_average_price_cents": 382, "source_url": "https://www.eia.gov"},
@@ -61,7 +60,7 @@ STANDARD_EIA_INDICES: List[Dict[str, Any]] = [
 ]
 
 
-def validate_scale_rows(carrier: str, scale_rows: List[Dict[str, Any]]) -> Tuple[bool, List[str]]:
+def validate_scale_rows(carrier: str, scale_rows: list[dict[str, Any]]) -> tuple[bool, list[str]]:
     """
     Validates carrier FSC scale rows:
     1. min_diesel_price < max_diesel_price.
@@ -99,9 +98,9 @@ def validate_scale_rows(carrier: str, scale_rows: List[Dict[str, Any]]) -> Tuple
 
 def ingest_carrier_fsc_scale(
     carrier: str,
-    scale_rows: List[Dict[str, Any]],
+    scale_rows: list[dict[str, Any]],
     supabase_client: Any = None
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Validates and ingests carrier fuel surcharge scale into fsc_tables.
     """
@@ -132,7 +131,7 @@ def ingest_carrier_fsc_scale(
     }
 
 
-def seed_standard_fsc_data(supabase_client: Any = None) -> Dict[str, Any]:
+def seed_standard_fsc_data(supabase_client: Any = None) -> dict[str, Any]:
     """
     Seeds standard EIA weekly indices and top-3 carrier scales.
     """

@@ -5,7 +5,6 @@ SHA-256 parse caching, and Phase 2.0 self-validation integration.
 """
 import sys
 from pathlib import Path
-import pytest
 
 root_dir = Path(__file__).resolve().parents[3]
 worker_dir = root_dir / "apps" / "worker"
@@ -15,10 +14,10 @@ for p in [str(root_dir), str(worker_dir), str(engine_dir)]:
         sys.path.insert(0, p)
 
 from invoice_parser import (
-    _INVOICE_PARSE_CACHE,
     parse_invoice_document,
     persist_parsed_invoice,
 )
+
 from packages.schemas.models import InvoiceJSON
 
 
@@ -69,7 +68,7 @@ def test_parse_xpo_invoice_with_accessorial():
     Liftgate: $75.00
     TOTAL: $394.20
     """
-    invoice, val_result, meta = parse_invoice_document(raw_doc, carrier_hint="XPO Logistics", use_cache=False)
+    invoice, val_result, _meta = parse_invoice_document(raw_doc, carrier_hint="XPO Logistics", use_cache=False)
 
     assert invoice.carrier == "XPO Logistics"
     assert invoice.pro_number == "781-5500112"
@@ -119,7 +118,7 @@ def test_invoice_parser_validation_failure_handling():
     Fuel: $30.00
     TOTAL AMOUNT DUE: $250.00
     """
-    invoice, val_result, meta = parse_invoice_document(raw_doc, use_cache=False)
+    _invoice, val_result, meta = parse_invoice_document(raw_doc, use_cache=False)
 
     # Arithmetic mismatch: sum is $130 vs billed $250!
     assert val_result.arithmetic_sum_match is False

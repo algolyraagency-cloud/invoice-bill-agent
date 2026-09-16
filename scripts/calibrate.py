@@ -11,11 +11,10 @@ Executes full deterministic validation & audit pipeline over benchmark golden fi
 """
 import argparse
 import json
-import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 # Ensure root and packages are in sys.path
 root_dir = Path(__file__).resolve().parents[1]
@@ -27,8 +26,8 @@ if str(audit_engine_dir) not in sys.path:
 
 from engine import check_arithmetic, check_duplicates, check_fsc, check_rates
 from validation import validate_invoice_extraction
+
 from packages.schemas.models import (
-    CalibrationMetric,
     FSCEntry,
     InvoiceJSON,
     RateMatrixJSON,
@@ -44,7 +43,7 @@ def get_git_commit_sha() -> str:
         return "development-head"
 
 
-def load_golden_fixtures(fixtures_dir: Path) -> List[Dict[str, Any]]:
+def load_golden_fixtures(fixtures_dir: Path) -> list[dict[str, Any]]:
     """Loads all JSON golden fixture files from directory."""
     fixtures = []
     if not fixtures_dir.exists():
@@ -62,9 +61,9 @@ def load_golden_fixtures(fixtures_dir: Path) -> List[Dict[str, Any]]:
 
 
 def run_calibration(
-    fixtures: List[Dict[str, Any]],
-    output_json_path: Path = None
-) -> Tuple[bool, Dict[str, Any]]:
+    fixtures: list[dict[str, Any]],
+    output_json_path: Path | None = None
+) -> tuple[bool, dict[str, Any]]:
     """
     Executes audit engine on all fixtures and computes precision/recall per check and carrier.
     Returns: (gate_passed, results_payload)
@@ -72,8 +71,8 @@ def run_calibration(
     CHECK_TYPES = ["DUP", "RATE", "FSC", "ARITH"]
 
     # Counters: [category][name][metric]
-    metrics_by_check: Dict[str, Dict[str, int]] = {c: {"tp": 0, "fp": 0, "fn": 0, "tn": 0} for c in CHECK_TYPES}
-    metrics_by_carrier: Dict[str, Dict[str, int]] = {}
+    metrics_by_check: dict[str, dict[str, int]] = {c: {"tp": 0, "fp": 0, "fn": 0, "tn": 0} for c in CHECK_TYPES}
+    metrics_by_carrier: dict[str, dict[str, int]] = {}
     overall_counts = {"tp": 0, "fp": 0, "fn": 0, "tn": 0}
     total_invoices_audited = 0
 
@@ -91,7 +90,7 @@ def run_calibration(
 
         # Build list of InvoiceJSON objects for this carrier batch
         cases = fixture.get("cases", [])
-        invoices: List[InvoiceJSON] = []
+        invoices: list[InvoiceJSON] = []
         for case in cases:
             inv = InvoiceJSON(**case["invoice"])
             invoices.append(inv)
@@ -151,7 +150,7 @@ def run_calibration(
             })
 
     # Helper function to compute precision, recall, f1
-    def calc_metrics(counts: Dict[str, int]) -> Dict[str, float]:
+    def calc_metrics(counts: dict[str, int]) -> dict[str, float]:
         tp = counts["tp"]
         fp = counts["fp"]
         fn = counts["fn"]

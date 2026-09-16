@@ -6,6 +6,7 @@ RFC 2368 mailto: URL encoding, status state machine, carrier batching, and vecto
 
 import sys
 from pathlib import Path
+
 import pytest
 
 # Ensure root is in sys.path

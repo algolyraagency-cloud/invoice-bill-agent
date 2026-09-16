@@ -5,7 +5,6 @@ spot-check sampling, and database row materialization.
 """
 import sys
 from pathlib import Path
-import pytest
 
 root_dir = Path(__file__).resolve().parents[3]
 worker_dir = root_dir / "apps" / "worker"
@@ -15,10 +14,10 @@ for p in [str(root_dir), str(worker_dir), str(engine_dir)]:
         sys.path.insert(0, p)
 
 from contract_parser import (
-    _CONTRACT_PARSE_CACHE,
     parse_contract_document,
     persist_parsed_contract,
 )
+
 from packages.schemas.models import RateMatrixJSON, RateMatrixRow
 
 

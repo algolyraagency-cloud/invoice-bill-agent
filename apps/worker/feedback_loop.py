@@ -8,12 +8,12 @@ Core Responsibilities:
 3. Evaluates top reason codes from the 8-code taxonomy and generates prioritized Parser/Prompt fix tickets.
 4. Produces structured Monthly Retrospective Reports (MonthlyRetroReport).
 """
-from datetime import datetime, timezone
 import logging
-from pathlib import Path
 import sys
-from typing import Any, Dict, List, Optional, Tuple
 import uuid
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
 
 root_dir = Path(__file__).resolve().parent.parent.parent
 audit_engine_dir = root_dir / "packages" / "audit-engine"
@@ -22,17 +22,17 @@ if str(root_dir) not in sys.path:
 if str(audit_engine_dir) not in sys.path:
     sys.path.insert(0, str(audit_engine_dir))
 
+
 from packages.schemas.models import (
     FeedbackTicket,
     MonthlyRetroReport,
     PrecisionReportItem,
 )
-from validation import STANDARD_REASON_CODES
 
 logger = logging.getLogger("rateguard.feedback_loop")
 
 # Rule mapping from reason codes to pipeline components and recommended remediation
-TAXONOMY_REMEDIATION_MAP: Dict[str, Dict[str, str]] = {
+TAXONOMY_REMEDIATION_MAP: dict[str, dict[str, str]] = {
     "wrong-matrix-row": {
         "category": "contract_parser",
         "action": "Audit ContractParser RateMatrixJSON generation. Verify 3-digit vs 5-digit zip prefix lane priority, FAK class mapping, and weight break tier order.",
@@ -108,17 +108,17 @@ class FeedbackLoopService:
     def __init__(self, db_client: Any = None):
         self.db_client = db_client
         # In-memory store for unit tests without database dependency
-        self._mock_flags: List[Dict[str, Any]] = []
+        self._mock_flags: list[dict[str, Any]] = []
 
-    def seed_mock_flags(self, flags: List[Dict[str, Any]]):
+    def seed_mock_flags(self, flags: list[dict[str, Any]]):
         """Seeds mock flags for in-memory testing."""
         self._mock_flags = flags
 
     def get_precision_analytics(
         self,
-        month: Optional[str] = None,
-        customer_id: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        month: str | None = None,
+        customer_id: str | None = None,
+    ) -> dict[str, Any]:
         """
         Calculates precision metrics:
         - Overall precision
@@ -134,9 +134,9 @@ class FeedbackLoopService:
         overall_research = 0
 
         # Grouped counters: check_type -> {approved, rejected, pending, research}
-        by_check: Dict[str, Dict[str, int]] = {}
+        by_check: dict[str, dict[str, int]] = {}
         # Grouped counters: carrier -> {approved, rejected, pending, research}
-        by_carrier: Dict[str, Dict[str, int]] = {}
+        by_carrier: dict[str, dict[str, int]] = {}
 
         for f in flags:
             st = f.get("review_status", "pending")
@@ -184,7 +184,7 @@ class FeedbackLoopService:
         )
 
         # Format by check type
-        check_items: Dict[str, PrecisionReportItem] = {}
+        check_items: dict[str, PrecisionReportItem] = {}
         for ctype, counts in by_check.items():
             rev = counts["approved"] + counts["rejected"]
             prec = compute_precision_score(counts["approved"], counts["rejected"])
@@ -203,7 +203,7 @@ class FeedbackLoopService:
             )
 
         # Format by carrier
-        carrier_items: Dict[str, PrecisionReportItem] = {}
+        carrier_items: dict[str, PrecisionReportItem] = {}
         for carr, counts in by_carrier.items():
             rev = counts["approved"] + counts["rejected"]
             prec = compute_precision_score(counts["approved"], counts["rejected"])
@@ -230,15 +230,15 @@ class FeedbackLoopService:
 
     def generate_fix_tickets(
         self,
-        month: Optional[str] = None,
+        month: str | None = None,
         min_rejections: int = 1,
-    ) -> List[FeedbackTicket]:
+    ) -> list[FeedbackTicket]:
         """
         Groups rejections by reason code and converts them into structured engineering
         fix tickets prioritized by volume and pipeline component.
         """
         flags = self._load_flags(month=month)
-        rejection_groups: Dict[str, Dict[str, Any]] = {}
+        rejection_groups: dict[str, dict[str, Any]] = {}
         total_rejections = 0
 
         for f in flags:
@@ -267,7 +267,7 @@ class FeedbackLoopService:
             group["check_types"][ctype] = group["check_types"].get(ctype, 0) + 1
 
         # Build prioritized tickets
-        tickets: List[FeedbackTicket] = []
+        tickets: list[FeedbackTicket] = []
         # Sort reason codes by frequency descending
         sorted_codes = sorted(rejection_groups.items(), key=lambda x: x[1]["count"], reverse=True)
 
@@ -313,7 +313,7 @@ class FeedbackLoopService:
 
     def run_monthly_retro(
         self,
-        month: Optional[str] = None,
+        month: str | None = None,
     ) -> MonthlyRetroReport:
         """
         Executes the monthly retrospective job:
@@ -329,7 +329,7 @@ class FeedbackLoopService:
 
         # Ranked reason codes
         flags = self._load_flags(month=report_month)
-        reason_counts: Dict[str, int] = {}
+        reason_counts: dict[str, int] = {}
         total_rej = 0
         for f in flags:
             if f.get("review_status") == "rejected":
@@ -361,9 +361,9 @@ class FeedbackLoopService:
 
     def _load_flags(
         self,
-        month: Optional[str] = None,
-        customer_id: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        month: str | None = None,
+        customer_id: str | None = None,
+    ) -> list[dict[str, Any]]:
         """Loads flags from DB or in-memory list with optional month/customer filters."""
         if self.db_client:
             try:

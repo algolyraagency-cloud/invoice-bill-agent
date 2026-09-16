@@ -2,25 +2,25 @@
 Shared Pydantic v2 schemas for RateGuard AI.
 Mirrored in TypeScript via Zod (packages/schemas/index.ts).
 """
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
 
 class LineItem(BaseModel):
     description: str = Field(..., description="Line item description")
-    charge_code: Optional[str] = Field(None, description="Charge code (e.g., 400, FSC, LGT)")
+    charge_code: str | None = Field(None, description="Charge code (e.g., 400, FSC, LGT)")
     amount: float = Field(..., description="Line item dollar amount")
 
 
 class Accessorial(BaseModel):
     type: str = Field(..., description="Accessorial code/type (e.g. liftgate, residential, limited_access)")
     amount: float = Field(..., description="Accessorial charge amount in dollars")
-    authorized: Optional[bool] = Field(None, description="Whether explicitly authorized on BOL/contract")
+    authorized: bool | None = Field(None, description="Whether explicitly authorized on BOL/contract")
 
 
 class InvoiceJSON(BaseModel):
-    id: Optional[str] = Field(None, description="Invoice unique ID")
+    id: str | None = Field(None, description="Invoice unique ID")
     carrier: str = Field(..., description="Carrier name (e.g. ABF Freight, XPO Logistics, Roadrunner)")
     pro_number: str = Field(..., description="Carrier PRO tracking number")
     invoice_number: str = Field(..., description="Carrier invoice number")
@@ -28,14 +28,14 @@ class InvoiceJSON(BaseModel):
     origin_zip: str = Field(..., description="Origin 5-digit or 3-digit zip code")
     dest_zip: str = Field(..., description="Destination 5-digit or 3-digit zip code")
     billed_weight: float = Field(..., ge=0, description="Total billed weight in pounds")
-    billed_class: Optional[float] = Field(None, description="Billed NMFC freight class (e.g. 50, 70, 92.5)")
-    line_items: List[LineItem] = Field(default_factory=list, description="Extracted line charges")
-    accessorials: List[Accessorial] = Field(default_factory=list, description="Accessorial charges")
-    fsc_amount: Optional[float] = Field(None, description="Fuel surcharge dollar amount")
-    fsc_pct: Optional[float] = Field(None, description="Fuel surcharge percentage applied")
+    billed_class: float | None = Field(None, description="Billed NMFC freight class (e.g. 50, 70, 92.5)")
+    line_items: list[LineItem] = Field(default_factory=list, description="Extracted line charges")
+    accessorials: list[Accessorial] = Field(default_factory=list, description="Accessorial charges")
+    fsc_amount: float | None = Field(None, description="Fuel surcharge dollar amount")
+    fsc_pct: float | None = Field(None, description="Fuel surcharge percentage applied")
     invoice_total: float = Field(..., description="Total invoice amount billed by carrier")
-    bol_number: Optional[str] = Field(None, description="Bill of Lading tracking number")
-    raw_text_hash: Optional[str] = Field(None, description="SHA256 of raw invoice document text")
+    bol_number: str | None = Field(None, description="Bill of Lading tracking number")
+    raw_text_hash: str | None = Field(None, description="SHA256 of raw invoice document text")
 
 
 class RateMatrixRow(BaseModel):
@@ -52,39 +52,39 @@ class RateMatrixRow(BaseModel):
 
 class RateMatrixJSON(BaseModel):
     carrier: str = Field(..., description="Carrier name")
-    contract_id: Optional[str] = Field(None, description="Associated contract UUID")
-    effective_dates: Dict[str, str] = Field(default_factory=dict, description="start and end dates")
-    rates: List[RateMatrixRow] = Field(default_factory=list, description="Materialized lane matrix rows")
+    contract_id: str | None = Field(None, description="Associated contract UUID")
+    effective_dates: dict[str, str] = Field(default_factory=dict, description="start and end dates")
+    rates: list[RateMatrixRow] = Field(default_factory=list, description="Materialized lane matrix rows")
     discount_pct: float = Field(default=0.0, description="Negotiated discount percentage from base tariff")
     absolute_min_charge: float = Field(default=0.0, description="Contract floor minimum charge")
-    fak_mappings: Dict[str, float] = Field(default_factory=dict, description="FAK class tier substitutions")
-    approved_accessorials: Dict[str, float] = Field(default_factory=dict, description="Contract accessorial rates")
-    exceptions: List[str] = Field(default_factory=list, description="Contractual exceptions and riders")
+    fak_mappings: dict[str, float] = Field(default_factory=dict, description="FAK class tier substitutions")
+    approved_accessorials: dict[str, float] = Field(default_factory=dict, description="Contract accessorial rates")
+    exceptions: list[str] = Field(default_factory=list, description="Contractual exceptions and riders")
 
 
 class FSCEntry(BaseModel):
     carrier: str
-    effective_week_start: Optional[str] = None
-    effective_week_end: Optional[str] = None
-    month: Optional[str] = None
+    effective_week_start: str | None = None
+    effective_week_end: str | None = None
+    month: str | None = None
     min_diesel_price: float
     max_diesel_price: float
     fsc_pct: float
 
 
 class Flag(BaseModel):
-    invoice_id: Optional[str] = None
+    invoice_id: str | None = None
     check_type: str = Field(..., description="DUP, RATE, FSC, ACCESSORIAL, REWEIGH, GUARANTEE, ARITH, TAX")
     overcharge_cents: int = Field(..., description="Discrepancy in integer cents")
     confidence: float = Field(default=1.0, ge=0.0, le=1.0)
-    evidence_json: Dict[str, Any] = Field(..., description="Evidence data for dispute generator")
+    evidence_json: dict[str, Any] = Field(..., description="Evidence data for dispute generator")
     review_status: str = Field(default="pending", description="pending, approved, rejected, research")
-    reject_reason_code: Optional[str] = None
+    reject_reason_code: str | None = None
 
 
 class CreditMemo(BaseModel):
-    id: Optional[str] = None
-    dispute_id: Optional[str] = None
+    id: str | None = None
+    dispute_id: str | None = None
     carrier: str
     memo_number: str
     original_invoice_ref: str
@@ -97,9 +97,9 @@ class CreditMemo(BaseModel):
 class ExtractionCheckDetail(BaseModel):
     check_name: str
     passed: bool
-    billed_value: Optional[float] = None
-    calculated_value: Optional[float] = None
-    discrepancy: Optional[float] = None
+    billed_value: float | None = None
+    calculated_value: float | None = None
+    discrepancy: float | None = None
     message: str
 
 
@@ -111,14 +111,14 @@ class InvoiceValidationResult(BaseModel):
     needs_calibration_queue: bool
     arithmetic_sum_match: bool
     linehaul_fsc_accessorial_match: bool
-    checks: List[ExtractionCheckDetail] = Field(default_factory=list)
-    reconciliation_notes: List[str] = Field(default_factory=list)
+    checks: list[ExtractionCheckDetail] = Field(default_factory=list)
+    reconciliation_notes: list[str] = Field(default_factory=list)
 
 
 class ContractSanityIssue(BaseModel):
     issue_type: str = Field(..., description="duplicate_lane, monotonicity_violation, overlapping_breaks, missing_fsc_month, min_charge_anomaly")
     severity: str = Field(default="error", description="error or warning")
-    details: Dict[str, Any] = Field(default_factory=dict)
+    details: dict[str, Any] = Field(default_factory=dict)
     message: str
 
 
@@ -129,26 +129,26 @@ class SpotCheckItem(BaseModel):
     weight_break: str
     matrix_rate: float
     matrix_min_charge: float
-    page_ref_hint: Optional[str] = None
+    page_ref_hint: str | None = None
 
 
 class SpotVerificationResult(BaseModel):
     sample_index: int
     matched: bool
-    actual_page_rate: Optional[float] = None
-    reviewer_notes: Optional[str] = None
+    actual_page_rate: float | None = None
+    reviewer_notes: str | None = None
 
 
 class ContractValidationResult(BaseModel):
-    contract_id: Optional[str] = None
+    contract_id: str | None = None
     carrier: str
     is_valid: bool
     status: str = Field(default="valid", description="valid, warning, rejected")
     total_lanes_checked: int = 0
-    issues: List[ContractSanityIssue] = Field(default_factory=list)
-    spot_checks: List[SpotCheckItem] = Field(default_factory=list)
-    spot_verification_passed: Optional[bool] = None
-    contract_validation_json: Dict[str, Any] = Field(default_factory=dict)
+    issues: list[ContractSanityIssue] = Field(default_factory=list)
+    spot_checks: list[SpotCheckItem] = Field(default_factory=list)
+    spot_verification_passed: bool | None = None
+    contract_validation_json: dict[str, Any] = Field(default_factory=dict)
 
 
 class CalibrationMetric(BaseModel):
@@ -171,21 +171,21 @@ class AuditRunStats(BaseModel):
     flagged_invoices_count: int = 0
     total_flags_count: int = 0
     total_overcharge_cents: int = 0
-    flags_by_check_type: Dict[str, int] = Field(default_factory=dict)
-    flags_by_carrier: Dict[str, int] = Field(default_factory=dict)
-    overcharge_by_check_type: Dict[str, int] = Field(default_factory=dict)
+    flags_by_check_type: dict[str, int] = Field(default_factory=dict)
+    flags_by_carrier: dict[str, int] = Field(default_factory=dict)
+    overcharge_by_check_type: dict[str, int] = Field(default_factory=dict)
     duration_seconds: float = 0.0
 
 
 class AuditRunResult(BaseModel):
     audit_run_id: str
     customer_id: str
-    scope: Dict[str, Any] = Field(default_factory=dict)
+    scope: dict[str, Any] = Field(default_factory=dict)
     started_at: str
     completed_at: str
     stats: AuditRunStats
-    flags_by_invoice: Dict[str, List[Flag]] = Field(default_factory=dict)
-    all_flags: List[Flag] = Field(default_factory=list)
+    flags_by_invoice: dict[str, list[Flag]] = Field(default_factory=dict)
+    all_flags: list[Flag] = Field(default_factory=list)
 
 
 ReviewAction = Literal["approve", "reject", "research", "resolve_research"]
@@ -195,9 +195,9 @@ class ReviewActionRequest(BaseModel):
     flag_id: str = Field(..., description="Target flag UUID")
     action: ReviewAction = Field(..., description="Review action to perform")
     reviewer_id: str = Field(..., description="User ID performing review")
-    reason_code: Optional[str] = Field(None, description="Required for reject action from 8-code taxonomy")
-    notes: Optional[str] = Field(None, description="Reviewer notes (mandatory for research)")
-    duration_seconds: Optional[float] = Field(None, description="Time spent reviewing this flag in seconds")
+    reason_code: str | None = Field(None, description="Required for reject action from 8-code taxonomy")
+    notes: str | None = Field(None, description="Reviewer notes (mandatory for research)")
+    duration_seconds: float | None = Field(None, description="Time spent reviewing this flag in seconds")
 
 
 class ReviewQueueItem(BaseModel):
@@ -206,21 +206,21 @@ class ReviewQueueItem(BaseModel):
     check_type: str = Field(..., description="DUP, RATE, FSC, ARITH, etc.")
     overcharge_cents: int = Field(..., description="Calculated overcharge discrepancy")
     confidence: float = Field(default=1.0, ge=0.0, le=1.0)
-    evidence_json: Dict[str, Any] = Field(default_factory=dict)
+    evidence_json: dict[str, Any] = Field(default_factory=dict)
     review_status: str = Field(default="pending", description="pending, approved, rejected, research")
-    reject_reason_code: Optional[str] = None
-    reviewed_by: Optional[str] = None
-    reviewed_at: Optional[str] = None
+    reject_reason_code: str | None = None
+    reviewed_by: str | None = None
+    reviewed_at: str | None = None
     # Joined invoice metadata
     carrier: str = Field(..., description="Carrier name")
     pro_number: str = Field(..., description="PRO tracking number")
     invoice_number: str = Field(..., description="Carrier invoice number")
     invoice_date: str = Field(..., description="Invoice billing date")
     invoice_total: float = Field(..., description="Billed invoice total amount in dollars")
-    file_path: Optional[str] = None
-    signed_pdf_url: Optional[str] = None
-    customer_id: Optional[str] = None
-    created_at: Optional[str] = None
+    file_path: str | None = None
+    signed_pdf_url: str | None = None
+    customer_id: str | None = None
+    created_at: str | None = None
 
 
 class ReviewQueueSummary(BaseModel):
@@ -231,19 +231,19 @@ class ReviewQueueSummary(BaseModel):
     total_reviewed_count: int = 0
     total_approved_overcharge_cents: int = 0
     avg_duration_seconds: float = 0.0
-    flags_by_check_type: Dict[str, int] = Field(default_factory=dict)
-    flags_by_carrier: Dict[str, int] = Field(default_factory=dict)
+    flags_by_check_type: dict[str, int] = Field(default_factory=dict)
+    flags_by_carrier: dict[str, int] = Field(default_factory=dict)
 
 
 class ReviewEventRecord(BaseModel):
-    id: Optional[str] = None
+    id: str | None = None
     flag_id: str
     action: str
-    reason_code: Optional[str] = None
+    reason_code: str | None = None
     reviewer: str
-    notes: Optional[str] = None
-    duration_seconds: Optional[float] = None
-    created_at: Optional[str] = None
+    notes: str | None = None
+    duration_seconds: float | None = None
+    created_at: str | None = None
 
 
 class PrecisionReportItem(BaseModel):
@@ -267,10 +267,10 @@ class FeedbackTicket(BaseModel):
     percentage_of_rejections: float = 0.0
     category: str = Field(..., description="contract_parser, invoice_parser, fsc_engine, or audit_engine")
     priority: str = Field(default="MEDIUM", description="HIGH, MEDIUM, LOW")
-    affected_carrier: Optional[str] = None
-    affected_check_type: Optional[str] = None
+    affected_carrier: str | None = None
+    affected_check_type: str | None = None
     recommended_action: str = Field(..., description="Concrete prompt/code fix recommendation")
-    sample_flag_ids: List[str] = Field(default_factory=list)
+    sample_flag_ids: list[str] = Field(default_factory=list)
     created_at: str = Field(..., description="Timestamp ISO string")
 
 
@@ -281,10 +281,10 @@ class MonthlyRetroReport(BaseModel):
     total_rejected: int = 0
     overall_precision_pct: float = 0.0
     trajectory_status: str = Field(default="PILOT_GATE_PASSED", description="BELOW_TARGET, PILOT_GATE_PASSED, SCALE_TARGET_MET, ENTERPRISE_MET")
-    precision_by_check_type: Dict[str, PrecisionReportItem] = Field(default_factory=dict)
-    precision_by_carrier: Dict[str, PrecisionReportItem] = Field(default_factory=dict)
-    top_reason_codes: List[Dict[str, Any]] = Field(default_factory=list)
-    generated_tickets: List[FeedbackTicket] = Field(default_factory=list)
+    precision_by_check_type: dict[str, PrecisionReportItem] = Field(default_factory=dict)
+    precision_by_carrier: dict[str, PrecisionReportItem] = Field(default_factory=dict)
+    top_reason_codes: list[dict[str, Any]] = Field(default_factory=list)
+    generated_tickets: list[FeedbackTicket] = Field(default_factory=list)
     generated_at: str = Field(..., description="Generation timestamp ISO string")
 
 
@@ -305,7 +305,7 @@ class RecoveryReportClaimItem(BaseModel):
     overcharge_dollars: float = Field(..., description="Overcharge in dollars")
     contract_clause: str = Field(..., description="Cited contract clause or tariff rule")
     evidence_summary: str = Field(..., description="Human-readable mathematical or factual proof")
-    page_number: Optional[int] = Field(None, description="Page number in contract or invoice")
+    page_number: int | None = Field(None, description="Page number in contract or invoice")
 
 
 class RecoveryReportSummary(BaseModel):
@@ -323,9 +323,9 @@ class RecoveryReportSummary(BaseModel):
     total_recoverable_dollars: float = 0.0
     estimated_shipper_recovery_dollars: float = 0.0  # 65% share
     contingency_fee_dollars: float = 0.0  # 35% fee
-    by_carrier: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
-    by_check_type: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
-    claims: List[RecoveryReportClaimItem] = Field(default_factory=list)
+    by_carrier: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    by_check_type: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    claims: list[RecoveryReportClaimItem] = Field(default_factory=list)
 
 
 class DisputeLetterItem(BaseModel):
@@ -337,7 +337,7 @@ class DisputeLetterItem(BaseModel):
     customer_slug: str = Field(..., description="Customer slug for dispute email routing")
     carrier: str = Field(..., description="Carrier name")
     carrier_dispute_email: str = Field(..., description="Carrier dispute contact email")
-    carrier_phone: Optional[str] = Field(None, description="Carrier billing phone")
+    carrier_phone: str | None = Field(None, description="Carrier billing phone")
     invoice_number: str = Field(..., description="Invoice number")
     pro_number: str = Field(..., description="PRO number")
     invoice_date: str = Field(..., description="Invoice date")
@@ -347,9 +347,9 @@ class DisputeLetterItem(BaseModel):
     check_type: str = Field(..., description="Audit check category")
     contract_clause: str = Field(..., description="Contract clause or tariff reference")
     dispute_reason_text: str = Field(..., description="Detailed factual explanation")
-    evidence_details: Dict[str, Any] = Field(default_factory=dict)
+    evidence_details: dict[str, Any] = Field(default_factory=dict)
     status: DisputeStatus = Field(default="drafted")
-    letter_pdf_path: Optional[str] = None
+    letter_pdf_path: str | None = None
     mailto_link: str = Field(..., description="Pre-encoded mailto: link for 1-click launch")
     email_subject: str = Field(..., description="Standard dispute subject line")
     email_body_text: str = Field(..., description="Plain-text formatted letter body")
@@ -365,7 +365,7 @@ class DisputeBatchPacket(BaseModel):
     customer_slug: str = Field(..., description="Shipper slug for CC routing")
     disputes_count: int = 0
     total_disputed_dollars: float = 0.0
-    disputes: List[DisputeLetterItem] = Field(default_factory=list)
+    disputes: list[DisputeLetterItem] = Field(default_factory=list)
     combined_mailto_link: str = Field(..., description="Consolidated mailto link")
     created_at: str = Field(..., description="Creation timestamp")
 
@@ -375,8 +375,8 @@ class OnboardingChecklistStep(BaseModel):
     title: str = Field(..., description="Display title")
     description: str = Field(..., description="Actionable instruction")
     status: Literal["pending", "in_progress", "completed", "signed", "ready"] = "pending"
-    action_label: Optional[str] = None
-    action_tab: Optional[str] = None
+    action_label: str | None = None
+    action_tab: str | None = None
 
 
 class OnboardingChecklist(BaseModel):
@@ -411,24 +411,24 @@ class CustomerDashboardResponse(BaseModel):
     dispute_tracking_email: str
     kpis: CustomerDashboardKPIs
     checklist: OnboardingChecklist
-    carrier_summary: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
-    recent_activity: List[Dict[str, Any]] = Field(default_factory=list)
+    carrier_summary: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    recent_activity: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class ContractIntakeRequest(BaseModel):
     carrier: str
     rung: Literal["A", "B", "C", "D"] = "A"
     has_signed_agreement: bool = True
-    notes: Optional[str] = None
+    notes: str | None = None
 
 
 class ContractListItem(BaseModel):
     id: str
     carrier: str
     rung: Literal["A", "B", "C", "D"]
-    file_path: Optional[str] = None
+    file_path: str | None = None
     file_name: str
-    effective_date: Optional[str] = None
+    effective_date: str | None = None
     parsed_lanes_count: int = 0
     validation_status: Literal["valid", "needs_spot_check", "rejected"] = "valid"
     spot_checks_count: int = 0
@@ -441,7 +441,7 @@ class CreditMemoIntakeRequest(BaseModel):
     original_invoice_ref: str
     amount_dollars: float
     kind: Literal["credit_memo", "refund_check"] = "credit_memo"
-    notes: Optional[str] = None
+    notes: str | None = None
 
 
 class CreditMemoListItem(BaseModel):
@@ -453,8 +453,8 @@ class CreditMemoListItem(BaseModel):
     amount_dollars: float
     kind: str
     verification_status: Literal["pending", "verified", "rejected"] = "pending"
-    matched_dispute_id: Optional[str] = None
-    verified_at: Optional[str] = None
+    matched_dispute_id: str | None = None
+    verified_at: str | None = None
     created_at: str
 
 
@@ -517,20 +517,20 @@ class CreditMemoDetectionCandidate(BaseModel):
     amount_dollars: float
     kind: Literal["credit_memo", "refund_check"] = "credit_memo"
     detected_via: Literal["stream", "forwarded", "manual"] = "stream"
-    raw_text_snippet: Optional[str] = None
+    raw_text_snippet: str | None = None
     confidence_score: float = 1.0
 
 
 class CreditMemoVerificationResult(BaseModel):
     credit_memo_id: str
     verification_status: Literal["verified", "pending", "rejected", "unmatched"]
-    matched_dispute_id: Optional[str] = None
+    matched_dispute_id: str | None = None
     carrier: str
     original_invoice_ref: str
     memo_amount_dollars: float
-    dispute_amount_dollars: Optional[float] = None
+    dispute_amount_dollars: float | None = None
     discrepancy_dollars: float = 0.0
-    verified_at: Optional[str] = None
+    verified_at: str | None = None
     notes: str = ""
 
 
@@ -552,23 +552,23 @@ class CommissionInvoiceRecord(BaseModel):
     customer_id: str
     customer_name: str
     billing_period: str
-    items: List[CommissionInvoiceItem] = Field(default_factory=list)
+    items: list[CommissionInvoiceItem] = Field(default_factory=list)
     total_gross_credit_cents: int = 0
     total_gross_credit_dollars: float = 0.0
     total_commission_cents: int = 0
     total_commission_dollars: float = 0.0
-    stripe_invoice_id: Optional[str] = None
-    stripe_hosted_url: Optional[str] = None
+    stripe_invoice_id: str | None = None
+    stripe_hosted_url: str | None = None
     status: Literal["draft", "sent", "paid", "overdue", "void"] = "draft"
     net_terms_due_at: str
-    pdf_path: Optional[str] = None
+    pdf_path: str | None = None
     created_at: str
 
 
 class ResendDisputeInput(BaseModel):
     dispute_id: str
     stronger_evidence_notes: str
-    additional_tariff_clauses: List[str] = Field(default_factory=list)
+    additional_tariff_clauses: list[str] = Field(default_factory=list)
 
 
 class UnrecoverableDisputeRecord(BaseModel):
@@ -587,8 +587,8 @@ class OnboardingWizardState(BaseModel):
     current_step: int = 1  # Steps 1 to 6
     company_name: str
     slug: str
-    remit_to_address: Optional[str] = None
-    selected_carriers: List[str] = Field(default_factory=list)
+    remit_to_address: str | None = None
+    selected_carriers: list[str] = Field(default_factory=list)
     has_signed_contract: bool = True
     forwarding_verified: bool = False
     inbound_email: str
@@ -599,24 +599,24 @@ class OnboardingWizardState(BaseModel):
 
 class RegexFallbackExtractionResult(BaseModel):
     carrier: str
-    pro_number: Optional[str] = None
-    invoice_number: Optional[str] = None
-    invoice_date: Optional[str] = None
-    total_weight_lbs: Optional[float] = None
-    net_charge_cents: Optional[int] = None
-    net_charge_dollars: Optional[float] = None
-    fuel_surcharge_cents: Optional[int] = None
-    fuel_surcharge_dollars: Optional[float] = None
-    total_amount_cents: Optional[int] = None
-    total_amount_dollars: Optional[float] = None
-    matched_rules: List[str] = Field(default_factory=list)
+    pro_number: str | None = None
+    invoice_number: str | None = None
+    invoice_date: str | None = None
+    total_weight_lbs: float | None = None
+    net_charge_cents: int | None = None
+    net_charge_dollars: float | None = None
+    fuel_surcharge_cents: int | None = None
+    fuel_surcharge_dollars: float | None = None
+    total_amount_cents: int | None = None
+    total_amount_dollars: float | None = None
+    matched_rules: list[str] = Field(default_factory=list)
     confidence_score: float = 0.90
     parser_used: str = "regex_fallback"
 
 
 class DisputeReminderNudge(BaseModel):
     dispute_id: str
-    invoice_id: Optional[str] = None
+    invoice_id: str | None = None
     pro_number: str
     invoice_number: str = "N/A"
     carrier: str
@@ -664,8 +664,8 @@ class CarrierAnalyticsReport(BaseModel):
     overall_denial_rate_pct: float = 0.0
     total_recovered_dollars: float = 0.0
     total_denied_dollars: float = 0.0
-    highest_hostility_carrier: Optional[str] = None
-    lowest_hostility_carrier: Optional[str] = None
-    most_hostile_carrier: Optional[str] = None
-    carriers: List[CarrierHostilityMetrics] = Field(default_factory=list)
+    highest_hostility_carrier: str | None = None
+    lowest_hostility_carrier: str | None = None
+    most_hostile_carrier: str | None = None
+    carriers: list[CarrierHostilityMetrics] = Field(default_factory=list)
 

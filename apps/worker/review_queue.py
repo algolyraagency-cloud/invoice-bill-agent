@@ -10,12 +10,12 @@ Guarantees:
 5. Reviewer must have 'internal_reviewer' role.
 6. Measures review throughput and pacing against the <=30 seconds per flag target.
 """
-from datetime import datetime, timezone
 import logging
 import sys
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Union
 import uuid
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
 
 root_dir = Path(__file__).resolve().parent.parent.parent
 audit_engine_dir = root_dir / "packages" / "audit-engine"
@@ -24,15 +24,13 @@ if str(root_dir) not in sys.path:
 if str(audit_engine_dir) not in sys.path:
     sys.path.insert(0, str(audit_engine_dir))
 
+from validation import STANDARD_REASON_CODES, validate_rejection_reason_code
+
 from packages.schemas.models import (
-    ReviewAction,
     ReviewActionRequest,
-    ReviewEventRecord,
     ReviewQueueItem,
     ReviewQueueSummary,
 )
-
-from validation import STANDARD_REASON_CODES, validate_rejection_reason_code
 
 logger = logging.getLogger("rateguard.review_queue")
 
@@ -46,11 +44,11 @@ class ReviewQueueService:
     def __init__(self, db_client: Any = None):
         self.db_client = db_client
         # In-memory mock storage for unit testing without network
-        self._mock_flags: Dict[str, Dict[str, Any]] = {}
-        self._mock_invoices: Dict[str, Dict[str, Any]] = {}
-        self._mock_reason_codes: Dict[str, int] = {code: 0 for code in STANDARD_REASON_CODES}
-        self._mock_review_events: List[Dict[str, Any]] = []
-        self._mock_users: Dict[str, Dict[str, Any]] = {}
+        self._mock_flags: dict[str, dict[str, Any]] = {}
+        self._mock_invoices: dict[str, dict[str, Any]] = {}
+        self._mock_reason_codes: dict[str, int] = {code: 0 for code in STANDARD_REASON_CODES}
+        self._mock_review_events: list[dict[str, Any]] = []
+        self._mock_users: dict[str, dict[str, Any]] = {}
 
     def seed_mock_user(self, user_id: str, email: str, role: str = "internal_reviewer"):
         """Seeds a mock user for authorization tests."""
@@ -66,15 +64,15 @@ class ReviewQueueService:
         invoice_id: str,
         check_type: str,
         overcharge_cents: int,
-        evidence_json: Dict[str, Any],
+        evidence_json: dict[str, Any],
         carrier: str = "ABF Freight",
         pro_number: str = "042-118822",
         invoice_number: str = "INV-8822",
         invoice_date: str = "2026-08-15",
         invoice_total: float = 786.25,
         review_status: str = "pending",
-        reject_reason_code: Optional[str] = None,
-        file_path: Optional[str] = None,
+        reject_reason_code: str | None = None,
+        file_path: str | None = None,
         customer_id: str = "cust_default",
     ):
         """Seeds in-memory flag and joined invoice for testing."""
@@ -138,17 +136,17 @@ class ReviewQueueService:
     def get_queue(
         self,
         status: str = "pending",
-        carrier: Optional[str] = None,
-        check_type: Optional[str] = None,
-        customer_id: Optional[str] = None,
+        carrier: str | None = None,
+        check_type: str | None = None,
+        customer_id: str | None = None,
         limit: int = 50,
         offset: int = 0,
-    ) -> List[ReviewQueueItem]:
+    ) -> list[ReviewQueueItem]:
         """
         Retrieves flags matching filter criteria, joined with invoice metadata
         and signed document links.
         """
-        items: List[ReviewQueueItem] = []
+        items: list[ReviewQueueItem] = []
 
         if self.db_client:
             query = self.db_client.table("flags").select(
@@ -205,7 +203,7 @@ class ReviewQueueService:
                 return items
 
         # Fallback to in-memory state
-        for fid, flag in self._mock_flags.items():
+        for flag in self._mock_flags.values():
             if flag["review_status"] != status:
                 continue
             if check_type and flag["check_type"] != check_type:
@@ -242,7 +240,7 @@ class ReviewQueueService:
 
         return items[offset : offset + limit]
 
-    def review_flag(self, request: ReviewActionRequest) -> Dict[str, Any]:
+    def review_flag(self, request: ReviewActionRequest) -> dict[str, Any]:
         """
         Executes a review action on a flag card:
         - approve: moves to 'approved', stages for Recovery Report (Phase 5).
@@ -400,11 +398,11 @@ class ReviewQueueService:
         status: str,
         reviewer_id: str,
         reviewed_at: str,
-        reason_code: Optional[str] = None,
+        reason_code: str | None = None,
     ):
         """Updates review status on flag in DB or memory."""
         if self.db_client:
-            update_payload: Dict[str, Any] = {
+            update_payload: dict[str, Any] = {
                 "review_status": status,
                 "reviewed_by": reviewer_id,
                 "reviewed_at": reviewed_at,
@@ -446,9 +444,9 @@ class ReviewQueueService:
         flag_id: str,
         action: str,
         reviewer: str,
-        reason_code: Optional[str] = None,
-        notes: Optional[str] = None,
-        duration_seconds: Optional[float] = None,
+        reason_code: str | None = None,
+        notes: str | None = None,
+        duration_seconds: float | None = None,
     ):
         """Appends an event to the immutable review_events audit log."""
         event_data = {
@@ -471,13 +469,13 @@ class ReviewQueueService:
 
         self._mock_review_events.append(event_data)
 
-    def get_queue_summary(self, customer_id: Optional[str] = None) -> ReviewQueueSummary:
+    def get_queue_summary(self, customer_id: str | None = None) -> ReviewQueueSummary:
         """
         Calculates summary metrics: pending, approved, rejected, research counts,
         total approved overcharge in cents, average review duration, and distributions.
         """
         summary = ReviewQueueSummary()
-        durations: List[float] = []
+        durations: list[float] = []
 
         if self.db_client:
             # Query flags table
