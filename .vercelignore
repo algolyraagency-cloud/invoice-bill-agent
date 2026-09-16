@@ -1,0 +1,17 @@
+# Ignore test files, docs, and fixtures from the Vercel serverless function bundle
+public/
+fixtures/
+docs/
+scripts/
+tests/
+apps/**/tests/
+packages/**/tests/
+infra/tests/
+.github/
+*.md
+*.whl
+pytest.ini
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+rateguard_ai.egg-info/
