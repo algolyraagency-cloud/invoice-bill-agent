@@ -12,7 +12,13 @@ import os
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-import fitz  # PyMuPDF
+try:
+    import fitz  # PyMuPDF
+except ImportError:
+    try:
+        import pymupdf as fitz
+    except ImportError:
+        fitz = None
 
 from packages.schemas.models import (
     CommissionInvoiceItem,

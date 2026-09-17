@@ -1202,27 +1202,39 @@
             method: "POST",
             body: formData
           });
-          const data = await res.json();
+          const text = await res.text();
+          let data = {};
+          try {
+            data = JSON.parse(text);
+          } catch (e) {
+            data = { detail: text ? text.replace(/<[^>]+>/g, ' ').trim().slice(0, 150) : `Server error (${res.status})` };
+          }
+
           if (!res.ok) {
-            alert("Upload Error: " + (data.detail || "Failed to parse file"));
+            alert("Upload Error: " + (data.detail || `Server returned status ${res.status}`));
             return;
           }
+
+          const billedTotal = data.total_amount || data.billed_amount || 0.0;
+          const overchargeAmt = data.overcharge_amount || data.total_overcharge || 0.0;
+          const isOvercharge = (data.flag_detected || (data.flags_count && data.flags_count > 0) || overchargeAmt > 0);
+
           state.invoices.unshift({
             id: data.invoice_id || `inv_${Date.now()}`,
             carrier: data.carrier || "Carrier",
             invoice_number: data.invoice_number || "INV-NEW",
             pro_number: data.pro_number || "PRO-NEW",
             invoice_date: data.invoice_date || new Date().toISOString().split('T')[0],
-            invoice_total: data.billed_amount || 0.0,
+            invoice_total: billedTotal,
             status: "audited",
-            overcharge: data.total_overcharge || 0.0,
-            flag_type: data.flags_count > 0 ? "OVERCHARGE" : "CLEAN",
-            clause: data.flags_count > 0 ? `${data.flags_count} audit discrepancy flags detected` : "Reconciled with zero rate variance",
+            overcharge: overchargeAmt,
+            flag_type: isOvercharge ? "OVERCHARGE" : "CLEAN",
+            clause: isOvercharge ? `Audit discrepancy detected ($${overchargeAmt.toFixed(2)})` : "Reconciled with zero rate variance",
             origin: "Ingested File",
             dest: file.name
           });
           renderInvoicesTable();
-          alert(`File '${file.name}' ingested & dynamically audited!\nInvoice #${data.invoice_number || ''} (PRO #${data.pro_number || ''})\nBilled Total: $${data.billed_amount || 0}\nDisputed Overcharge: $${data.total_overcharge || 0}`);
+          alert(`File '${file.name}' ingested & dynamically audited!\nInvoice #${data.invoice_number || ''} (PRO #${data.pro_number || ''})\nCarrier: ${data.carrier || 'Carrier'}\nBilled Total: $${billedTotal.toFixed(2)}\nDisputed Overcharge: $${overchargeAmt.toFixed(2)}`);
         } catch (err) {
           alert("Network or parse error during file upload: " + err.message);
         }
