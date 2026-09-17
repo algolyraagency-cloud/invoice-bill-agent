@@ -242,6 +242,8 @@ def list_customers():
             "name": c["name"],
             "slug": c["slug"],
             "industry": c["industry"],
+            "customer_type": c.get("customer_type", "shipper"),
+            "is_broker": c.get("customer_type", "shipper") == "freight_broker",
             "freight_spend_est": c["freight_spend_est"],
             "status": c["status"],
             "agreement_signed": c["recovery_agreement_signed_at"] is not None,
@@ -255,10 +257,12 @@ def create_customer_org(
     slug: str = Form(...),
     industry: str = Form("Freight Brokerage & 3PL"),
     freight_spend_est: float = Form(10000000.0),
-    owner_email: str = Form(...)
+    owner_email: str = Form(...),
+    customer_type: str = Form("freight_broker"),
 ):
     """
     Dynamic organization registration for Freight Brokers or Shippers.
+    customer_type: "freight_broker" | "shipper"
     """
     cust_id = f"cust_{slug.replace('-', '_')}_{uuid.uuid4().hex[:4]}"
     portal_service.seed_customer(
@@ -269,6 +273,7 @@ def create_customer_org(
         freight_spend_est=freight_spend_est,
         recovery_agreement_signed_at=datetime.now(timezone.utc).isoformat(),
         forwarding_configured=True,
+        customer_type=customer_type,
     )
     user_id = f"usr_{uuid.uuid4().hex[:6]}"
     portal_service.seed_user(user_id, cust_id, owner_email, role="owner")
@@ -277,6 +282,7 @@ def create_customer_org(
         "customer_id": cust_id,
         "name": name,
         "slug": slug,
+        "customer_type": customer_type,
         "inbound_email": f"{slug}@in.rateguard.app"
     }
 
@@ -444,7 +450,7 @@ async def handle_invoice_upload(
                 f"DISPUTE NOTICE — {carrier.upper()}\n"
                 f"Date: {datetime.now(timezone.utc).strftime('%Y-%m-%d')}\n"
                 f"Reference Invoice: #{inv_num} | PRO #{pro_num}\n"
-                f"Bill-To Payer: KSW Brokers / Acme Imports & Logistics\n"
+                f"Bill-To Payer: {portal_service._customers.get(customer_id, {}).get('name', customer_id)}\n"
                 f"Disputed Discrepancy: ${flag.overcharge_cents / 100.0:.2f} ({clause})\n\n"
                 f"Billed Charge: ${billed_val:.2f}\n"
                 f"Contract Charge: ${correct_val:.2f}\n"

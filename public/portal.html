@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RateGuard AI — Shipper Customer Portal (/portal)</title>
+  <title>RateGuard AI — Freight Broker & Shipper Portal (/portal)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -58,7 +58,8 @@
         <div class="flex items-center space-x-2">
           <span class="text-neutral-400">Org:</span>
           <select id="org-switcher" onchange="switchOrganization(this.value)" class="bg-[#111] border border-[#262626] rounded px-2 py-1 text-white font-mono text-xs focus:outline-none">
-            <option value="cust_acme_01" selected>Acme Imports & Logistics</option>
+            <option value="cust_vanguard_04" selected>Vanguard Freight Brokerage</option>
+            <option value="cust_acme_01">Acme Imports &amp; Logistics</option>
             <option value="cust_pacific_02">Pacific Supply Corp</option>
             <option value="cust_apex_03">Apex Global Distribution</option>
           </select>
@@ -66,7 +67,7 @@
 
         <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded bg-[#111] border border-[#222]">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-          <span id="user-role-badge" class="font-mono text-[11px] text-neutral-300">Controller</span>
+          <span id="user-role-badge" class="font-mono text-[11px] text-neutral-300">Carrier Payables</span>
         </div>
 
         <a href="/internal/review" class="px-2.5 py-1 rounded bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 transition font-mono">
@@ -85,14 +86,14 @@
       <div class="space-y-1">
         <div class="flex items-center space-x-3">
           <h1 id="org-display-name" class="text-xl sm:text-2xl font-bold tracking-tight text-white">
-            Acme Imports & Logistics
+            Vanguard Freight Brokerage
           </h1>
           <span id="org-status-badge" class="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-emerald-950 text-emerald-300 border border-emerald-800">
             Active Pilot
           </span>
         </div>
-        <p class="text-xs text-neutral-400">
-          Freight audit pipeline active · Automated Deficit Weight Bumping & FSC bracket reconciliation.
+        <p id="org-context-subtitle" class="text-xs text-neutral-400">
+          Freight broker carrier payables audit active · Carrier overbilling directly detected against your broker-carrier rate agreements.
         </p>
       </div>
 
@@ -100,7 +101,7 @@
       <div class="flex items-center space-x-2">
         <button onclick="switchTab('invoices'); openInvoiceUploadModal();" class="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold transition text-xs flex items-center space-x-1.5 shadow-lg shadow-blue-950/40">
           <span>📤</span>
-          <span>Upload Bills</span>
+          <span>Upload Invoices</span>
         </button>
         <button onclick="switchTab('contracts')" class="px-3.5 py-2 rounded-xl bg-[#141414] hover:bg-[#1f1f1f] text-neutral-200 border border-[#2a2a2a] text-xs transition flex items-center space-x-1.5">
           <span>📜</span>
@@ -168,10 +169,10 @@
         </div>
 
         <div class="bg-[#0b0b0b] border border-[#1e1e1e] rounded-xl p-5 relative overflow-hidden">
-          <div class="text-[11px] uppercase font-mono tracking-wider text-neutral-500">Shipper Net Recovery</div>
+          <div id="kpi-net-label" class="text-[11px] uppercase font-mono tracking-wider text-neutral-500">Broker Net Recovery</div>
           <div id="kpi-net-recovery" class="text-2xl font-bold text-white mt-1.5">$0.00</div>
-          <div class="text-xs text-emerald-500 mt-1">
-            65% client share
+          <div id="kpi-net-subtitle" class="text-xs text-emerald-500 mt-1">
+            65% retained by your brokerage
           </div>
         </div>
 
@@ -630,9 +631,9 @@
               <div class="text-xs text-neutral-400 mt-0.5">100% verified against contracts</div>
             </div>
             <div>
-              <div class="text-xs font-mono uppercase text-neutral-400">Estimated Shipper Net (65%)</div>
+              <div id="report-net-label" class="text-xs font-mono uppercase text-neutral-400">Broker Net (65%)</div>
               <div id="report-shipper-net" class="text-3xl font-bold text-white mt-1">$0.00</div>
-              <div class="text-xs text-neutral-400 mt-0.5">Retained directly by shipper AP</div>
+              <div id="report-net-subtitle" class="text-xs text-neutral-400 mt-0.5">Retained directly by brokerage payables</div>
             </div>
             <div>
               <div class="text-xs font-mono uppercase text-neutral-400">Contingency Fee (35%)</div>
@@ -1053,8 +1054,9 @@
   <script>
     // State Store (Dynamic API Synced - Zero Hardcoded Data)
     const state = {
-      currentOrgId: "cust_acme_01", // Acme Imports & Logistics (Active Pilot with seed contracts)
-      currentOrgName: "Acme Imports & Logistics",
+      currentOrgId: "cust_vanguard_04", // Vanguard Freight Brokerage (default: primary target market)
+      currentOrgName: "Vanguard Freight Brokerage",
+      currentOrgType: "freight_broker",  // "freight_broker" | "shipper"
       currentTab: "dashboard",
       activeDisputeLetter: "",
       
@@ -1065,6 +1067,46 @@
       carrierSummary: {},
       recentActivity: []
     };
+
+    /**
+     * Applies broker vs shipper conditional branding to all dynamic label elements.
+     * Called whenever an org is loaded or switched.
+     * @param {boolean} isBroker
+     * @param {string} orgName
+     */
+    function applyOrgBranding(isBroker, orgName) {
+      state.currentOrgType = isBroker ? "freight_broker" : "shipper";
+
+      // Org display name
+      const orgDisplay = document.getElementById("org-display-name");
+      if (orgDisplay) orgDisplay.textContent = orgName || state.currentOrgName;
+
+      // Subtitle under org name
+      const subtitle = document.getElementById("org-context-subtitle");
+      if (subtitle) {
+        subtitle.textContent = isBroker
+          ? "Freight broker carrier payables audit active · Carrier overbilling detected against your broker-carrier rate agreements."
+          : "Freight audit pipeline active · Automated Deficit Weight Bumping & FSC bracket reconciliation.";
+      }
+
+      // Role badge in nav
+      const roleBadge = document.getElementById("user-role-badge");
+      if (roleBadge) roleBadge.textContent = isBroker ? "Carrier Payables" : "Controller";
+
+      // KPI Card 2 — Net Recovery label and subtitle
+      const kpiNetLabel = document.getElementById("kpi-net-label");
+      if (kpiNetLabel) kpiNetLabel.textContent = isBroker ? "Broker Net Recovery" : "Shipper Net Recovery";
+      const kpiNetSub = document.getElementById("kpi-net-subtitle");
+      if (kpiNetSub) kpiNetSub.textContent = isBroker ? "65% retained by your brokerage" : "65% client share";
+
+      // Recovery Report net label and subtitle
+      const reportNetLabel = document.getElementById("report-net-label");
+      if (reportNetLabel) reportNetLabel.textContent = isBroker ? "Broker Net (65%)" : "Shipper Net (65%)";
+      const reportNetSub = document.getElementById("report-net-subtitle");
+      if (reportNetSub) reportNetSub.textContent = isBroker
+        ? "Retained directly by brokerage payables"
+        : "Retained directly by shipper AP";
+    }
 
     function updateDashboardKPIs() {
       let totalRecoverable = 0;
@@ -1090,9 +1132,9 @@
 
     async function loadLivePortalData() {
       try {
-        const orgId = state.currentOrgId || "cust_acme_01";
+        const orgId = state.currentOrgId || "cust_vanguard_04";
 
-        // 1. Session and KPIs
+        // 1. Session and KPIs — includes customer_type / is_broker
         const sessionRes = await fetch(`/api/v1/portal/session?customer_id=${orgId}`).catch(() => null);
         if (sessionRes && sessionRes.ok) {
           const data = await sessionRes.json();
@@ -1104,6 +1146,13 @@
             const progressBar = document.getElementById("checklist-progress-bar");
             if (progressBar) progressBar.style.width = `${(data.checklist.completed_steps_count / data.checklist.total_steps_count) * 100}%`;
           }
+          // Apply broker vs shipper branding to all dynamic label elements
+          const isBroker = data.is_broker === true || data.customer_type === "freight_broker";
+          applyOrgBranding(isBroker, data.name || state.currentOrgName);
+        } else {
+          // Offline fallback: derive from current state
+          const isBroker = state.currentOrgType === "freight_broker";
+          applyOrgBranding(isBroker, state.currentOrgName);
         }
 
         // 2. Invoices
@@ -1311,21 +1360,31 @@
         cust_acme_01: "Acme Imports & Logistics",
         cust_pacific_02: "Pacific Supply Corp",
         cust_apex_03: "Apex Global Distribution",
-        cust_vanguard_04: "KSW Brokers / Vanguard Freight"
+        cust_vanguard_04: "Vanguard Freight Brokerage"
       };
       const slugs = {
         cust_acme_01: "acme-imports",
         cust_pacific_02: "pacific-supply",
         cust_apex_03: "apex-global",
-        cust_vanguard_04: "ksw-vanguard"
+        cust_vanguard_04: "vanguard-freight"
+      };
+      // Org types — freight_broker | shipper
+      const orgTypes = {
+        cust_acme_01: "shipper",
+        cust_pacific_02: "shipper",
+        cust_apex_03: "shipper",
+        cust_vanguard_04: "freight_broker"
       };
 
-      state.currentOrgName = names[orgId] || "Acme Imports & Logistics";
+      state.currentOrgName = names[orgId] || "Vanguard Freight Brokerage";
+      state.currentOrgType = orgTypes[orgId] || "shipper";
       const name = state.currentOrgName;
-      const slug = slugs[orgId] || "acme-imports";
+      const slug = slugs[orgId] || "vanguard-freight";
+      const isBroker = state.currentOrgType === "freight_broker";
 
-      const nameEl = document.getElementById("org-display-name");
-      if (nameEl) nameEl.innerText = name;
+      // Apply branding immediately (before API fetch) for instant visual switch
+      applyOrgBranding(isBroker, name);
+
       const emailEl = document.getElementById("header-inbound-email");
       if (emailEl) emailEl.innerText = `${slug}@in.rateguard.app`;
 

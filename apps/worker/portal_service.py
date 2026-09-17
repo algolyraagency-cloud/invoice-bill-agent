@@ -85,12 +85,22 @@ class CustomerPortalService:
         freight_spend_est: float = 5000000.0,
         recovery_agreement_signed_at: str | None = None,
         forwarding_configured: bool = False,
+        customer_type: str | None = None,
     ) -> None:
+        # Derive customer_type from industry if not explicitly supplied
+        if customer_type is None:
+            _ind_low = industry.lower()
+            customer_type = (
+                "freight_broker"
+                if any(k in _ind_low for k in ("brokerage", "3pl", "broker", "freight broker"))
+                else "shipper"
+            )
         self._customers[customer_id] = {
             "id": customer_id,
             "name": name,
             "slug": slug,
             "industry": industry,
+            "customer_type": customer_type,  # "freight_broker" | "shipper"
             "freight_spend_est": freight_spend_est,
             "recovery_agreement_signed_at": recovery_agreement_signed_at,
             "status": "active",
@@ -266,7 +276,11 @@ class CustomerPortalService:
             active_contracts_count=len(cust_contracts),
         )
 
-        # 5-step Onboarding Checklist
+        # Determine customer type for context-aware copy
+        customer_type = customer.get("customer_type", "shipper")
+        is_broker = customer_type == "freight_broker"
+
+        # 5-step Onboarding Checklist — language adapts for freight brokers vs shippers
         is_forwarding = self._forwarding_rules.get(customer_id, False) or any(
             i.get("source") == "email" for i in cust_invoices
         )
@@ -275,10 +289,16 @@ class CustomerPortalService:
         is_agreement_signed = customer.get("recovery_agreement_signed_at") is not None
         is_report_ready = len(approved_flags) > 0
 
+        # Step 1 — forwarding rule (broker: "carrier invoices", shipper: "freight bills")
+        _fwd_desc = (
+            f"Auto-forward carrier invoices from carrier billing domains to {inbound_email}"
+            if is_broker
+            else f"Auto-forward freight bills from carrier domains to {inbound_email}"
+        )
         step_forwarding = OnboardingChecklistStep(
             step_key="forwarding_rule",
-            title="Setup Carrier Forwarding Rule",
-            description=f"Auto-forward freight bills from carrier domains to {inbound_email}",
+            title="Setup Carrier Invoice Forwarding" if is_broker else "Setup Carrier Forwarding Rule",
+            description=_fwd_desc,
             status="completed" if is_forwarding else "pending",
             action_label="Setup Instructions" if not is_forwarding else "Configured",
             action_tab="forwarding",
@@ -287,18 +307,19 @@ class CustomerPortalService:
         step_contracts = OnboardingChecklistStep(
             step_key="contracts_uploaded",
             title="Upload Carrier Rate Contracts",
-            description="Upload signed agreements or email quote matrices (Quality Ladder Rungs A–C)",
+            description="Upload signed broker-carrier rate agreements or email quote matrices (Quality Ladder Rungs A–C)",
             status="completed" if has_contracts else "pending",
             action_label="Upload Agreements" if not has_contracts else f"{len(cust_contracts)} Uploaded",
             action_tab="contracts",
         )
 
+        # Step 3 — invoice ingestion (broker: "Carrier Invoice Ingestion", shipper: "Freight Bills Ingestion")
         step_invoices = OnboardingChecklistStep(
             step_key="first_invoices_in",
-            title="Freight Bills Ingestion",
-            description="Initial 6-month historical billing backfill or live forwarding pipeline",
+            title="Carrier Invoice Ingestion" if is_broker else "Freight Bills Ingestion",
+            description="Initial 6-month historical carrier payables backfill or live forwarding pipeline",
             status="completed" if has_invoices else "pending",
-            action_label="View Bills" if has_invoices else "Upload Invoices",
+            action_label="View Invoices" if has_invoices else "Upload Invoices",
             action_tab="invoices",
         )
 
@@ -381,7 +402,7 @@ class CustomerPortalService:
                 "details": f"${flg['overcharge_cents'] / 100:.2f} discrepancy on {inv.get('carrier', 'Carrier')}",
             })
 
-        return CustomerDashboardResponse(
+        response = CustomerDashboardResponse(
             customer_id=customer_id,
             name=customer["name"],
             slug=slug,
@@ -392,6 +413,11 @@ class CustomerPortalService:
             carrier_summary=carrier_summary,
             recent_activity=recent_activity,
         )
+        # Attach customer_type so the frontend can conditionally render broker vs shipper labels
+        response_dict = response.model_dump() if hasattr(response, "model_dump") else response.__dict__
+        response_dict["customer_type"] = customer_type
+        response_dict["is_broker"] = is_broker
+        return response_dict
 
     # --------------------------------------------------------------------------
     # Phase 5.5.2: Documents & Contracts with Quality Ladder Rung Detection

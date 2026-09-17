@@ -79,50 +79,72 @@
 
       <!-- STEP 1: Company Profile -->
       <div id="wizard-step-1" class="space-y-5">
-        <h3 class="text-base font-bold text-white">Enter Your Company Details & Remit-To Address</h3>
+        <h3 class="text-base font-bold text-white">Enter Your Company Details &amp; Remit-To Address</h3>
+
+        <!-- Business Type Selector — sets customer_type for the whole flow -->
+        <div class="space-y-2">
+          <div class="text-xs font-mono text-neutral-300 font-semibold">What type of business are you? *</div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono">
+            <label id="type-broker-card" onclick="selectBusinessType('freight_broker')" class="flex items-start space-x-3 p-4 bg-blue-950/30 border border-blue-700 rounded-xl cursor-pointer transition hover:border-blue-500">
+              <input type="radio" name="business_type" id="radio-broker" value="freight_broker" checked class="mt-0.5 accent-blue-500">
+              <div>
+                <div class="font-bold text-white">Freight Broker / 3PL</div>
+                <div class="text-neutral-400 leading-relaxed mt-1">I pay carrier invoices on behalf of my shipper customers. Carrier overbilling hits my brokerage margin directly.</div>
+              </div>
+            </label>
+            <label id="type-shipper-card" onclick="selectBusinessType('shipper')" class="flex items-start space-x-3 p-4 bg-[#141414] border border-[#262626] rounded-xl cursor-pointer transition hover:border-neutral-500">
+              <input type="radio" name="business_type" id="radio-shipper" value="shipper" class="mt-0.5 accent-blue-500">
+              <div>
+                <div class="font-bold text-white">Shipper / Manufacturer</div>
+                <div class="text-neutral-400 leading-relaxed mt-1">I ship my own goods and receive carrier invoices directly. Overcharges come out of my freight budget.</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
         <p class="text-xs text-neutral-400">
-          RateGuard uses your company profile to verify freight bills, match BOL shipper names, and issue 35% Net-15 contingency commission invoices.
+          RateGuard uses your company profile to verify carrier invoices against contracted rates and issue 35% Net-15 contingency commission invoices.
         </p>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
           <div class="space-y-1">
             <label class="text-neutral-300">Company Name *</label>
-            <input type="text" id="input-company-name" value="Acme Imports & Logistics" class="w-full bg-[#141414] border border-[#262626] rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-blue-500">
+            <input type="text" id="input-company-name" value="" placeholder="e.g. Vanguard Freight Brokerage" class="w-full bg-[#141414] border border-[#262626] rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-blue-500">
           </div>
           <div class="space-y-1">
             <label class="text-neutral-300">Organization Slug *</label>
-            <input type="text" id="input-company-slug" value="acme-imports" class="w-full bg-[#141414] border border-[#262626] rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-blue-500">
+            <input type="text" id="input-company-slug" value="" placeholder="e.g. vanguard-freight" class="w-full bg-[#141414] border border-[#262626] rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-blue-500">
           </div>
           <div class="space-y-1 sm:col-span-2">
             <label class="text-neutral-300">Remit-To Address *</label>
-            <input type="text" id="input-remit-address" value="100 Commerce Way, Suite 400, Chicago, IL 60601" class="w-full bg-[#141414] border border-[#262626] rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-blue-500">
+            <input type="text" id="input-remit-address" value="" placeholder="100 Commerce Way, Suite 400, Chicago, IL 60601" class="w-full bg-[#141414] border border-[#262626] rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-blue-500">
           </div>
         </div>
       </div>
 
       <!-- STEP 2: Team Members -->
       <div id="wizard-step-2" class="space-y-5 hidden">
-        <h3 class="text-base font-bold text-white">Invite Team Members & Accounts Payable</h3>
+        <h3 class="text-base font-bold text-white">Invite Team Members &amp; Accounts Payable</h3>
         <p class="text-xs text-neutral-400">
           Add team members who will have access to the customer portal and dispute tracking dashboard.
         </p>
         <div class="space-y-3 text-xs font-mono">
           <div class="flex items-center space-x-2">
-            <input type="email" value="controller@acmeimports.com" class="flex-1 bg-[#141414] border border-[#262626] rounded-xl px-3.5 py-2 text-white" readonly>
-            <span class="px-2.5 py-1 rounded bg-blue-950 text-blue-300 border border-blue-800 text-[10px]">Owner / Controller</span>
+            <input type="email" id="team-email-owner" placeholder="owner@yourcompany.com" class="flex-1 bg-[#141414] border border-[#262626] rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-blue-500">
+            <span id="owner-role-badge" class="px-2.5 py-1 rounded bg-blue-950 text-blue-300 border border-blue-800 text-[10px]">Brokerage Owner / Carrier Payables</span>
           </div>
           <div class="flex items-center space-x-2">
-            <input type="email" value="ap@acmeimports.com" class="flex-1 bg-[#141414] border border-[#262626] rounded-xl px-3.5 py-2 text-white" readonly>
-            <span class="px-2.5 py-1 rounded bg-neutral-900 text-neutral-400 border border-neutral-800 text-[10px]">AP Clerk</span>
+            <input type="email" id="team-email-ap" placeholder="ap@yourcompany.com" class="flex-1 bg-[#141414] border border-[#262626] rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-blue-500">
+            <span class="px-2.5 py-1 rounded bg-neutral-900 text-neutral-400 border border-neutral-800 text-[10px]">AP / Payables Clerk</span>
           </div>
         </div>
       </div>
 
       <!-- STEP 3: Carrier Selection -->
       <div id="wizard-step-3" class="space-y-5 hidden">
-        <h3 class="text-base font-bold text-white">Select Your Top-10 Active LTL Carriers</h3>
+        <h3 class="text-base font-bold text-white">Select Your Active LTL Carriers</h3>
         <p class="text-xs text-neutral-400">
-          Select carriers you ship with to activate specialized regex fallback parsers and dispute desk routing.
+          Select carriers you work with to activate specialized invoice parsers, rate matrix lookup, and carrier dispute desk routing.
         </p>
 
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs font-mono">
@@ -179,14 +201,14 @@
       <div id="wizard-step-5" class="space-y-5 hidden">
         <h3 class="text-base font-bold text-white">Configure Inbound Email Forwarding Rule</h3>
         <p class="text-xs text-neutral-400">
-          Forward carrier freight invoices automatically to your dedicated RateGuard ingestion address.
+          Forward carrier invoices automatically to your dedicated RateGuard ingestion address. Works identically for freight brokers and shippers.
         </p>
 
         <div class="bg-[#141414] border border-[#262626] rounded-xl p-4 space-y-2 text-xs font-mono">
           <div class="text-neutral-400">Your Dedicated Ingestion Address:</div>
-          <div class="text-blue-400 font-bold text-sm">acme-imports@in.rateguard.app</div>
+          <div id="onboarding-inbound-email" class="text-blue-400 font-bold text-sm">your-slug@in.rateguard.app</div>
           <div class="text-[11px] text-neutral-500 pt-1">
-            Setup rule in Outlook / Gmail: Forward messages from carriers (freightbilling@abf.com, etc.) to the above address.
+            Setup rule in Outlook / Gmail: Forward messages from carriers (freightbilling@abf.com, billingdisputes@rrts.com, etc.) to the above address.
           </div>
         </div>
       </div>
@@ -196,7 +218,7 @@
         <div class="text-5xl">🚀</div>
         <h2 class="text-2xl font-bold text-white">Onboarding Complete — System Ready!</h2>
         <p class="text-xs text-neutral-300 max-w-md mx-auto">
-          Your organization is fully configured. The audit engine is ready to receive invoices, match rate contracts, and compile CFO recovery reports.
+          Your organization is fully configured. The audit engine is ready to receive carrier invoices, match rate contracts, and compile recovery reports.
         </p>
         <a href="/portal" class="inline-block px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition shadow-lg shadow-emerald-950/50 font-mono">
           Enter Customer Portal ↗
@@ -220,6 +242,32 @@
 
   <script>
     let currentStep = 1;
+    let selectedBusinessType = "freight_broker"; // default: freight broker (primary target market)
+
+    /**
+     * Called when user clicks a business type card in Step 1.
+     * Visually highlights the selected card and adjusts role labels for Step 2.
+     */
+    function selectBusinessType(type) {
+      selectedBusinessType = type;
+      const isBroker = type === "freight_broker";
+
+      // Visual card highlighting
+      const brokerCard = document.getElementById("type-broker-card");
+      const shipperCard = document.getElementById("type-shipper-card");
+      if (brokerCard) brokerCard.className = isBroker
+        ? "flex items-start space-x-3 p-4 bg-blue-950/30 border border-blue-700 rounded-xl cursor-pointer transition hover:border-blue-500"
+        : "flex items-start space-x-3 p-4 bg-[#141414] border border-[#262626] rounded-xl cursor-pointer transition hover:border-neutral-500";
+      if (shipperCard) shipperCard.className = !isBroker
+        ? "flex items-start space-x-3 p-4 bg-blue-950/30 border border-blue-700 rounded-xl cursor-pointer transition hover:border-blue-500"
+        : "flex items-start space-x-3 p-4 bg-[#141414] border border-[#262626] rounded-xl cursor-pointer transition hover:border-neutral-500";
+
+      // Update Step 2 role badge
+      const ownerBadge = document.getElementById("owner-role-badge");
+      if (ownerBadge) ownerBadge.textContent = isBroker
+        ? "Brokerage Owner / Carrier Payables"
+        : "Owner / Controller";
+    }
 
     function updateStepUI() {
       document.getElementById('current-step-num').innerText = currentStep;

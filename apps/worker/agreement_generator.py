@@ -38,9 +38,12 @@ def render_recovery_agreement_text(
     signer_title: str | None = None,
     signed_at: str | None = None,
     concierge_handling: bool = False,
+    customer_type: str = "shipper",
 ) -> str:
     """
     Renders standard 1-page contingency freight audit agreement plain text (PRD §5.4).
+    Works for both freight brokers and shippers — uses "Client" as the universal party name.
+    customer_type: "freight_broker" | "shipper" — adds a clarifying parenthetical in parties section.
     """
     fee_pct = 40.0 if concierge_handling else 35.0
     date_str = signed_at[:10] if signed_at else datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -48,21 +51,24 @@ def render_recovery_agreement_text(
     sig_title = signer_title or "[PENDING TITLE]"
     sig_status = f"EXECUTED via E-Signature on {signed_at}" if signed_at else "UNSIGNED DRAFT — PENDING EXECUTION"
 
+    # Clarifying label in the Parties section
+    client_label = "Freight Broker / 3PL" if customer_type == "freight_broker" else "Shipper / Manufacturer"
+
     return f"""================================================================================
 RATEGUARD AI — FREIGHT AUDIT & RECOVERY CONTINGENCY AGREEMENT
 ================================================================================
 PARTIES:
   Provider: RateGuard AI Inc. ("RateGuard")
-  Client:   {customer_name} ("Shipper")
+  Client:   {customer_name} ({client_label}) ("Client")
   Date:     {date_str}
 
 1. PURPOSE & SCOPE OF ENGAGEMENT
-Shipper engages RateGuard to audit freight billing, carrier rate tariffs, fuel surcharges,
-and accessorial charges across Shipper's LTL carrier invoice stream.
+Client engages RateGuard to audit carrier freight billing, carrier rate tariffs, fuel
+surcharges, and accessorial charges across Client's LTL carrier invoice stream.
 
 2. CONTINGENCY PRICING & PAYMENT TERMS (NO RECOVERY = ZERO OWED)
-  (a) Contingency Fee: Shipper agrees to pay RateGuard {fee_pct:.1f}% of all verified overcharge recoveries, credit memos, or refund checks issued by carriers.
-  (b) Billing Trigger: RateGuard invoices Shipper upon carrier issuance of a verified credit memo
+  (a) Contingency Fee: Client agrees to pay RateGuard {fee_pct:.1f}% of all verified overcharge recoveries, credit memos, or refund checks issued by carriers.
+  (b) Billing Trigger: RateGuard invoices Client upon carrier issuance of a verified credit memo
       or refund check ("Memo-Basis Trigger"), regardless of cash flow application.
   (c) Payment Terms: Net-15 days from date of RateGuard commission invoice.
 
@@ -70,16 +76,16 @@ and accessorial charges across Shipper's LTL carrier invoice stream.
   (a) RateGuard prepares mathematically verified dispute notices citing exact carrier contract
       clauses and overcharges.
   (b) RateGuard shall not act as a direct legal party or communicate directly with carriers
-      without Shipper involvement. Shipper dispatches dispute notices directly to carriers.
+      without Client involvement. Client dispatches dispute notices directly to LTL carriers.
   (c) All dispute email correspondence shall CC disputes+slug@in.rateguard.app for status tracking.
 
 4. CONFIDENTIALITY & DATA SECURITY
-RateGuard agrees to maintain strict confidentiality of Shipper's rate contracts, lane volumes,
+RateGuard agrees to maintain strict confidentiality of Client's rate contracts, lane volumes,
 and invoice documentation in accordance with SOC-2 guidelines. Data shall never be sold or shared.
 
 5. EXECUTION & ACKNOWLEDGEMENT
 By checking the agreement box and submitting e-signature, the undersigned officer certifies
-authority to bind Shipper to this 1-page contingency recovery agreement.
+authority to bind Client to this 1-page contingency recovery agreement.
 
 STATUS: {sig_status}
 SIGNER NAME: {sig_name}
