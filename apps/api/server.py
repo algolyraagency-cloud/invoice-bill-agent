@@ -281,6 +281,9 @@ def create_customer_org(
     }
 
 @app.get("/api/v1/portal/session")
+@app.get("/v1/portal/session")
+@app.get("/api/portal/session")
+@app.get("/portal/session")
 def get_portal_session(customer_id: str = Query("cust_acme_01")):
     customer = portal_service.get_customer(customer_id)
     if not customer:
@@ -292,12 +295,14 @@ def get_portal_session(customer_id: str = Query("cust_acme_01")):
 @app.get("/health")
 @app.get("/api/health")
 @app.get("/api/v1/health")
+@app.get("/v1/health")
 def health_check():
     return {"status": "healthy", "service": "RateGuard AI API"}
 
 @app.post("/api/v1/upload")
-@app.post("/upload")
+@app.post("/v1/upload")
 @app.post("/api/upload")
+@app.post("/upload")
 async def handle_invoice_upload(
     request: Request,
     customer_id: str = Form("cust_acme_01"),
@@ -598,7 +603,9 @@ def get_carrier_dispute_batch(customer_id: str = Query("cust_acme_01")):
     }
 
 @app.get("/api/v1/invoices")
+@app.get("/v1/invoices")
 @app.get("/api/invoices")
+@app.get("/invoices")
 def get_invoices(
     customer_id: str = Query("cust_acme_01"),
     carrier: str | None = Query(None),
@@ -617,21 +624,30 @@ def get_invoices(
     )
 
 @app.get("/api/v1/disputes")
+@app.get("/v1/disputes")
 @app.get("/api/disputes")
+@app.get("/disputes")
 def list_disputes(customer_id: str = Query("cust_acme_01")):
     return [d for d in portal_service._disputes.values() if d.get("customer_id") == customer_id]
 
 @app.get("/api/v1/contracts")
+@app.get("/v1/contracts")
 @app.get("/api/contracts")
+@app.get("/contracts")
 def list_contracts(customer_id: str = Query("cust_acme_01")):
     return [c for c in portal_service._contracts.values() if c.get("customer_id") == customer_id]
 
 @app.get("/api/v1/credit-memos")
+@app.get("/v1/credit-memos")
 @app.get("/api/credit-memos")
+@app.get("/credit-memos")
 def list_credit_memos(customer_id: str = Query("cust_acme_01")):
     return [m for m in portal_service._credit_memos.values() if m.get("customer_id") == customer_id]
 
 @app.post("/api/v1/credit-memos")
+@app.post("/v1/credit-memos")
+@app.post("/api/credit-memos")
+@app.post("/credit-memos")
 def log_credit_memo(
     customer_id: str = Form("cust_acme_01"),
     carrier: str = Form(...),
