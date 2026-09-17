@@ -1,49 +1,50 @@
 # PRODUCT REQUIREMENTS DOCUMENT (PRD)
-## RateGuard AI — Freight Audit & Recovery
-**Version 2.0 | Status: Approved for Build | Target: First paying pilot customer in 3 weeks (concierge mode)**
+## RateGuard AI — Freight Broker Carrier Payables Audit & Recovery
+**Version 2.1 | Status: Approved for Build | Target: Freight Broker GTM Launch & Pilot Onboarding on March 21st (concierge mode)**
 
 ---
 
-## 0. WHAT CHANGED IN v2.0 (incorporates the 7 operational Q&A decisions)
+## 0. WHAT CHANGED IN v2.1 (Freight Broker ICP Pivot & March 21 Target)
 
-| # | Question | Decision now baked into the PRD |
+| # | Update / Decision | Details & Strategic Context |
 | :--- | :--- | :--- |
-| **1** | Where do invoices come from? | Ingestion is now channel-prioritized: email forwarding (60–70%, MVP #1) → AP system export CSV/ZIP (20–30%, #2) → drag-and-drop (fallback). EDI 210 is explicitly out of MVP and a disqualifier signal. |
-| **2** | Messy/missing contracts? | Added the Contract Quality Ladder (Rungs A–D) and a mandatory pre-pilot qualification question. Rung D = disqualify. |
-| **3** | How do we get paid? | Billing trigger is now credit-memo-issued + verified, NOT cash received. Net-15. Denials priced into the 35%. |
-| **4** | Disputes "on their behalf"? | Legal mechanism: we draft, the customer sends. Always. Phase 2: one-page authorization letter only if carriers demand it (~customer #5–10). |
-| **5** | Stack & LLM vs deterministic? | Architecture split codified: LLM for understanding, deterministic code for math. Budget ceiling $200/mo until first revenue. |
-| **6** | Who reviews? | Human-in-the-loop review queue added as a first-class feature (internal). 90% precision guarantee lives here. Reason-code feedback loop documented. |
-| **7** | 3-week clock? | Concierge-first is the official GTM mode. Weekly build timeline (W1–W8) added. Self-serve is W6–8, not W2. |
+| **0** | **March 21 Freight Broker Target** | Primary ICP officially pivoted from Shippers to **Freight Brokers & 3PLs**. Target launch date set to **March 21st** for pilot outreach and concierge onboarding. |
+| **1** | Core Problem Retained | The core audit engine and problem solved (carrier overbilling via duplicates, tariff rate misapplications, FSC miscalculations, invalid accessorials, NMFC reweighs) remain 100% identical. |
+| **2** | Broker Financial Impact | Carrier overcharges eat directly into thin brokerage gross margins (12–16%). Every $1 of carrier overbilling is $1 lost from brokerage EBITDA or forced into risky customer re-billing. |
+| **3** | Ingestion Channels | Primary ingestion: Broker AP email forwarding (`payables@broker.com` → RateGuard) and Broker TMS invoice exports (McLeod, Tai, Ascend, Turvo CSV/PDF ZIPs). |
+| **4** | Contract Quality Ladder | Rung A–D mapping updated for Broker-Carrier rates (FSTD contracts, spot confirmations, tariff matrices, carrier pricing addendums). |
+| **5** | Dispute Legal Mechanism | "We draft, the broker sends" to carriers. Prevents carrier relationship friction while recovering carrier payables overcharges before or after voucher settlement. |
+| **6** | Monetization & Trigger | Pure 35% contingency on verified carrier credit memos / adjusted carrier payables vouchers. Net-15 invoicing. |
 
 ---
 
 ## 1. EXECUTIVE SUMMARY
 
-RateGuard AI is an AI-powered freight audit and recovery service for mid-market US shippers and freight brokers (3PLs). We ingest carrier invoices and rate contracts, detect every billing error (duplicates, wrong rates, invalid accessorials, reweighs, fuel surcharge miscalculations, and deficit weight bumping), and recover the overpaid money for the shipper or freight broker. Pricing is pure contingency: **35% of recovered dollars. Nothing recovered = nothing owed.**
+RateGuard AI is an AI-powered carrier payables audit and overcharge recovery platform engineered specifically for **Freight Brokers and 3PLs** (with secondary support for mid-market shippers). We ingest LTL carrier invoices and broker-carrier rate agreements, detect every carrier billing error (duplicate bills, contracted rate misapplications, invalid accessorial charges, reweigh & re-class errors, fuel surcharge miscalculations, deficit weight bumping misses, and late guaranteed deliveries), and recover overpaid funds for the freight broker. Pricing is pure contingency: **35% of recovered carrier overcharges. Nothing recovered = nothing owed.**
 
-The one-line pitch:  
-> *"You are losing 3–7% of your freight spend / carrier payables to carrier billing errors. We find it and get it back. You only pay us from what we recover."*
+The one-line pitch for Freight Brokers:  
+> *"Carrier billing errors leak 3–7% of your total carrier payables. Because brokerage gross margins are 12–16%, overcharges erase up to 30–50% of your net EBITDA. We catch carrier overbilling and get your margin back. You only pay us from verified recoveries."*
 
-**v2.0 strategic framing — the MVP is a concierge service with software underneath.**  
-The software does the reading and the math; we do the judgment calls; the customer does the sending. The first 5 customers (whether mid-market shippers or freight brokerages) are not buying software — they are buying a "$100K found-money" phone call. Everything else (EDI, PoAs, self-serve, integrations) is a response to real demand, not a prediction of it.
+**v2.1 Strategic GTM Launch Target: March 21st.**  
+The initial product execution relies on a high-touch concierge service backed by automated LLM parsing and deterministic math engines. The software ingests broker payables and contract terms; internal human-in-the-loop review ensures 90%+ precision; the freight broker dispatches carrier dispute notices. The initial March 21st cohort of freight broker pilots receives immediate bottom-line margin recovery without requiring complex API/EDI integrations.
 
-**Why now:** Legacy freight audit firms (Cass, nVision, Trax) run on armies of human auditors, take months, and chase only enterprise clients. LLMs can now read messy LTL invoices and 40-page rate contracts at near-zero marginal cost. Mid-market shippers and freight brokers ($2M–$50M freight spend / carrier payables) are completely unserved.
+**Why Freight Brokers now:** Legacy audit firms (Cass, nVision, Trax) target direct enterprise shippers with armies of manual auditors. Mid-market freight brokerages ($5M–$250M in carrier payables) handle thousands of LTL carrier bills every month under tight 12–16% gross margin constraints. Carrier payables clerks cannot manually check every LTL bill against complex carrier rate matrices. AI-driven contract parsing and automated audit logic allow freight brokers to plug carrier overcharge leaks instantly.
 
 ---
 
 ## 2. PROBLEM STATEMENT
 
-### 2.1 The problem
-* **5–15% of freight invoices contain errors**, and errors systematically favor the carrier.
-* **Shippers lose 3–7% of total annual freight spend** to undetected overbilling.
-* **Root cause:** a mid-market shipper receives 500–10,000 carrier invoices/month. Manually auditing one invoice against a rate contract takes 20–30 minutes. No AP team can check them all, so bills are paid on trust.
-* **LTL is the worst offender:** NMFC freight-class reweighs, cubic-capacity rules, complex accessorial schedules, and monthly fuel-surcharge tables create endless error surface area.
+### 2.1 The Problem for Freight Brokers
+* **5–15% of carrier freight invoices contain errors**, and errors systematically favor the carrier over the broker.
+* **Freight brokers lose 3–7% of total annual carrier payables** to undetected carrier overbilling.
+* **Margin Impact:** Freight brokerages operate on 12–16% gross margins. A $500 carrier overbilling error on a $2,000 load destroys the margin on 3–4 other loads. 
+* **The Re-billing Dilemma:** When carriers overbill (e.g. unexpected reweighs or accessorials), brokers face a painful choice: try to re-bill the shipper customer (risking customer churn) or absorb the charge (destroying brokerage EBITDA). Auditing carrier payables *before* or immediately after payment eliminates this dilemma.
+* **Root Cause:** A mid-market freight broker receives 500–10,000 carrier invoices per month across dozens of LTL carriers (ABF, XPO, Saia, Estes, Roadrunner). Manually auditing each invoice against carrier contract matrices, FSC tables, and NMFC classifications takes 20–30 minutes per bill. Brokerage AP teams lack the time and tooling to perform comprehensive audits.
 
-### 2.2 Evidence the problem is real and paid for
-* Mature audit programs recover 8–12% of audited spend; year-1 ROI exceeds benchmarks (industry).
-* **Cass Information Systems (NASDAQ: CASS):** ~$207M revenue (2024), 51M invoices processed/year, $94B annual disbursements — a multi-decade, multi-hundred-million-dollar business built on this exact problem.
-* Contingency recovery (30–50% of recovered dollars) is the established, accepted pricing model.
+### 2.2 Evidence the Problem is Real and Paid For
+* Mature audit programs recover 8–12% of audited carrier spend; ROI for freight brokers is amplified due to gross margin leverage.
+* **Cass Information Systems (NASDAQ: CASS):** ~$207M revenue (2024), 51M invoices processed/year — proving multi-hundred-million-dollar demand for freight payment audit.
+* Contingency pricing (30–50% of recovered dollars) is the standard, frictionless sales model accepted by freight brokerage executive teams.
 
 ---
 
@@ -51,302 +52,197 @@ The software does the reading and the math; we do the judgment calls; the custom
 
 | Layer | Figure | Basis |
 | :--- | :--- | :--- |
-| **US LTL market (TAM)** | ~$52.8B (2024) → ~$114B (2033) | Industry market-size reports |
-| **Annual overbilling pool** | $1.6B–$3.7B/yr | 3–7% error rate applied to TAM |
-| **Serviceable (SAM)** | ~$600M–$1.1B recoverable/yr | Mid-market shippers (~35% of spend) |
-| **RateGuard share @ 35% contingency** | $210M–$385M/yr revenue potential | SAM × 35% |
-| **Expansion TAM** | +$400B+ global LTL; TL & parcel audit; freight payment float | Roadmap phases 2–4 |
-
-**Bottom line:** the audit niche alone supports a $1B+ outcome; freight payment (the Cass endgame) makes it inevitable if we win the audit wedge.
+| **US Freight Brokerage LTL Market (TAM)** | ~$52.8B (2024) → ~$114B (2033) | Industry brokerage market size & LTL payables volume |
+| **Annual Carrier Overbilling Pool** | $1.6B–$3.7B/yr | 3–7% carrier error rate applied to broker LTL payables |
+| **Serviceable Market (SAM)** | ~$600M–$1.1B recoverable/yr | Mid-market Freight Brokerages & 3PLs ($5M–$250M payables) |
+| **RateGuard Revenue Potential @ 35%** | $210M–$385M/yr | SAM × 35% contingency share |
+| **Target Launch Horizon** | **March 21 Launch** | Initial broker pilot wave target |
 
 ---
 
 ## 4. CUSTOMER PROFILE (ICP) — DETAILED
 
-### 4.1 Ideal Company Profile (firmographics)
+### 4.1 Ideal Company Profile (Freight Broker Firmographics)
 
-| Attribute | Target | Why |
+| Attribute | Target | Rationale |
 | :--- | :--- | :--- |
-| **Geography** | United States | LTL billing complexity is US-centric (NMFC, tariffs) |
-| **Industry** | Mid-market Shippers (manufacturing, building materials, wholesale/distribution, food & bev) **AND** Freight Brokerages / 3PLs managing LTL carrier payables | High LTL volume, thin margins (12–16% gross margin for brokers) → carrier overbilling destroys profitability |
-| **Employees** | 50–500 | Big enough for real freight volume; too small for Cass/nVision |
-| **Annual revenue** | $10M–$150M | Correlates with freight spend / carrier payables sweet spot |
-| **Annual freight spend / payables** | $2M–$50M (avg ~$10M) | = $60K–$3.5M/yr leaking to carrier errors |
-| **Invoices/month** | 500–10,000 carrier invoices | Volume makes manual audit impossible |
-| **Carrier count** | 3–15 contracted LTL carriers (e.g. ABF, XPO, Roadrunner, Estes, Saia) | Enough contract matrices to audit against |
-| **AP / Payables team** | 2–10 people, no dedicated freight auditor | Bottleneck = our wedge |
-| **Current tooling** | ERP (NetSuite/SAP B1/QuickBooks) or Broker TMS (McLeod, Tai, Ascend, Turvo); invoices arrive as PDF/email; rarely EDI | No automated pre/post-audit = greenfield |
-| **Trigger events** | New CFO/controller; freight margin squeeze; carrier dispute backlog; GRI season | Buying windows |
+| **Geography** | United States | US LTL billing, NMFC tariffs, and carrier accessorial rules |
+| **Industry** | Freight Brokerages, 3PLs, Freight Forwarders managing LTL carrier payables | High LTL load volume, 12–16% gross margins → carrier overbilling directly impacts EBITDA |
+| **Brokerage Size** | 15–300 employees | Agile leadership, fast decision-making, high carrier invoice volume |
+| **Annual Carrier Payables** | $5M–$250M (LTL spend focus) | Sweet spot: $150K–$8.75M/yr in leaking carrier overcharges |
+| **Monthly Carrier Invoices** | 500–10,000 carrier bills/month | Volume makes manual carrier payables audit impossible |
+| **LTL Carrier Mix** | 3–25 contracted LTL carriers (XPO, ABF, Saia, Estes, Roadrunner, R+L) | Complex contract matrices, discount tiers, and accessorial schedules |
+| **Carrier Payables / AP Team** | 2–10 AP/Payables clerks, no dedicated automated freight auditor | Manual voucher processing bottleneck = our key entry point |
+| **TMS Tooling** | McLeod, Tai Software, AscendTMS, Turvo, Freight360, or custom broker TMS | Export carrier invoices as CSV/PDF or forward AP emails |
+| **Trigger Events** | Gross margin compression; carrier dispute backlog; annual carrier pricing updates; March 21 GTM push | Clear buying windows |
 
 ### 4.2 Buyer Personas
 
-#### Persona 1 — THE ECONOMIC BUYER (Shipper CFO / Controller)
-* **Title:** CFO, VP Finance, or Controller. Age 38–55. Reports to CEO/PE owner. Measured on cash and margin.
-* **Goals:** free cash, margin improvement, clean books, no surprises.
-* **Pain quotes:** *"I know we're being overcharged, but I can't prove it."* / *"We found a $50K duplicate once by accident. How many did we miss?"*
-* **Buying trigger:** any proof of recoverable dollars. A single number ("$187,340 recoverable") closes them.
-* **Objection:** *"Our AP team already checks these."* → **Counter:** *"Give us 6 months of invoices. If we find nothing, you pay nothing."*
-* **Where to find:** LinkedIn (title + company size filters), CFO peer groups, industry finance communities.
+#### Persona 1 — THE ECONOMIC BUYER (Freight Brokerage Leader / CFO / VP of Operations)
+* **Title:** VP of Brokerage Operations, Brokerage CFO, Chief Operating Officer, Managing Partner.
+* **Goals:** Protect brokerage gross margins (12–16%), boost EBITDA, prevent carrier payment leakage, eliminate customer re-billing friction.
+* **Pain Quote:** *"Carrier overcharges are eating our margin alive. Every time a carrier adds an unverified reweigh or accessorial, we either fight with our shipper customer or eat the loss."*
+* **Buying Trigger:** Proof of unrecovered carrier overcharges on past carrier payables. Showing recoverable dollars closes them instantly.
+* **Objection:** *"Our AP team already verifies carrier invoices before paying."* → **Counter:** *"Let us audit 6 months of paid carrier bills for free. If we find no errors, you pay nothing. If we find overcharges, we share the recovery."*
 
-#### Persona 2 — THE CHAMPION (Shipper Logistics Director)
-* **Title:** VP/Director Supply Chain, Director of Logistics.
-* **Role:** Owns carrier relationships and shipping budget. Feels the billing chaos daily; often brings us to the CFO.
-* **Pain:** drowning in invoice disputes, no leverage with carriers, blamed for freight cost overruns.
-* **Value:** internal advocate; writes the business case; usually runs the evaluation.
+#### Persona 2 — THE CHAMPION (Director of Carrier Payables / Operations Manager)
+* **Title:** Director of Carrier Payables, AP Manager, Freight Operations Manager.
+* **Role:** Oversees daily carrier voucher approvals and carrier dispute resolution.
+* **Pain:** Overwhelmed by carrier balance dues, reweigh notices, and accessorial disputes; lacks time to audit line-item tariffs against carrier contracts.
+* **Value:** Internal advocate who gathers sample carrier invoices and contracts for the pilot.
 
-#### Persona 3 — THE FREIGHT BROKER / 3PL OPERATOR (Brokerage Leader)
-* **Title:** VP of Brokerage Operations, Director of Carrier Payables, Brokerage COO/Controller.
-* **Role:** Operates mid-market freight brokerage / 3PL brokering LTL freight.
-* **Pain:** LTL carrier billing errors (lack of deficit bumping, unwarranted accessorials, arbitrary reweighs) eat into 12–16% gross margin. Re-billing shippers causes customer churn; eating carrier overcharges kills brokerage EBITDA.
-* **Goals:** Protect gross margin per load, automate carrier invoice audit before voucher approval, recover overcharges without alienating core carrier capacity.
-* **Buying trigger:** Immediate bottom-line margin recovery with zero upfront tech integration.
+#### Persona 3 — THE END USER (Carrier Payables / AP Specialist)
+* **Title:** Carrier Payables Specialist, AP Clerk, Settlement Specialist.
+* **Role:** Processes carrier invoices daily in TMS/ERP, reviews flags, and dispatches dispute documentation to carrier reps.
+* **Pain:** Spending 20–30 minutes checking a single complex LTL bill; constant friction with carrier credit departments.
 
-#### Persona 4 — THE END USER (AP / Carrier Payables Specialist)
-* **Title:** Transportation Manager, Logistics Manager, Carrier Payables Specialist.
-* **Role:** Runs invoices daily for shippers or freight brokers. Operates the product (upload, review, send disputes).
-* **Pain:** 20–30 min per manual invoice check; carrier disputes go nowhere; month-end crunch.
-* **Value:** product feedback, day-to-day engagement, renewal loyalty.
+#### Persona 4 — SECONDARY ICP (Mid-Market Shipper Logistics Director / CFO)
+* **Title:** Shipper VP Supply Chain, Director of Logistics, Shipper CFO.
+* **Role:** Direct shippers managing in-house freight spend. Supported as a secondary customer tier under the exact same audit engine.
 
-### 4.3 Anti-ICP (explicitly NOT our customer — do not sell)
-* **Fortune 1000** (already served by Cass/nVision; 9-month sales cycles)
-* **Companies spending <$500K/yr on freight** (recovery too small)
-* **Asset-based carriers/trucking companies** (different business — we audit carriers on behalf of shippers and brokers)
-* **Pure parcel shippers** (UPS/FedEx refund space is commoditized)
-* **NEW: prospects who "only get EDI 210"** — EDI requires a translator stack that's Fortune 1000 territory. Out of MVP scope; disqualify and revisit in Phase 3.
-* **NEW: Rung D contract prospects (no rate agreement at all)** — a pilot with no contract produces a weak report and burns a referral. Politely pass, check back in 3 months.
+### 4.3 Anti-ICP (Do Not Sell)
+* Enterprise Fortune 500 Shippers with 9-month procurement cycles (already tied to Cass/nVision).
+* Asset-only carriers (truckload fleets billing out, rather than brokering/auditing carrier payables).
+* Companies with <$500K annual carrier payables (recovery volume too small for ROI).
+* Prospects receiving ONLY EDI 210 with no access to PDF/email carrier bills (disqualified for MVP).
+* Rung D prospects (no formal carrier rate agreements or pricing tariffs available).
 
 ---
 
 ## 5. PRODUCT OVERVIEW
 
-### 5.1 Core loop
-Upload invoices + rate contracts → AI audits every invoice → Recovery Report ($ found, with evidence) → One-click dispute letters → customer sends → carrier issues credit memo → we invoice 35% of verified credit memos.
+### 5.1 Core Loop
+Upload carrier invoices + broker-carrier rate agreements → AI Engine audits every bill → Recovery Report ($ found, evidence attached) → One-click carrier dispute letters → Broker sends to carrier → Carrier issues credit memo / voucher adjustment → We invoice 35% of verified credit memo value.
 
-### 5.2 INGESTION — Channel-Prioritized (Q1 decision)
-
-* **Channel A — Email forwarding (60–70% of volume, MVP priority #1).**  
-  Carriers email invoices as PDF attachments to the shipper's AP inbox. The shipper sets a forwarding rule: anything from `@abf.com`, `@xpo.com`, `@roadrunner.com` etc. → forward to their unique RateGuard address. Path of least resistance — AP clerks already live in email; a forwarding rule takes 2 minutes. We parse the email body + attachment via inbound email API (Postmark/Mailgun inbound).
-* **Channel B — AP system exports (20–30%, MVP priority #2).**  
-  Mid-market shippers run NetSuite, SAP Business One, or QuickBooks. Their AP team exports "paid freight invoices" as CSV or a ZIP of PDFs in under 10 minutes. Simple upload UI for both. We do NOT build API integrations in MVP — the export takes the customer 10 minutes and takes us zero engineering time.
-* **Channel C — EDI 210 (enterprise-only, explicitly OUT of MVP).**  
-  EDI 210 is the X12 transaction carriers use to bill electronically. Requires an EDI translator (TrueCommerce, SPS Commerce, Cleo) and carrier mappings — Fortune 1000 territory. Phase 3. If a pilot prospect says "we only get EDI," they are not an MVP customer.
-* **Drag-and-drop:** acceptable UI, but it is the fallback for stragglers — not the main artery. The main artery is the forwarding rule.
+### 5.2 INGESTION — Channel-Prioritized
+* **Channel A — AP Email Forwarding (60–70% of volume, MVP Priority #1):**  
+  Carriers email billing PDFs to the broker's payables inbox (`payables@brokerage.com`). The broker sets an automated forwarding rule to RateGuard (`broker-invoices@rateguard.ai`). Fast, 2-minute setup.
+* **Channel B — Broker TMS Exports (20–30%, MVP Priority #2):**  
+  Brokers export paid/pending carrier invoices from McLeod, Tai, AscendTMS, or Turvo as CSV or PDF ZIP packages. Simple drag-and-drop ingestion.
+* **Channel C — EDI 210 Ingestion:**  
+  Explicitly OUT of MVP scope. Disqualify EDI-only prospects during initial qualification.
 
 **Functional Requirements:**
-* **FR-1.1:** Customer can onboard (company, users, remit-to) in <10 min.
-* **FR-1.2:** Batch upload of 500+ invoices without error.
-* **FR-1.3:** Contract parser outputs validated JSON rate matrix with confidence scores.
-* **FR-1.4:** Unique inbound email address per customer; forwarding-rule setup instructions in onboarding.
+* **FR-1.1:** Broker onboarding completed in <10 minutes.
+* **FR-1.2:** Batch ingestion supporting 500+ carrier invoices per upload without timeout.
+* **FR-1.3:** Automated contract parser extracting baseline rates, discount percentages, FSC schedules, and accessorial rules into structured JSON.
+* **FR-1.4:** Dedicated inbound email routing address per broker account with forwarding setup guide.
 
-### 5.3 CONTRACT INTAKE — The Quality Ladder (Q2 decision)
-The single biggest operational risk. Every pilot customer is sorted into one rung:
+### 5.3 CONTRACT INTAKE — The Quality Ladder
+Every broker-carrier pricing contract is classified into one of four rungs:
 
-| Rung | What they have | Our move |
+| Rung | Document Availability | Action Plan |
 | :--- | :--- | :--- |
-| **A** | Clean signed pricing agreement (FSTD, pricing addendum, rate tariff) | Ideal — parse directly |
-| **B** | Rates buried in email chains with carrier reps ("attached is your 2024 pricing...") | Parse emails + attachments; LLM extracts the rate matrix from messy text |
-| **C** | Only published tariff + verbal "we get 65% off" | Fallback audit mode: audit against published tariff minus claimed discount. Weaker, but still catches duplicates, fake accessorials, and arithmetic errors — ~50% of recoverable dollars |
-| **D** | Nothing | Disqualify for MVP. Not every prospect is a customer |
+| **A** | Signed Carrier Rate Agreement / FSTD / Tariff Addendum | Ideal: Parse directly into structured rate matrix |
+| **B** | Rate terms in email threads with carrier reps | Parse email bodies and attachments via LLM into rate tables |
+| **C** | Published tariff + documented discount (e.g. "Czarlite 2024 minus 68%") | Audit against baseline tariff minus discount; catches duplicates, wrong FSC, and unauthorized accessorials (~50–60% of recoverable pool) |
+| **D** | No rate documentation available | Disqualify for MVP |
 
-**Mandatory pre-pilot qualification question (ask before any free work):**  
-> *"Can you send me your current rate agreement with your top carrier?"*
+**Pre-Pilot Qualification Question:**  
+> *"Can you provide your current pricing agreement or tariff schedule for your top 3 LTL carriers?"*
 
-* **Yes** → proceed.
-* **"Let me find it"** → proceed with caution.
-* **"We don't have one"** → politely pass, check back in 3 months.
-* *Note:* carriers are legally required to maintain tariffs; negotiated rates are amendments. Many mid-market shippers DO have the PDF — it lives in the AP clerk's inbox or a shared drive. Part of concierge onboarding is literally helping them find it.
+### 5.4 THE AUDIT ENGINE (LLM Parsing + Deterministic Math)
+* **Deterministic Code:** Hashes for duplicate detection (carrier + PRO# + amount + load ID), exact arithmetic checks, FSC table calculations, contracted lane matrix lookups, and delivery date/guaranteed service logic.
+* **LLM Intelligence:** PDF document parsing for un-structured carrier bills, contract clause extraction, POD delivery date matching, and line-item charge categorizations.
 
-### 5.4 THE AUDIT ENGINE (~80% of engineering effort)
-**Architecture split (Q5 decision): LLM for understanding, deterministic code for math.**
-
-**Deterministic code (no LLM, no variance):**
-* Duplicate detection (hash on carrier + pro# + amount + date window)
-* Arithmetic validation (line items = invoice total)
-* FSC calculation (lookup table: month → FSC % → apply to base)
-* Rate matrix lookups (lane + weight break → contracted rate)
-* Date logic (guaranteed service: promised date vs. POD delivery date)
-
-**LLM (understanding messy documents):**
-* Parsing invoice PDFs → structured JSON (charges, accessorials, pro numbers from 20 carrier formats)
-* Parsing rate contracts → rate matrix JSON (the hard one — 20–40 pages of tables, exceptions, FAK mappings)
-* Parsing PODs for delivery dates
-* Matching remittance/payment emails to invoices (fuzzy text understanding)
-
-**Why this split matters for cost:**  
-A $10M-spend shipper generates ~5,000 invoices/year. LLM-parsing 5,000 invoices + 10 contracts ≈ $50–150 in API calls. Deterministic math on 5,000 invoices costs $0. LLM-ing everything would 10x cost for zero accuracy gain on math.
-
-**The 8 audit checks (per invoice):**
-1. **Duplicate billing** (same pro/load #, same charges, same date window)
-2. **Rate misapplication** (billed rate ≠ contracted lane rate)
-3. **Fuel surcharge miscalculations** (wrong FSC %, wrong table month)
-4. **Unauthorized/fictitious accessorials** (liftgate, residential, limited access, inside delivery, appointment — billed but not applicable)
-5. **Reweigh & dimension disputes** (billed weight/class vs. contract rules; NMFC class errors)
-6. **Guaranteed-service failures** (billed premium, delivered late → refund owed)
-7. **Arithmetic errors** (line items ≠ total)
-8. **Tax errors** where applicable
+**The 8 Core Audit Checks (Identical Core Audit Logic):**
+1. **Duplicate Carrier Billing:** Identical PRO#, load reference, or charge combination submitted multiple times.
+2. **Rate Misapplication:** Billed rate exceeds contracted tariff or discount agreement.
+3. **Fuel Surcharge (FSC) Errors:** Incorrect FSC percentage applied for the ship date/week.
+4. **Unauthorized Accessorials:** Unverified liftgate, residential delivery, inside delivery, or limited access charges billed without broker dispatch authorization.
+5. **Reweigh & Re-class Disputes:** Incorrect NMFC class assignment or reweigh charges violating contract tolerance rules (e.g., lack of deficit bumping).
+6. **Guaranteed Service Failures:** Carrier billed guaranteed rate but delivered after promised window.
+7. **Arithmetic Errors:** Line items do not sum to total invoice charge.
+8. **Tax Calculation Errors:** Invalid tax assessments on non-taxable freight legs.
 
 **Functional Requirements:**
-* **FR-2.1:** Every flagged error carries: invoice ref, contract clause cited, $ overcharge, confidence score.
-* **FR-2.2:** Precision target: ≥90% of flagged errors are real (human review in concierge mode).
-* **FR-2.3:** Audit of 500 invoices completes in <15 minutes.
+* **FR-2.1:** Flagged overcharges contain invoice ref, contract clause reference, calculated overcharge amount, and confidence score.
+* **FR-2.2:** Target flag precision ≥90% prior to client delivery (enforced via Human-in-the-Loop review).
+* **FR-2.3:** 500 invoices processed and audited in under 15 minutes.
 
-### 5.5 HUMAN-IN-THE-LOOP REVIEW QUEUE (Q6 decision — internal feature, where the 90% guarantee lives)
-Invisible to customers; simple internal queue — one screen, three buttons:
+### 5.5 HUMAN-IN-THE-LOOP (HITL) REVIEW QUEUE
+Internal review screen for RateGuard audit team to verify flagged overcharges before presenting to the freight broker. Ensures absolute data integrity and maintains 90%+ precision guarantee.
 
-```text
-┌─────────────────────────────────────────────────────────┐
-│ REVIEW QUEUE — 14 flagged errors (Acme Imports)         │
-├─────────────────────────────────────────────────────────┤
-│ ▶ INV-2847 · ABF · $412.50                              │
-│ Flag: Fuel surcharge miscalculated                      │
-│ Billed FSC: 42% · Contract FSC (June): 38%              │
-│ Evidence: [invoice PDF] [contract p.7]                  │
-│ [✓ Approve] [✗ Reject] [? Needs research]               │
-├─────────────────────────────────────────────────────────┤
-│ ▶ INV-2851 · XPO · $1,204.00                            │
-│ Flag: Possible duplicate of INV-2844                    │
-│ [✓ Approve] [✗ Reject] [? Needs research]               │
-└─────────────────────────────────────────────────────────┘
-```
+### 5.6 RECOVERY REPORT & CARRIER DISPUTE LETTERS
+* **Recovery Report:** PDF/Dashboard detailing total recoverable overcharges grouped by carrier, error category, and load reference.
+* **Dispute Letters ("We Draft, Broker Sends"):** Pre-formatted dispute letters citing specific contract clauses and PRO numbers. The broker's carrier payables clerk reviews and forwards the dispute directly to the carrier rep.
+* **Benefits:** Preserves broker-carrier relationship, avoids Power-of-Attorney paperwork, and integrates seamlessly with standard AP workflows.
 
-* **Approve** → goes into the customer-facing Recovery Report.
-* **Reject** → "rejected" log = training data; every rejection tagged with a reason code (*wrong rate matrix row, misread PDF, contract exception misapplied*).
-* **Needs research** → manual contract dig.
-* **Time budget:** ~30 seconds per flag. A 500-invoice pilot with ~50 flags = 25 minutes of review.
-* **Feedback loop:** monthly review of top reason codes → fix the parser or contract reader. This is how 90% → 95% → 98% precision.
-
-### 5.6 RECOVERY REPORT + DISPUTE LETTERS (with legal mechanism — Q4 decision)
-* **Branded PDF report:** total $ recoverable, breakdown by error type and carrier, evidence per claim.
-* **Dispute letter generation:** we draft, the customer sends. Always (MVP).
-* Letter generated as PDF + email body, addressed from the shipper, citing the shipper's contract.
-* Customer (or AP clerk) copies it into their own email and hits send. Two minutes of their time.
-* **Why:** zero legal complexity, zero PoA paperwork, zero carrier-relationship risk. The carrier sees a dispute from their customer — normal business.
-* Customer CCs/forwards us the thread for status tracking.
-* **Phase 2 option:** a one-page authorization letter ("RateGuard AI is authorized to submit billing disputes on our behalf") — built only when a carrier demands it (expect around customer #5–10).
-* **We never do in MVP:** act as a party to the dispute, file anything legal, or communicate with carriers without the customer in the loop.
-* **Status tracking:** disputed → carrier response → credit memo issued → applied/paid. Lightweight, spreadsheet-grade.
-* **FR-3.1:** Report readable by a CFO in <5 min; "bottom line" number on page 1.
-* **FR-3.2:** Dispute letter ready to send with <1 click of edits.
-
-### 5.7 RECOVERY REALIZATION & OUR BILLING TRIGGER (Q3 decision — critical)
-**Industry reality:** carriers issue credit memos, not checks. The standard mechanism is a credit memo applied against future invoices; the shipper's next carrier bills are reduced by the credited amount.
-
-**Our billing trigger:** we invoice 35% on credit memo issued by the carrier, verified by documentation — **NOT on cash received.**
-
-**Mechanism:**
-1. Dispute sent → carrier responds with credit memo (or denial).
-2. Shipper forwards the credit memo, or we detect it in the forwarded invoice stream (credit memos often arrive as invoices with negative amounts).
-3. Verification: credit memo number, original invoice reference, dollar amount, carrier name — matched against our dispute record.
-4. We invoice 35% of credit memo value, net-15.
-
-**Why not cash received:** credit memos can take 60–90 days to flow through AP; cash-basis billing means financing our customers' working capital. Cash-basis billing kills audit firms. Memo-basis is the industry standard for contingency auditors.
-
-**Edge cases:**
-* **Actual refund checks** (some carriers cut checks for large amounts): same trigger — documented refund = billing event.
-* **Carrier denies:** track, escalate once with stronger evidence; if still denied, mark "unrecoverable," eat the cost. The 35% already prices in ~20–30% denial rates.
-
-### 5.8 Concierge Mode (how the first 5 customers are served)
-Same 3 features, operated by us. Customer uploads (or forwards); we run the audit, human-review every flagged error, deliver the report on a call, and optionally send disputes on their behalf (+10% fee). Purpose: revenue in week 3, training data, product learning.
-
-### 5.9 Explicit NON-GOALS for MVP (do not build)
-* ERP/TMS API integrations — Phase 2 (CSV/ZIP export is the bridge)
-* Dashboards, analytics, charts — Phase 3
-* Payment processing / freight pay — Phase 4 (Cass endgame)
-* Carrier-side features, claims filing, detention — out of scope
-* Multi-user roles & permissions — Phase 3
-* Self-serve dispute automation — after concierge proves letter formats
-* EDI 210 ingestion — Phase 3, and a current disqualifier
-* Acting as a dispute party / PoA / direct carrier communication — not MVP
-* Self-serve onboarding before week 6 — the first 5 customers need found money, not a signup flow
+### 5.7 BILLING TRIGGER & MONETIZATION
+* **Contingency Model:** 35% of verified carrier overcharge recoveries (credit memos or payables voucher reductions issued by carriers).
+* **Trigger Event:** Issued carrier credit memo or verified payables adjustment. Invoiced on Net-15 terms.
+* **Denial Factor:** ~20–30% carrier denial rate is pre-calculated into the 35% contingency pricing.
 
 ---
 
 ## 6. USER FLOWS
 
-* **Flow A — Pilot (concierge):** Pre-qualification (contract rung question) → shipper sets forwarding rule / sends 6 months of invoices + contracts → we audit → human review → 30-min "Found Money" call with report → sign 1-page recovery agreement → customer sends dispute letters (we track) → credit memos verified → we invoice 35%, net-15 → monthly commission cycle.
-* **Flow B — Self-serve (post-MVP, week 6–8):** Signup → onboarding wizard (company, remit-to, carriers, contract upload, forwarding-rule instructions) → invoices flow via forwarding rule → audit runs → human spot-check queue → report → click "Generate disputes" → customer sends → credit-memo detection → commission invoicing.
+* **Flow A — Broker Pilot (Concierge Mode):** Qualification → Broker uploads 6 months of paid carrier bills + carrier rate sheets → System audits → HITL verification → 30-min "Broker Margin Recovery" presentation → Broker executes 1-page agreement → Broker dispatches dispute letters → Carrier issues credit memos → RateGuard invoices 35% commission (Net-15).
+* **Flow B — Broker Self-Serve (Post-MVP, Weeks 6–8):** Broker onboarding → Select TMS / configure email forwarding → Automated continuous carrier audit → Monthly recovery statement & automated dispute dispatch.
 
 ---
 
-## 7. THE 3-WEEK CLOCK — Concierge-First (Q7 decision, confirmed)
+## 7. GTM & BUILD TIMELINE (Targeting March 21 Broker Launch)
 
-| Week | Deliverable | Customer-facing? |
+| Week / Milestone | Execution Deliverables | Broker Impact |
 | :--- | :--- | :--- |
-| **1** | Ingestion pipeline (email forwarding + upload), document storage, manual invoice entry fallback | No — internal |
-| **2** | Audit engine v1: duplicates + rate check + FSC check (these three = ~70% of recoverable dollars). Contract parser for top 3 carriers | No — internal |
-| **3** | Review queue UI, Recovery Report PDF, dispute letter generator. Run first real pilot manually — we upload, we review, we hand over the report on a Zoom call | **Yes — first pilot delivered** |
-| **4–5** | Second and third pilots. Refine audit rules from findings. Stripe billing for first commission invoice | **Yes — revenue** |
-| **6–8** | Self-serve onboarding flow, top 10 carrier formats, automated dispute tracking | **Yes — product** |
-
-**The trap to avoid:** building self-serve onboarding in week 2. It's 2 weeks of engineering that adds zero value when hand-holding the first 5 customers anyway. The first 5 customers don't need a signup flow — they need us to find them $100K.
+| **Week 1** | Ingestion pipeline (email forwarding + TMS export support), database schema setup | Internal readiness |
+| **Week 2** | Audit engine v1 (Duplicates, Rate misapplications, FSC check), contract parser | Internal testing |
+| **Week 3 (March 21 Target)** | **GTM Launch & First Freight Broker Pilot Delivery.** Review queue UI live, Recovery Report generation, dispute letter builder. Onboard first freight brokerages in concierge mode. | **First Freight Broker Pilots Live (March 21)** |
+| **Weeks 4–5** | Expansion to 3–5 brokerage pilots; Stripe commission billing; refinement of broker TMS parsers | **Revenue & Case Studies** |
+| **Weeks 6–8** | Automated self-serve broker onboarding, top 10 LTL carrier invoice templates, dispute status tracking | **Scalable Product Platform** |
 
 ---
 
 ## 8. PRICING & BUSINESS MODEL
 
-| Element | Detail |
+| Element | Specification |
 | :--- | :--- |
-| **Model** | Contingency only in MVP: 35% of recovered (credit-memo-verified) dollars |
-| **Billing trigger** | Credit memo issued + verified. Net-15. Never cash-received basis |
-| **Pilot** | Free audit of last 6 months; simple 1-page recovery agreement |
-| **Concierge dispute handling** | +10% fee (40% total) if we manage the dispute process end-to-end |
-| **Future (Phase 2+)** | Continuous pre-audit subscription $1,500–$5,000/mo ("stop overpaying before it happens"); payment processing take-rate; analytics tier |
-| **Unit economics target** | First customer ≤3 weeks from first outreach; ≥$100K revenue per $10M-spend customer/yr; CAC ≈ $0 (founder-led, free pilot) |
-| **Denial economics** | ~20–30% dispute denial rate priced into the 35% |
+| **Pricing Structure** | Pure contingency: 35% of verified carrier overcharge recoveries |
+| **Billing Trigger** | Carrier credit memo issued or payables voucher adjustment verified. Net-15 terms. |
+| **Broker Pilot Offer** | Free historical audit of past 3–6 months of carrier payables |
+| **Managed Dispute Add-on** | +10% fee (40% total) if RateGuard manages end-to-end carrier correspondence |
+| **Expected Broker Value** | $100K–$350K+ annual margin recovery per $10M–$25M in carrier payables |
 
 ---
 
-## 9. TECH STACK & BUDGET (Q5 decision)
+## 9. TECH STACK & BUDGET
 
-| Item | Choice | Cost |
-| :--- | :--- | :--- |
-| **DB + auth + storage** | Supabase free tier (500MB DB, 2GB storage — enough for thousands of invoice PDFs) | $0 |
-| **Hosting** | Vercel hobby tier | $0 |
-| **LLM API** | OpenAI/Anthropic pay-as-you-go | ~$50–100/mo at pilot volume |
-| **Inbound email** | Postmark (5,000 emails) | $15/mo |
-| **Domain + misc** | — | ~$20/mo |
-| **Total** | | **~$100–150/mo (ceiling: $200/mo until first revenue)** |
-
-*Stripe fees only when we bill. Billing: Stripe invoicing for commission invoices.*
+* **Database & Auth:** Supabase (PostgreSQL, Auth, Storage) — Free Tier
+* **Hosting:** Vercel Hobby / Pro
+* **AI Engine:** OpenAI / Anthropic Pay-As-You-Go API (~$50–$100/mo at pilot volume)
+* **Inbound Email:** Postmark Inbound API ($15/mo)
+* **Operational Budget Ceiling:** <$200/mo until initial pilot revenue
 
 ---
 
 ## 10. SUCCESS METRICS & KPIs
 
-| Metric | Target | Why it matters |
+| Metric | Target | Strategic Objective |
 | :--- | :--- | :--- |
-| **First paying pilot customer** | ≤3 weeks from first outreach | Validates concierge GTM |
-| **Flag precision (post-review)** | ≥90% → 95% → 98% monthly | The trust covenant; reason-code loop drives it |
-| **Review time per flag** | ≤30 seconds | Concierge unit economics |
-| **Audit throughput** | 500 invoices <15 min | Scales to 10K/mo customers |
-| **Recoverable $ found per $10M-spend customer** | ≥$100K/yr revenue to us | Core unit economics |
-| **Dispute denial rate** | ≤20–30% | Watch for carrier-specific hostility |
-| **Credit memo verification rate** | 100% of billed commissions | Revenue integrity |
-| **Memo-to-verification lag** | Track; flag if >60 days | Early-warning on billing disputes |
-| **Onboarding time** | Customer forwarding rule live <10 min | Ingestion friction is the #1 drop-off risk |
+| **March 21 Launch Target** | Onboard first Freight Brokerage pilot by **March 21st** | GTM validation |
+| **Broker Flag Precision** | ≥90% (Concierge) → ≥95% (Automated) | Broker trust retention |
+| **Audit Processing Speed** | 500 carrier invoices in <15 minutes | Scalability |
+| **Average Margin Recovery** | ≥$100K/yr recovered per broker ($10M carrier payables) | Core economic engine |
+| **Dispute Acceptance Rate** | ≥75–80% carrier approval | Recovery efficiency |
+| **Broker Onboarding Time** | <10 minutes for email forwarding setup | Zero-friction adoption |
 
 ---
 
-## 11. RISKS & MITIGATIONS (new in v2.0)
+## 11. RISKS & MITIGATIONS
 
-| Risk | Severity | Mitigation |
+| Risk Factor | Severity | Mitigation Strategy |
 | :--- | :--- | :--- |
-| **Contract quality (messy/missing)** | High | Quality Ladder Rungs A–D; mandatory pre-pilot question; concierge helps locate the PDF |
-| **Billing on cash instead of memos kills cash flow** | High | Memo-basis billing trigger, net-15, verified |
-| **Customer expects us to "handle carriers"** | Medium | "We draft, you send" — set expectation in the recovery agreement |
-| **Carrier denies disputes in bad faith** | Medium | Escalate once with evidence; price 20–30% denial into 35%; track denial by carrier |
-| **False positives erode CFO trust** | High | Human review queue until precision ≥98%; never auto-send flags to customers in concierge mode |
-| **EDI-only prospects waste sales time** | Low | Disqualifier question added to ICP/anti-ICP |
-| **Scope creep (self-serve, integrations, dashboards)** | High | Non-goals list; 3-week clock; concierge-first |
-| **Credit memo detection misses (revenue leakage)** | Medium | Invoice stream monitoring for negative-amount invoices + customer forwards |
+| **Messy / Missing Carrier Rate Agreements** | High | Quality Ladder framework; concierge team assists broker in pulling carrier rate PDFs |
+| **Carrier Opposition / Dispute Denials** | Medium | "We draft, broker sends" model; detailed contract clause citations; 20–30% denial buffer in 35% rate |
+| **AP Team Resistance** | Medium | Position RateGuard as an assistant to AP clerks that frees them from manual 20-min invoice checks |
+| **Delayed Carrier Credit Memos** | Medium | Invoicing based on confirmed credit memo issuance / voucher adjustment rather than cash payout |
 
 ---
 
-## 12. PHASE ROADMAP (context, not commitment)
+## 12. PHASED PRODUCT ROADMAP
 
-* **Phase 1 (now):** Concierge audit + recovery, 3 checks (dupes, rate, FSC), top 3–10 carrier formats, memo-basis billing.
-* **Phase 2:** Continuous pre-audit subscription; one-page authorization letters; NetSuite/QuickBooks sync; top 20 formats.
-* **Phase 3:** Self-serve at scale; EDI 210; dashboards; multi-user roles; analytics tier.
-* **Phase 4:** Freight payment / disbursements (the Cass endgame).
-
-*Everything in Phase 2+ is a response to real demand, not a prediction of it.*
+* **Phase 1 (March 21 Focus):** Concierge Freight Broker Carrier Payables Audit & Recovery (Duplicate, Rate, FSC, Accessorial checks; top LTL carriers).
+* **Phase 2:** Continuous Pre-Pay Carrier Voucher Audit (Catch errors *before* broker pays carrier); TMS integrations (McLeod, Tai, Turvo).
+* **Phase 3:** Self-serve broker portal, multi-user carrier payables approval workflows, automated EDI 210 parser.
+* **Phase 4:** Integrated Freight Payment & Disbursement Float Management for Brokerages.
