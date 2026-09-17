@@ -287,7 +287,15 @@ def get_portal_session(customer_id: str = Query("cust_acme_01")):
     session = portal_service.get_dashboard(customer_id)
     return session
 
+@app.get("/health")
+@app.get("/api/health")
+@app.get("/api/v1/health")
+def health_check():
+    return {"status": "healthy", "service": "RateGuard AI API"}
+
 @app.post("/api/v1/upload")
+@app.post("/upload")
+@app.post("/api/upload")
 async def handle_invoice_upload(
     request: Request,
     customer_id: str = Form("cust_acme_01"),
