@@ -20,15 +20,15 @@
 
 ## 1. EXECUTIVE SUMMARY
 
-RateGuard AI is an AI-powered freight audit and recovery service for mid-market US shippers. We ingest carrier invoices and rate contracts, detect every billing error (duplicates, wrong rates, invalid accessorials, reweighs, fuel surcharge miscalculations), and recover the overpaid money for the shipper. Pricing is pure contingency: **35% of recovered dollars. Nothing recovered = nothing owed.**
+RateGuard AI is an AI-powered freight audit and recovery service for mid-market US shippers and freight brokers (3PLs). We ingest carrier invoices and rate contracts, detect every billing error (duplicates, wrong rates, invalid accessorials, reweighs, fuel surcharge miscalculations, and deficit weight bumping), and recover the overpaid money for the shipper or freight broker. Pricing is pure contingency: **35% of recovered dollars. Nothing recovered = nothing owed.**
 
 The one-line pitch:  
-> *"You are losing 3–7% of your freight spend to carrier billing errors. We find it and get it back. You only pay us from what we recover."*
+> *"You are losing 3–7% of your freight spend / carrier payables to carrier billing errors. We find it and get it back. You only pay us from what we recover."*
 
 **v2.0 strategic framing — the MVP is a concierge service with software underneath.**  
-The software does the reading and the math; we do the judgment calls; the customer does the sending. The first 5 customers are not buying software — they are buying a "$100K found-money" phone call. Everything else (EDI, PoAs, self-serve, integrations) is a response to real demand, not a prediction of it.
+The software does the reading and the math; we do the judgment calls; the customer does the sending. The first 5 customers (whether mid-market shippers or freight brokerages) are not buying software — they are buying a "$100K found-money" phone call. Everything else (EDI, PoAs, self-serve, integrations) is a response to real demand, not a prediction of it.
 
-**Why now:** Legacy freight audit firms (Cass, nVision, Trax) run on armies of human auditors, take months, and chase only enterprise clients. LLMs can now read messy LTL invoices and 40-page rate contracts at near-zero marginal cost. The mid-market ($2M–$50M freight spend) is completely unserved.
+**Why now:** Legacy freight audit firms (Cass, nVision, Trax) run on armies of human auditors, take months, and chase only enterprise clients. LLMs can now read messy LTL invoices and 40-page rate contracts at near-zero marginal cost. Mid-market shippers and freight brokers ($2M–$50M freight spend / carrier payables) are completely unserved.
 
 ---
 
@@ -68,19 +68,19 @@ The software does the reading and the math; we do the judgment calls; the custom
 | Attribute | Target | Why |
 | :--- | :--- | :--- |
 | **Geography** | United States | LTL billing complexity is US-centric (NMFC, tariffs) |
-| **Industry** | Manufacturing (furniture, building materials, machinery), wholesale distribution, food & beverage distribution, e-commerce brands shipping palletized freight | High LTL volume, thin margins → overbilling hurts |
-| **Employees** | 50–500 | Big enough for real freight spend; too small for Cass/nVision |
-| **Annual revenue** | $10M–$150M | Correlates with freight spend sweet spot |
-| **Annual freight spend** | $2M–$50M (avg ~$10M) | = $60K–$3.5M/yr leaking to errors |
+| **Industry** | Mid-market Shippers (manufacturing, building materials, wholesale/distribution, food & bev) **AND** Freight Brokerages / 3PLs managing LTL carrier payables | High LTL volume, thin margins (12–16% gross margin for brokers) → carrier overbilling destroys profitability |
+| **Employees** | 50–500 | Big enough for real freight volume; too small for Cass/nVision |
+| **Annual revenue** | $10M–$150M | Correlates with freight spend / carrier payables sweet spot |
+| **Annual freight spend / payables** | $2M–$50M (avg ~$10M) | = $60K–$3.5M/yr leaking to carrier errors |
 | **Invoices/month** | 500–10,000 carrier invoices | Volume makes manual audit impossible |
-| **Carrier count** | 3–15 contracted LTL carriers | Enough contracts to audit against |
-| **AP team** | 2–10 people, no dedicated freight auditor | Bottleneck = our wedge |
-| **Current tooling** | ERP (NetSuite/SAP B1/QuickBooks), maybe a TMS; invoices arrive as PDF/email; rarely EDI | No existing audit = greenfield |
-| **Trigger events** | New CFO/controller; freight spend growth; bad audit experience; carrier GRI season | Buying windows |
+| **Carrier count** | 3–15 contracted LTL carriers (e.g. ABF, XPO, Roadrunner, Estes, Saia) | Enough contract matrices to audit against |
+| **AP / Payables team** | 2–10 people, no dedicated freight auditor | Bottleneck = our wedge |
+| **Current tooling** | ERP (NetSuite/SAP B1/QuickBooks) or Broker TMS (McLeod, Tai, Ascend, Turvo); invoices arrive as PDF/email; rarely EDI | No automated pre/post-audit = greenfield |
+| **Trigger events** | New CFO/controller; freight margin squeeze; carrier dispute backlog; GRI season | Buying windows |
 
 ### 4.2 Buyer Personas
 
-#### Persona 1 — THE ECONOMIC BUYER (primary target)
+#### Persona 1 — THE ECONOMIC BUYER (Shipper CFO / Controller)
 * **Title:** CFO, VP Finance, or Controller. Age 38–55. Reports to CEO/PE owner. Measured on cash and margin.
 * **Goals:** free cash, margin improvement, clean books, no surprises.
 * **Pain quotes:** *"I know we're being overcharged, but I can't prove it."* / *"We found a $50K duplicate once by accident. How many did we miss?"*
@@ -88,24 +88,30 @@ The software does the reading and the math; we do the judgment calls; the custom
 * **Objection:** *"Our AP team already checks these."* → **Counter:** *"Give us 6 months of invoices. If we find nothing, you pay nothing."*
 * **Where to find:** LinkedIn (title + company size filters), CFO peer groups, industry finance communities.
 
-#### Persona 2 — THE CHAMPION
+#### Persona 2 — THE CHAMPION (Shipper Logistics Director)
 * **Title:** VP/Director Supply Chain, Director of Logistics.
 * **Role:** Owns carrier relationships and shipping budget. Feels the billing chaos daily; often brings us to the CFO.
 * **Pain:** drowning in invoice disputes, no leverage with carriers, blamed for freight cost overruns.
 * **Value:** internal advocate; writes the business case; usually runs the evaluation.
 
-#### Persona 3 — THE END USER
-* **Title:** Transportation Manager, Logistics Manager, AP Manager.
-* **Role:** Runs invoices daily. Operates the product in self-serve mode (upload, review, send disputes).
+#### Persona 3 — THE FREIGHT BROKER / 3PL OPERATOR (Brokerage Leader)
+* **Title:** VP of Brokerage Operations, Director of Carrier Payables, Brokerage COO/Controller.
+* **Role:** Operates mid-market freight brokerage / 3PL brokering LTL freight.
+* **Pain:** LTL carrier billing errors (lack of deficit bumping, unwarranted accessorials, arbitrary reweighs) eat into 12–16% gross margin. Re-billing shippers causes customer churn; eating carrier overcharges kills brokerage EBITDA.
+* **Goals:** Protect gross margin per load, automate carrier invoice audit before voucher approval, recover overcharges without alienating core carrier capacity.
+* **Buying trigger:** Immediate bottom-line margin recovery with zero upfront tech integration.
+
+#### Persona 4 — THE END USER (AP / Carrier Payables Specialist)
+* **Title:** Transportation Manager, Logistics Manager, Carrier Payables Specialist.
+* **Role:** Runs invoices daily for shippers or freight brokers. Operates the product (upload, review, send disputes).
 * **Pain:** 20–30 min per manual invoice check; carrier disputes go nowhere; month-end crunch.
-* **Value:** product feedback, renewal loyalty.
+* **Value:** product feedback, day-to-day engagement, renewal loyalty.
 
 ### 4.3 Anti-ICP (explicitly NOT our customer — do not sell)
 * **Fortune 1000** (already served by Cass/nVision; 9-month sales cycles)
 * **Companies spending <$500K/yr on freight** (recovery too small)
-* **Carriers/trucking companies** (different business)
+* **Asset-based carriers/trucking companies** (different business — we audit carriers on behalf of shippers and brokers)
 * **Pure parcel shippers** (UPS/FedEx refund space is commoditized)
-* **3PLs/brokers** (future channel partners, not first customers)
 * **NEW: prospects who "only get EDI 210"** — EDI requires a translator stack that's Fortune 1000 territory. Out of MVP scope; disqualify and revisit in Phase 3.
 * **NEW: Rung D contract prospects (no rate agreement at all)** — a pilot with no contract produces a weak report and burns a referral. Politely pass, check back in 3 months.
 

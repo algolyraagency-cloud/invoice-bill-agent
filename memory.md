@@ -24,6 +24,11 @@
 * **Core Rule #3:** **"We draft, customer sends. Always."**
   * RateGuard never acts as a direct legal party or sends emails to carriers on behalf of shippers without them in Phase 1 (PRD §5.6).
 * **Core Rule #4:** **$200/mo operating ceiling** until first revenue ($150/mo LLM cap).
+* **Core Rule #5:** **Technical Co-Founder Operating Directive.**
+  * Maintain brutal honesty, directness, and zero sugarcoating at all times.
+  * If code, data, architecture, assumptions, or carrier rules are flawed, state it immediately with technical and commercial impact.
+  * Dual-ICP scope: Mid-market Shippers and Freight Brokerages / 3PLs (e.g. KSW Brokers).
+  * Deliver battle-tested, enterprise-grade B2B logistics tech guidance.
 
 ---
 

@@ -45,6 +45,8 @@ from packages.schemas.models import (
     DisputeStatus,
     OnboardingChecklist,
     OnboardingChecklistStep,
+    RateMatrixJSON,
+    RateMatrixRow,
     RecoveryAgreementRecord,
     UnverifiedMemoBillingError,
 )
@@ -496,6 +498,63 @@ class CustomerPortalService:
         parsed_lanes = 42 if rung_upper == "A" else (24 if rung_upper == "B" else 8)
         validation_status = "valid" if rung_upper == "A" else "needs_spot_check"
 
+        rate_matrix = RateMatrixJSON(
+            carrier=carrier,
+            contract_id=contract_id,
+            effective_dates={"start": "2026-01-01", "end": "2026-12-31"},
+            discount_pct=0.0,
+            absolute_min_charge=85.00,
+            rates=[
+                RateMatrixRow(
+                    origin_zip_prefix="606",
+                    dest_zip_prefix="482",
+                    weight_break="L2M",
+                    min_weight=0.0,
+                    rate=48.50,
+                    min_charge=85.00,
+                    deficit_weight_eligible=True,
+                    effective_date_start="2026-01-01",
+                    effective_date_end="2026-12-31"
+                ),
+                RateMatrixRow(
+                    origin_zip_prefix="606",
+                    dest_zip_prefix="482",
+                    weight_break="M2M",
+                    min_weight=2000.0,
+                    rate=38.10,
+                    min_charge=85.00,
+                    deficit_weight_eligible=True,
+                    effective_date_start="2026-01-01",
+                    effective_date_end="2026-12-31"
+                ),
+                RateMatrixRow(
+                    origin_zip_prefix="606",
+                    dest_zip_prefix="750",
+                    weight_break="L5C",
+                    min_weight=0.0,
+                    rate=45.00,
+                    min_charge=85.00,
+                    deficit_weight_eligible=True,
+                    effective_date_start="2026-01-01",
+                    effective_date_end="2026-12-31"
+                ),
+                RateMatrixRow(
+                    origin_zip_prefix="606",
+                    dest_zip_prefix="750",
+                    weight_break="M5C",
+                    min_weight=500.0,
+                    rate=38.00,
+                    min_charge=85.00,
+                    deficit_weight_eligible=True,
+                    effective_date_start="2026-01-01",
+                    effective_date_end="2026-12-31"
+                )
+            ],
+            fak_mappings={"70-100": 50.0},
+            approved_accessorials={"liftgate": 75.0, "residential": 85.0, "notification": 15.0},
+            exceptions=["Item 100-D Deficit Weight Rating Authorized", "Item 220-A DOE Fuel Surcharge"]
+        )
+
         contract_record = {
             "id": contract_id,
             "customer_id": customer_id,
@@ -509,6 +568,7 @@ class CustomerPortalService:
             "spot_checks_count": 5 if rung_upper != "A" else 3,
             "created_at": created_at,
             "notes": notes,
+            "rate_matrix_json": rate_matrix.model_dump(),
         }
 
         self._contracts[contract_id] = contract_record

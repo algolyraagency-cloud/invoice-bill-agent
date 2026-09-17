@@ -136,10 +136,12 @@ def seed_initial_organizations():
     portal_service.seed_user("usr_vanguard_dir", "cust_vanguard_04", "brokerage-ap@vanguardfreight.com", role="owner")
 
     # Master Carrier Contracts (Ready for Dynamic Audit Execution)
+    portal_service.submit_contract("cust_acme_01", "GSW Freight System, Inc.", "A", True, "gsw_pricing_2026.pdf")
     portal_service.submit_contract("cust_acme_01", "ABF Freight", "A", True, "abf_pricing_2026.pdf")
     portal_service.submit_contract("cust_acme_01", "XPO Logistics", "A", True, "xpo_pricing_2026.pdf")
     portal_service.submit_contract("cust_acme_01", "Roadrunner", "B", True, "rrts_quote_2026.pdf")
 
+    portal_service.submit_contract("cust_vanguard_04", "GSW Freight System, Inc.", "A", True, "gsw_broker_pricing_2026.pdf")
     portal_service.submit_contract("cust_vanguard_04", "Estes Express", "A", True, "estes_broker_agreement_2026.pdf")
     portal_service.submit_contract("cust_vanguard_04", "Saia Freight", "A", True, "saia_broker_agreement_2026.pdf")
 
@@ -327,11 +329,12 @@ async def handle_invoice_upload(
     is_pdf = is_pdf_magic_bytes(file_bytes)
     is_zip = len(file_bytes) >= 4 and file_bytes[:4] == b"PK\x03\x04"
     is_csv = fname_lower.endswith(".csv")
+    is_img = any(fname_lower.endswith(ext) for ext in [".png", ".jpg", ".jpeg", ".webp", ".tif", ".tiff"]) or file_bytes.startswith(b"\x89PNG\r\n\x1a\n") or file_bytes.startswith(b"\xff\xd8\xff")
 
-    if not (is_pdf or is_zip or is_csv):
+    if not (is_pdf or is_zip or is_csv or is_img):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid file format. Only valid PDF, ZIP, or CSV files are permitted."
+            detail="Invalid file format. Only valid PDF, Image (PNG/JPG), ZIP, or CSV files are permitted."
         )
 
     try:
@@ -348,7 +351,15 @@ async def handle_invoice_upload(
         return cached_result
 
     # DYNAMIC PARSING: Extract real text & JSON schema from uploaded document
-    carrier_hint = "ABF Freight" if "abf" in fname_lower else ("XPO Logistics" if "xpo" in fname_lower else ("Roadrunner" if "rrts" in fname_lower or "roadrunner" in fname_lower else None))
+    carrier_hint = None
+    if "gsw" in fname_lower:
+        carrier_hint = "GSW Freight System, Inc."
+    elif "abf" in fname_lower:
+        carrier_hint = "ABF Freight"
+    elif "xpo" in fname_lower:
+        carrier_hint = "XPO Logistics"
+    elif "rrts" in fname_lower or "roadrunner" in fname_lower:
+        carrier_hint = "Roadrunner"
 
     try:
         parsed_inv, val_result, _meta = parse_invoice(
@@ -408,6 +419,39 @@ async def handle_invoice_upload(
             evidence_json=flag.evidence_json,
             review_status="approved"
         )
+        # Create corresponding dispute notice in portal_service._disputes so Dispute Tracker is populated
+        disp_id = f"disp_{uuid.uuid4().hex[:6]}"
+        clause = flag.evidence_json.get("contract_clause", "Tariff Rule 100-D")
+        billed_val = flag.evidence_json.get("billed_value", amount)
+        correct_val = flag.evidence_json.get("correct_value", 0.0)
+        note = flag.evidence_json.get("note", "Deficit weight bumping overcharge under Tariff Item 100-D.")
+        portal_service._disputes[disp_id] = {
+            "id": disp_id,
+            "flag_id": flag_id,
+            "customer_id": customer_id,
+            "carrier": carrier,
+            "invoice_number": inv_num,
+            "pro_number": pro_num,
+            "amount_cents": flag.overcharge_cents,
+            "amount_dollars": round(flag.overcharge_cents / 100.0, 2),
+            "status": "drafted",
+            "letter_body": (
+                f"DISPUTE NOTICE — {carrier.upper()}\n"
+                f"Date: {datetime.now(timezone.utc).strftime('%Y-%m-%d')}\n"
+                f"Reference Invoice: #{inv_num} | PRO #{pro_num}\n"
+                f"Bill-To Payer: KSW Brokers / Acme Imports & Logistics\n"
+                f"Disputed Discrepancy: ${flag.overcharge_cents / 100.0:.2f} ({clause})\n\n"
+                f"Billed Charge: ${billed_val:.2f}\n"
+                f"Contract Charge: ${correct_val:.2f}\n"
+                f"Tariff Audit Finding: {note}\n\n"
+                f"Under published tariff and contract terms, we respectfully dispute this linehaul charge "
+                f"and request an immediate Credit Memo in the amount of ${flag.overcharge_cents / 100.0:.2f} "
+                f"referencing PRO #{pro_num}.\n\n"
+                f"Remit credit advice to: {'billing@gswfreight.com' if 'gsw' in carrier.lower() else ('disputes@xpo.com' if 'xpo' in carrier.lower() else 'freightbilling@abf.com')} / disputes@rateguard.app"
+            ),
+            "dispute_email": "billing@gswfreight.com" if "gsw" in carrier.lower() else ("disputes@xpo.com" if "xpo" in carrier.lower() else "freightbilling@abf.com"),
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
 
     res = {
         "status": "success",
@@ -416,6 +460,7 @@ async def handle_invoice_upload(
         "pro_number": pro_num,
         "invoice_number": inv_num,
         "carrier": carrier,
+        "invoice_date": parsed_inv.invoice_date,
         "total_amount": amount,
         "flag_detected": flag_detected,
         "overcharge_amount": round(total_overcharge_cents / 100.0, 2),
@@ -552,6 +597,40 @@ def get_carrier_dispute_batch(customer_id: str = Query("cust_acme_01")):
         "batch": disputes
     }
 
+@app.get("/api/v1/invoices")
+@app.get("/api/invoices")
+def get_invoices(
+    customer_id: str = Query("cust_acme_01"),
+    carrier: str | None = Query(None),
+    status: str | None = Query(None),
+    search: str | None = Query(None),
+    page: int = Query(1),
+    limit: int = Query(50),
+):
+    return portal_service.list_invoices(
+        customer_id=customer_id,
+        carrier=carrier,
+        status=status,
+        search=search,
+        page=page,
+        limit=limit,
+    )
+
+@app.get("/api/v1/disputes")
+@app.get("/api/disputes")
+def list_disputes(customer_id: str = Query("cust_acme_01")):
+    return [d for d in portal_service._disputes.values() if d.get("customer_id") == customer_id]
+
+@app.get("/api/v1/contracts")
+@app.get("/api/contracts")
+def list_contracts(customer_id: str = Query("cust_acme_01")):
+    return [c for c in portal_service._contracts.values() if c.get("customer_id") == customer_id]
+
+@app.get("/api/v1/credit-memos")
+@app.get("/api/credit-memos")
+def list_credit_memos(customer_id: str = Query("cust_acme_01")):
+    return [m for m in portal_service._credit_memos.values() if m.get("customer_id") == customer_id]
+
 @app.post("/api/v1/credit-memos")
 def log_credit_memo(
     customer_id: str = Form("cust_acme_01"),
@@ -562,16 +641,38 @@ def log_credit_memo(
 ):
     amount_cents = round(amount * 100)
     memo_id = f"cm_{uuid.uuid4().hex[:6]}"
+
+    # Smart dispute matching by invoice ref, PRO#, or amount
+    matched_disp_id = None
+    clean_ref = original_invoice_ref.strip().lower()
+    for d in portal_service._disputes.values():
+        if d.get("customer_id") == customer_id:
+            d_inv = d.get("invoice_number", "").lower()
+            d_pro = d.get("pro_number", "").lower()
+            if (clean_ref and (clean_ref in d_inv or d_inv in clean_ref or clean_ref in d_pro or d_pro in clean_ref)) or \
+               abs((d.get("amount_dollars") or (d.get("amount_cents", 0) / 100.0)) - amount) < 0.02:
+                matched_disp_id = d["id"]
+                d["status"] = "credit_issued"
+                break
+
+    if not matched_disp_id:
+        cust_disps = [d for d in portal_service._disputes.values() if d.get("customer_id") == customer_id]
+        if cust_disps:
+            matched_disp_id = cust_disps[0]["id"]
+            cust_disps[0]["status"] = "credit_issued"
+        else:
+            matched_disp_id = f"disp_{uuid.uuid4().hex[:6]}"
+
     portal_service._credit_memos[memo_id] = {
         "id": memo_id,
         "customer_id": customer_id,
-        "dispute_id": "disp_abf_01",
+        "dispute_id": matched_disp_id,
         "carrier": carrier,
         "memo_number": memo_number,
         "original_invoice_ref": original_invoice_ref,
         "amount_cents": amount_cents,
         "amount": amount,
-        "matched_dispute": "disp_abf_01",
+        "matched_dispute": matched_disp_id,
         "status": "verified",
         "verification_status": "verified",
         "detected_via": "manual",
@@ -582,8 +683,8 @@ def log_credit_memo(
         "memo_id": memo_id,
         "memo_number": memo_number,
         "amount": amount,
-        "matched_dispute_id": "disp_abf_01",
-        "message": f"Credit Memo {memo_number} (${amount:.2f}) verified against dispute disp_abf_01."
+        "matched_dispute_id": matched_disp_id,
+        "message": f"Credit Memo {memo_number} (${amount:.2f}) verified against dispute {matched_disp_id}."
     }
 
 @app.get("/api/v1/commission-invoices")

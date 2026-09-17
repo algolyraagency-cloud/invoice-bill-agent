@@ -175,12 +175,27 @@ def match_lane_prefix(origin: str, dest: str, row: RateMatrixRow) -> int:
 
 def select_effective_matrix(
     invoice_date_str: str,
-    matrices: list[RateMatrixJSON]
+    matrices: list[RateMatrixJSON],
+    carrier: str | None = None
 ) -> RateMatrixJSON | None:
-    """Select the rate matrix in effect on invoice_date."""
+    """Select the rate matrix in effect on invoice_date, filtered by carrier if provided."""
     inv_date = parse_date(invoice_date_str)
 
-    for mat in matrices:
+    filtered = matrices
+    if carrier:
+        c_low = carrier.strip().lower()
+        carrier_matches = [
+            m for m in matrices
+            if m.carrier.strip().lower() == c_low
+            or c_low in m.carrier.strip().lower()
+            or m.carrier.strip().lower() in c_low
+        ]
+        if not carrier_matches and ("gsw" in c_low or "abf" in c_low):
+            carrier_matches = [m for m in matrices if "gsw" in m.carrier.lower() or "abf" in m.carrier.lower()]
+        if carrier_matches:
+            filtered = carrier_matches
+
+    for mat in filtered:
         start_str = mat.effective_dates.get("start")
         end_str = mat.effective_dates.get("end")
         if start_str and end_str:
@@ -191,8 +206,8 @@ def select_effective_matrix(
         elif not start_str and not end_str:
             return mat
 
-    # Fallback to the first matrix if date range not specified
-    return matrices[0] if matrices else None
+    # Fallback to the first matrix in filtered set
+    return filtered[0] if filtered else None
 
 
 def check_rates(invoice: InvoiceJSON, rate_matrix_versions: list[RateMatrixJSON]) -> list[Flag]:
@@ -206,7 +221,7 @@ def check_rates(invoice: InvoiceJSON, rate_matrix_versions: list[RateMatrixJSON]
     5. Flags overcharges if billed rate exceeds contracted rate.
     """
     flags: list[Flag] = []
-    matrix = select_effective_matrix(invoice.invoice_date, rate_matrix_versions)
+    matrix = select_effective_matrix(invoice.invoice_date, rate_matrix_versions, carrier=invoice.carrier)
     if not matrix or not matrix.rates:
         return flags
 
