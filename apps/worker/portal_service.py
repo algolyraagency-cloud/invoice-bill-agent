@@ -402,7 +402,7 @@ class CustomerPortalService:
                 "details": f"${flg['overcharge_cents'] / 100:.2f} discrepancy on {inv.get('carrier', 'Carrier')}",
             })
 
-        response = CustomerDashboardResponse(
+        return CustomerDashboardResponse(
             customer_id=customer_id,
             name=customer["name"],
             slug=slug,
@@ -412,12 +412,9 @@ class CustomerPortalService:
             checklist=checklist,
             carrier_summary=carrier_summary,
             recent_activity=recent_activity,
+            customer_type=customer_type,
+            is_broker=is_broker,
         )
-        # Attach customer_type so the frontend can conditionally render broker vs shipper labels
-        response_dict = response.model_dump() if hasattr(response, "model_dump") else response.__dict__
-        response_dict["customer_type"] = customer_type
-        response_dict["is_broker"] = is_broker
-        return response_dict
 
     # --------------------------------------------------------------------------
     # Phase 5.5.2: Documents & Contracts with Quality Ladder Rung Detection

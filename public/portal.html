@@ -670,35 +670,12 @@
 
     </div>
 
-  </main>
-
-  <!-- ==================================================================== -->
-  <!-- MODAL: Invoice PDF / Data Preview                                    -->
-  <!-- ==================================================================== -->
-  <div id="invoice-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-[#0e0e0e] border border-[#262626] rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl">
-      <div class="flex items-center justify-between border-b border-[#222] pb-3">
-        <h3 id="invoice-modal-title" class="text-sm font-bold text-white font-mono">
-          Invoice Details
-        </h3>
-        <button onclick="closeInvoiceModal()" class="text-neutral-400 hover:text-white text-lg">✕</button>
-      </div>
-      <div id="invoice-modal-body" class="space-y-4 text-xs font-mono text-neutral-300">
-        <!-- Injected by JS -->
-      </div>
-      <div class="flex justify-end pt-2">
-        <button onclick="closeInvoiceModal()" class="px-4 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-white text-xs">
-          Close
-        </button>
-      </div>
-    </div>
-  </div>
-
     <!-- ==================================================================== -->
     <!-- TAB 7: Commission Invoices (Phase 6.2)                               -->
     <!-- ==================================================================== -->
     <div id="view-commission" class="space-y-6 hidden">
       
+      <!-- Top Action & Info Banner -->
       <div class="bg-[#090909] border border-[#1e1e1e] rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div class="space-y-1">
           <span class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800">
@@ -712,51 +689,84 @@
           </p>
         </div>
 
-        <button onclick="generateCommissionInvoiceClient()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition flex items-center space-x-1.5 shadow-lg shadow-blue-950/40">
+        <button onclick="generateCommissionInvoiceClient()" class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition flex items-center space-x-1.5 shadow-lg shadow-blue-950/40">
           <span>⚡</span>
           <span>Generate Monthly Commission Invoice</span>
         </button>
       </div>
 
+      <!-- Commission Financial KPI Metrics -->
+      <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div class="bg-[#090909] border border-[#1e1e1e] rounded-xl p-4">
+          <div class="text-[11px] font-mono text-neutral-400 uppercase tracking-wider">Total Verified Credits</div>
+          <div id="commission-kpi-verified-credits" class="text-xl font-bold font-mono text-emerald-400 mt-1">$0.00</div>
+          <div class="text-[10px] text-neutral-500 mt-0.5 font-mono">100% carrier credit confirmed</div>
+        </div>
+
+        <div class="bg-[#090909] border border-[#1e1e1e] rounded-xl p-4">
+          <div class="text-[11px] font-mono text-neutral-400 uppercase tracking-wider">Contracted Rate</div>
+          <div class="text-xl font-bold font-mono text-white mt-1">35.0%</div>
+          <div class="text-[10px] text-neutral-500 mt-0.5 font-mono">Contingency audit fee</div>
+        </div>
+
+        <div class="bg-[#090909] border border-[#1e1e1e] rounded-xl p-4">
+          <div class="text-[11px] font-mono text-neutral-400 uppercase tracking-wider">Commission Invoiced</div>
+          <div id="commission-kpi-invoiced-fee" class="text-xl font-bold font-mono text-purple-400 mt-1">$0.00</div>
+          <div class="text-[10px] text-neutral-500 mt-0.5 font-mono">Net-15 Stripe statements</div>
+        </div>
+
+        <div class="bg-[#090909] border border-[#1e1e1e] rounded-xl p-4">
+          <div class="text-[11px] font-mono text-neutral-400 uppercase tracking-wider">Stripe Settlement</div>
+          <div class="text-xl font-bold font-mono text-emerald-400 mt-1 flex items-center space-x-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Active</span>
+          </div>
+          <div class="text-[10px] text-neutral-500 mt-0.5 font-mono">Auto-reconciliation active</div>
+        </div>
+      </div>
+
       <!-- Commission Invoices Table -->
-      <div class="bg-[#0b0b0b] border border-[#1e1e1e] rounded-2xl overflow-hidden">
+      <div class="bg-[#090909] border border-[#1e1e1e] rounded-2xl overflow-hidden shadow-xl">
         <div class="px-6 py-4 border-b border-[#1c1c1c] flex items-center justify-between">
           <div class="flex items-center space-x-2">
             <h3 class="font-bold text-sm text-white">Issued Commission Invoices</h3>
             <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-neutral-900 text-neutral-400 border border-neutral-800">Net-15 Terms</span>
           </div>
-          <span class="text-xs font-mono text-neutral-500">Stripe Integration Active</span>
+          <div class="flex items-center space-x-2 text-xs font-mono text-neutral-400">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+            <span>Stripe Connect Active</span>
+          </div>
         </div>
 
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs text-neutral-300">
-            <thead class="bg-[#111] text-neutral-400 font-mono text-[11px] uppercase border-b border-[#1c1c1c]">
+            <thead class="bg-[#121212] text-neutral-400 font-mono text-[11px] uppercase border-b border-[#1c1c1c]">
               <tr>
-                <th class="py-3 px-4">Invoice #</th>
-                <th class="py-3 px-4">Billing Period</th>
-                <th class="py-3 px-4">Verified Credits</th>
-                <th class="py-3 px-4">Rate %</th>
-                <th class="py-3 px-4">Fee Amount</th>
-                <th class="py-3 px-4">Net-15 Due Date</th>
-                <th class="py-3 px-4">Status</th>
-                <th class="py-3 px-4 text-right">Actions</th>
+                <th class="py-3.5 px-4 text-left font-mono">Invoice #</th>
+                <th class="py-3.5 px-4 text-left font-mono">Billing Period</th>
+                <th class="py-3.5 px-4 text-right font-mono">Verified Credits</th>
+                <th class="py-3.5 px-4 text-center font-mono">Rate %</th>
+                <th class="py-3.5 px-4 text-right font-mono">Fee Amount (35%)</th>
+                <th class="py-3.5 px-4 text-center font-mono">Net-15 Due Date</th>
+                <th class="py-3.5 px-4 text-center font-mono">Status</th>
+                <th class="py-3.5 px-4 text-right font-mono">Actions</th>
               </tr>
             </thead>
-            <tbody id="commission-invoices-tbody" class="divide-y divide-[#181818]">
+            <tbody id="commission-invoices-tbody" class="divide-y divide-[#181818] font-mono">
               <tr class="hover:bg-[#121212] transition">
                 <td class="py-3.5 px-4 font-mono text-white font-semibold">inv_rg_202609_acme</td>
-                <td class="py-3.5 px-4">Sept 2026</td>
-                <td class="py-3.5 px-4 font-mono text-emerald-400">$142.50</td>
-                <td class="py-3.5 px-4 font-mono">35.0%</td>
-                <td class="py-3.5 px-4 font-mono text-white font-semibold">$49.88</td>
-                <td class="py-3.5 px-4 font-mono text-neutral-300">Sept 27, 2026</td>
-                <td class="py-3.5 px-4">
-                  <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-blue-950 text-blue-300 border border-blue-800 uppercase">Sent (Net-15)</span>
+                <td class="py-3.5 px-4 text-neutral-300 font-sans">Sept 2026</td>
+                <td class="py-3.5 px-4 text-right font-mono text-emerald-400 font-bold">$142.50</td>
+                <td class="py-3.5 px-4 text-center font-mono text-neutral-300">35.0%</td>
+                <td class="py-3.5 px-4 text-right font-mono text-white font-bold">$49.88</td>
+                <td class="py-3.5 px-4 text-center font-mono text-neutral-400">Sept 27, 2026</td>
+                <td class="py-3.5 px-4 text-center">
+                  <span class="px-2.5 py-0.5 rounded text-[10px] font-mono bg-blue-950 text-blue-300 border border-blue-800 uppercase inline-block">Sent (Net-15)</span>
                 </td>
                 <td class="py-3.5 px-4 text-right space-x-2">
-                  <a href="/generated-pdfs/acme-imports/commission_inv_rg_202609_acme.pdf" target="_blank" class="px-2.5 py-1 rounded bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-neutral-200 font-mono text-[11px] inline-flex items-center space-x-1">
-                    <span>📄 PDF</span>
-                  </a>
+                  <button onclick="previewCommissionInvoiceModal('inv_rg_202609_acme')" class="px-2.5 py-1 rounded bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-neutral-200 font-mono text-[11px] inline-flex items-center space-x-1">
+                    <span>📄 View PDF</span>
+                  </button>
                 </td>
               </tr>
             </tbody>
@@ -814,9 +824,9 @@
                   <td class="py-3.5 px-4 font-mono text-neutral-400">2026-08-20</td>
                   <td class="py-3.5 px-4 font-mono text-amber-400 font-bold">23 days</td>
                   <td class="py-3.5 px-4">
-                    <a href="mailto:disputes@fedex.com?subject=REMINDER:%20Unresolved%20Billing%20Dispute%20Notice:%20PRO%20%23PRO-EX-1002" class="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs transition inline-flex items-center space-x-1">
+                    <button onclick="openReminderNudgeModal('PRO-EX-1002', 'FedEx Freight', 'disputes@fedex.com', '2026-08-20', 23)" class="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs transition inline-flex items-center space-x-1.5 shadow-md shadow-amber-950/40">
                       <span>🚀 1-Click Reminder Nudge</span>
-                    </a>
+                    </button>
                   </td>
                 </tr>
               </tbody>
@@ -846,30 +856,7 @@
               </tr>
             </thead>
             <tbody id="carrier-analytics-tbody" class="divide-y divide-[#181818]">
-              <tr class="hover:bg-[#121212] transition">
-                <td class="py-3.5 px-4 font-bold text-white">Estes Express</td>
-                <td class="py-3.5 px-4 font-mono">5</td>
-                <td class="py-3.5 px-4 font-mono text-emerald-400">4</td>
-                <td class="py-3.5 px-4 font-mono text-rose-400">0</td>
-                <td class="py-3.5 px-4 font-mono text-emerald-400 font-bold">80.0%</td>
-                <td class="py-3.5 px-4 font-mono">4.5 days</td>
-                <td class="py-3.5 px-4 font-mono font-bold text-emerald-400">0.90</td>
-                <td class="py-3.5 px-4">
-                  <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-950 text-emerald-300 border border-emerald-800 uppercase">Friendly</span>
-                </td>
-              </tr>
-              <tr class="hover:bg-[#121212] transition">
-                <td class="py-3.5 px-4 font-bold text-white">FedEx Freight</td>
-                <td class="py-3.5 px-4 font-mono">8</td>
-                <td class="py-3.5 px-4 font-mono text-emerald-400">3</td>
-                <td class="py-3.5 px-4 font-mono text-rose-400">4</td>
-                <td class="py-3.5 px-4 font-mono text-amber-400 font-bold">37.5%</td>
-                <td class="py-3.5 px-4 font-mono">18.2 days</td>
-                <td class="py-3.5 px-4 font-mono font-bold text-rose-400">7.64</td>
-                <td class="py-3.5 px-4">
-                  <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-rose-950 text-rose-300 border border-rose-800 uppercase">Hostile</span>
-                </td>
-              </tr>
+              <!-- Dynamically populated by renderCarrierAnalytics() -->
             </tbody>
           </table>
         </div>
@@ -877,6 +864,100 @@
 
     </div>
 
+  </main>
+
+  <!-- ==================================================================== -->
+  <!-- MODAL: Overdue Reminder Nudge Modal (Gmail / Outlook / Copy)         -->
+  <!-- ==================================================================== -->
+  <div id="reminder-nudge-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-[#0e0e0e] border border-[#262626] rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-[#222] pb-3">
+        <div class="flex items-center space-x-2">
+          <span class="text-base">🔔</span>
+          <h3 class="text-sm font-bold text-white font-mono">
+            Carrier Overdue Reminder Nudge
+          </h3>
+        </div>
+        <button onclick="closeReminderNudgeModal()" class="text-neutral-400 hover:text-white text-lg">✕</button>
+      </div>
+
+      <div class="bg-[#121212] border border-[#1e1e1e] rounded-xl p-4 space-y-2 text-xs font-mono">
+        <div class="flex justify-between text-neutral-300">
+          <span class="text-neutral-500">Carrier:</span>
+          <span id="nudge-modal-carrier" class="font-bold text-white"></span>
+        </div>
+        <div class="flex justify-between text-neutral-300">
+          <span class="text-neutral-500">Recipient Email:</span>
+          <span id="nudge-modal-email" class="text-neutral-300"></span>
+        </div>
+        <div class="flex justify-between text-neutral-300">
+          <span class="text-neutral-500">Audit CC:</span>
+          <span id="nudge-modal-cc" class="text-emerald-400"></span>
+        </div>
+        <div class="flex justify-between text-neutral-300">
+          <span class="text-neutral-500">Disputed PRO #:</span>
+          <span id="nudge-modal-pro" class="text-neutral-200"></span>
+        </div>
+        <div class="flex justify-between text-neutral-300 border-t border-[#1e1e1e] pt-2">
+          <span class="text-neutral-400 font-bold">Status:</span>
+          <span id="nudge-modal-status" class="font-bold text-amber-400"></span>
+        </div>
+      </div>
+
+      <p class="text-[11px] text-neutral-400 leading-relaxed">
+        Choose your reminder dispatch channel. "Send via Gmail" immediately opens a pre-composed follow-up message tab directly in Gmail with formal claim citations and the central audit CC.
+      </p>
+
+      <div class="space-y-2.5 pt-2">
+        <button id="nudge-modal-gmail-btn" onclick="executeSendNudge('gmail')" class="w-full py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-500 text-white font-semibold text-xs transition flex items-center justify-center space-x-2 shadow-lg shadow-red-950/40">
+          <span>📧</span>
+          <span>Send Reminder via Gmail (Web Redirect)</span>
+        </button>
+
+        <button id="nudge-modal-mailto-btn" onclick="executeSendNudge('mailto')" class="w-full py-2.5 px-4 rounded-xl bg-[#161616] hover:bg-[#202020] border border-[#2e2e2e] text-neutral-200 font-semibold text-xs transition flex items-center justify-center space-x-2">
+          <span>🖥️</span>
+          <span>Open in Desktop App (Outlook / Mail)</span>
+        </button>
+
+        <div class="flex items-center justify-between pt-1.5">
+          <button onclick="executeSendNudge('copy')" class="text-xs text-neutral-400 hover:text-emerald-400 font-mono transition">
+            📋 Copy Reminder Text
+          </button>
+          <button onclick="closeReminderNudgeModal()" class="px-3.5 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-mono">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- MODAL: Commission Invoice Statement Preview Modal                    -->
+  <!-- ==================================================================== -->
+  <div id="commission-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-[#0e0e0e] border border-[#262626] rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-[#222] pb-3">
+        <div class="flex items-center space-x-2">
+          <span class="text-emerald-400 text-base">⚡</span>
+          <h3 id="commission-modal-title" class="text-sm font-bold text-white font-mono">
+            RateGuard Commission Statement
+          </h3>
+        </div>
+        <button onclick="closeCommissionModal()" class="text-neutral-400 hover:text-white text-lg">✕</button>
+      </div>
+      <div id="commission-modal-body" class="space-y-4 text-xs font-mono text-neutral-300">
+        <!-- Dynamically injected -->
+      </div>
+      <div class="flex items-center justify-between pt-2 border-t border-[#1e1e1e]">
+        <button onclick="window.print()" class="px-4 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-mono text-xs inline-flex items-center space-x-1">
+          <span>🖨️ Print Statement</span>
+        </button>
+        <button onclick="closeCommissionModal()" class="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- ==================================================================== -->
   <!-- MODAL: Send Dispute Confirmation Modal (Gmail / Outlook / Mark Sent) -->
@@ -1064,6 +1145,7 @@
       contracts: [],
       disputes: [],
       creditMemos: [],
+      commissionInvoices: [],
       carrierSummary: {},
       recentActivity: []
     };
@@ -1300,6 +1382,35 @@
           ];
         }
 
+        if (!state.creditMemos || state.creditMemos.length === 0) {
+          state.creditMemos = [
+            {
+              id: "cm_gsw_01",
+              carrier: "GSW Freight System, Inc.",
+              memo_number: "CM-991823",
+              original_invoice_ref: "042-991823",
+              amount: 135.25,
+              matched_dispute: "disp_gsw_01",
+              status: "verified",
+              logged_at: "2026-08-28"
+            }
+          ];
+        }
+
+        if (!state.commissionInvoices || state.commissionInvoices.length === 0) {
+          state.commissionInvoices = [
+            {
+              id: "inv_rg_202609_01",
+              period: "Sept 2026",
+              verified_credits: 135.25,
+              rate_pct: 35.0,
+              fee_amount: 47.34,
+              due_date: "2026-09-29",
+              status: "sent"
+            }
+          ];
+        }
+
         if (!state.carrierSummary || Object.keys(state.carrierSummary).length === 0) {
           state.carrierSummary = {
             "GSW Freight System, Inc.": {
@@ -1350,7 +1461,11 @@
         renderCreditMemos();
       }
       if (tabId === 'disputes') renderDisputes();
-      if (tabId === 'analytics') renderCarrierAnalytics();
+      if (tabId === 'commission') renderCommissionInvoices();
+      if (tabId === 'analytics') {
+        renderCarrierAnalytics();
+        renderDisputeNudges();
+      }
     }
 
     // Switch Organization
@@ -2448,33 +2563,116 @@ All discrepancies validated with deterministic proof against governing carrier r
       const tbody = document.getElementById("commission-invoices-tbody");
       if (!tbody) return;
 
+      const verifiedCredits = (state.creditMemos || []).filter(m => m.status === 'verified').reduce((sum, m) => sum + (m.amount || 0), 0);
+      const totalInvoiced = (state.commissionInvoices || []).reduce((sum, inv) => sum + (inv.fee_amount || 0), 0);
+
+      const kpiCredits = document.getElementById("commission-kpi-verified-credits");
+      if (kpiCredits) kpiCredits.innerText = `$${verifiedCredits.toFixed(2)}`;
+      const kpiInvoiced = document.getElementById("commission-kpi-invoiced-fee");
+      if (kpiInvoiced) kpiInvoiced.innerText = `$${totalInvoiced.toFixed(2)}`;
+
       if (!state.commissionInvoices || state.commissionInvoices.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-neutral-500 font-mono text-xs">No commission invoices generated yet. Invoices trigger automatically upon carrier credit memo verification.</td></tr>`;
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" class="py-10 text-center text-neutral-500 font-mono text-xs">
+              <div class="flex flex-col items-center justify-center space-y-2">
+                <span class="text-2xl">📋</span>
+                <div class="text-neutral-400 font-semibold">No commission invoices generated yet</div>
+                <div class="text-neutral-600 text-[11px] max-w-md">
+                  Invoices trigger automatically once carrier credit memos are verified against audited discrepancies.
+                </div>
+              </div>
+            </td>
+          </tr>
+        `;
         return;
       }
 
       tbody.innerHTML = state.commissionInvoices.map(inv => `
         <tr class="hover:bg-[#121212] transition">
           <td class="py-3.5 px-4 font-mono text-white font-semibold">${inv.id}</td>
-          <td class="py-3.5 px-4">${inv.period || 'Current Period'}</td>
-          <td class="py-3.5 px-4 font-mono text-emerald-400">$${(inv.verified_credits || 0).toFixed(2)}</td>
-          <td class="py-3.5 px-4 font-mono">${(inv.rate_pct || 35.0).toFixed(1)}%</td>
-          <td class="py-3.5 px-4 font-mono text-white font-semibold">$${(inv.fee_amount || 0).toFixed(2)}</td>
-          <td class="py-3.5 px-4 font-mono text-neutral-300">${inv.due_date || 'Net-15'}</td>
-          <td class="py-3.5 px-4">
-            <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-blue-950 text-blue-300 border border-blue-800 uppercase">${inv.status || 'draft'} (Net-15)</span>
+          <td class="py-3.5 px-4 text-neutral-300 font-sans">${inv.period || 'Current Period'}</td>
+          <td class="py-3.5 px-4 text-right font-mono text-emerald-400 font-bold">$${(inv.verified_credits || 0).toFixed(2)}</td>
+          <td class="py-3.5 px-4 text-center font-mono text-neutral-300">${(inv.rate_pct || 35.0).toFixed(1)}%</td>
+          <td class="py-3.5 px-4 text-right font-mono text-white font-bold">$${(inv.fee_amount || 0).toFixed(2)}</td>
+          <td class="py-3.5 px-4 text-center font-mono text-neutral-400">${inv.due_date || 'Net-15'}</td>
+          <td class="py-3.5 px-4 text-center">
+            <span class="px-2.5 py-0.5 rounded text-[10px] font-mono bg-blue-950 text-blue-300 border border-blue-800 uppercase inline-block">${inv.status || 'draft'} (Net-15)</span>
           </td>
           <td class="py-3.5 px-4 text-right space-x-2">
-            <button onclick="alert('Commission Invoice PDF: ${inv.id}')" class="px-2.5 py-1 rounded bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-neutral-200 font-mono text-[11px] inline-flex items-center space-x-1">
-              <span>📄 PDF</span>
+            <button onclick="previewCommissionInvoiceModal('${inv.id}')" class="px-2.5 py-1 rounded bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-neutral-200 font-mono text-[11px] inline-flex items-center space-x-1 transition shadow-sm">
+              <span>📄 View PDF</span>
             </button>
           </td>
         </tr>
       `).join('');
     }
 
+    function previewCommissionInvoiceModal(invId) {
+      const inv = (state.commissionInvoices || []).find(x => x.id === invId);
+      if (!inv) {
+        alert("Commission invoice not found.");
+        return;
+      }
+      const clientOrg = state.currentOrgName || "Acme Imports & Logistics";
+      const bodyEl = document.getElementById("commission-modal-body");
+      if (bodyEl) {
+        bodyEl.innerHTML = `
+          <div class="bg-[#141414] border border-[#262626] rounded-xl p-4 space-y-2">
+            <div class="flex justify-between border-b border-[#222] pb-2">
+              <span class="text-neutral-400 uppercase tracking-wider text-[10px]">Invoice Reference</span>
+              <span class="font-bold text-white">${inv.id}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-neutral-400">Billed Account:</span>
+              <span class="text-white font-sans font-semibold">${clientOrg}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-neutral-400">Billing Period:</span>
+              <span class="text-neutral-300">${inv.period || 'Current Audit Period'}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-neutral-400">Payment Terms:</span>
+              <span class="text-blue-400">Net-15 via Stripe Automated Clearing</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-neutral-400">Due Date:</span>
+              <span class="text-neutral-300">${inv.due_date || 'Net-15'}</span>
+            </div>
+          </div>
+
+          <div class="bg-[#121212] border border-[#1e1e1e] rounded-xl p-4 space-y-2">
+            <div class="text-[10px] text-neutral-400 uppercase tracking-wider mb-1">Fee Calculation Schedule</div>
+            <div class="flex justify-between">
+              <span class="text-neutral-400">Total Verified Carrier Credits:</span>
+              <span class="text-emerald-400 font-bold">$${(inv.verified_credits || 0).toFixed(2)}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-neutral-400">Agreed Contingency Commission Rate:</span>
+              <span class="text-neutral-300">${(inv.rate_pct || 35.0).toFixed(1)}%</span>
+            </div>
+            <div class="border-t border-[#262626] pt-2 flex justify-between text-sm">
+              <span class="font-bold text-white">Total Commission Fee Due:</span>
+              <span class="font-bold text-emerald-400">$${(inv.fee_amount || 0).toFixed(2)}</span>
+            </div>
+          </div>
+
+          <div class="text-[11px] text-neutral-500 leading-relaxed font-sans">
+            Pursuant to the Master Services & Contingency Audit Agreement, this commission fee is strictly charged against realized credits issued by carriers. Payment will process via your connected Stripe billing method on ${inv.due_date || 'Net-15'}.
+          </div>
+        `;
+      }
+      const modal = document.getElementById("commission-modal");
+      if (modal) modal.classList.remove("hidden");
+    }
+
+    function closeCommissionModal() {
+      const modal = document.getElementById("commission-modal");
+      if (modal) modal.classList.add("hidden");
+    }
+
     function generateCommissionInvoiceClient() {
-      const verifiedMemos = state.creditMemos.filter(m => m.status === 'verified');
+      const verifiedMemos = (state.creditMemos || []).filter(m => m.status === 'verified');
       const totalVerified = verifiedMemos.reduce((sum, m) => sum + m.amount, 0);
       
       if (totalVerified <= 0) {
@@ -2501,7 +2699,126 @@ All discrepancies validated with deterministic proof against governing carrier r
       alert(`⚡ Net-15 Commission Invoice ${invId} generated for $${fee.toFixed(2)} (35% on $${totalVerified.toFixed(2)} verified credits).`);
     }
 
-    // Phase 7.4: Carrier Analytics & Overdue Nudges Engine
+    // Phase 7.4: Overdue Reminder Nudges Engine
+    let activeNudgeData = null;
+
+    function openReminderNudgeModal(proNumber, carrier, email, sentDate, daysOverdue) {
+      activeNudgeData = { proNumber, carrier, email, sentDate, daysOverdue };
+      const clientOrg = state.currentOrgName || "Acme Imports & Logistics";
+      const cc = `disputes+${state.currentOrgId || 'cust_acme_01'}@in.rateguard.app`;
+
+      const carrierEl = document.getElementById("nudge-modal-carrier");
+      const emailEl = document.getElementById("nudge-modal-email");
+      const ccEl = document.getElementById("nudge-modal-cc");
+      const proEl = document.getElementById("nudge-modal-pro");
+      const statusEl = document.getElementById("nudge-modal-status");
+
+      if (carrierEl) carrierEl.innerText = carrier;
+      if (emailEl) emailEl.innerText = email;
+      if (ccEl) ccEl.innerText = cc;
+      if (proEl) proEl.innerText = proNumber;
+      if (statusEl) statusEl.innerText = `${daysOverdue} Days Overdue (Sent ${sentDate})`;
+
+      const modal = document.getElementById("reminder-nudge-modal");
+      if (modal) modal.classList.remove("hidden");
+    }
+
+    function closeReminderNudgeModal() {
+      const modal = document.getElementById("reminder-nudge-modal");
+      if (modal) modal.classList.add("hidden");
+      activeNudgeData = null;
+    }
+
+    function executeSendNudge(method) {
+      if (!activeNudgeData) return;
+      const { proNumber, carrier, email, sentDate, daysOverdue } = activeNudgeData;
+      const clientOrg = state.currentOrgName || "Acme Imports & Logistics";
+      const cc = `disputes+${state.currentOrgId || 'cust_acme_01'}@in.rateguard.app`;
+      const subject = `SECOND NOTICE / REMINDER: Unresolved Freight Billing Dispute — PRO #${proNumber} — ${clientOrg}`;
+
+      const body = `To: ${carrier} Billing & Claims Department (${email})
+CC: ${cc}
+From: Accounts Payable, ${clientOrg}
+Date: ${new Date().toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'})}
+Subject: ${subject}
+
+Dear Carrier Billing Department,
+
+This is a formal follow-up reminder regarding our unresolved freight billing dispute for PRO #${proNumber}, originally submitted on ${sentDate}.
+
+This dispute is now ${daysOverdue} days outstanding with zero credit memo issued or response logged.
+
+Pursuant to standard freight claims handling practices and our contracted pricing schedule, disputes are required to be acknowledged and credited within 30 days.
+
+ACTION REQUIRED:
+Please urgently issue an itemized Credit Memo referencing PRO #${proNumber} to our central audit repository:
+${cc}
+
+Thank you,
+Freight Accounts Payable
+${clientOrg}`;
+
+      if (method === 'gmail') {
+        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&cc=${encodeURIComponent(cc)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        window.open(gmailUrl, '_blank');
+        closeReminderNudgeModal();
+        alert(`✓ Reminder nudge for PRO #${proNumber} (${carrier}) opened in Gmail!`);
+      } else if (method === 'mailto') {
+        const mailtoUrl = `mailto:${email}?cc=${encodeURIComponent(cc)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        window.location.href = mailtoUrl;
+        closeReminderNudgeModal();
+      } else if (method === 'copy') {
+        navigator.clipboard.writeText(body).then(() => {
+          alert(`✓ Reminder text for PRO #${proNumber} copied to clipboard!`);
+        });
+      }
+    }
+
+    function renderDisputeNudges() {
+      const tbody = document.getElementById("dispute-nudges-tbody");
+      if (!tbody) return;
+
+      const nudges = [
+        {
+          pro: "PRO-EX-1002",
+          carrier: "FedEx Freight",
+          email: "disputes@fedex.com",
+          sentDate: "2026-08-20",
+          daysOverdue: 23
+        }
+      ];
+
+      (state.disputes || []).forEach(d => {
+        if (d.status === 'sent') {
+          nudges.push({
+            pro: d.pro_number,
+            carrier: d.carrier,
+            email: d.email || "billing@gswfreight.com",
+            sentDate: d.invoice_date || "2026-08-14",
+            daysOverdue: 16
+          });
+        }
+      });
+
+      const countBadge = document.getElementById("nudges-count-badge");
+      if (countBadge) countBadge.innerText = `${nudges.length} Pending`;
+
+      tbody.innerHTML = nudges.map(n => `
+        <tr class="hover:bg-[#121212] transition">
+          <td class="py-3.5 px-4 font-mono text-white font-semibold">${n.pro}</td>
+          <td class="py-3.5 px-4 font-semibold text-neutral-200">${n.carrier}</td>
+          <td class="py-3.5 px-4 font-mono text-neutral-400">${n.sentDate}</td>
+          <td class="py-3.5 px-4 font-mono text-amber-400 font-bold">${n.daysOverdue} days</td>
+          <td class="py-3.5 px-4">
+            <button onclick="openReminderNudgeModal('${n.pro}', '${n.carrier}', '${n.email}', '${n.sentDate}', ${n.daysOverdue})" class="px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs transition inline-flex items-center space-x-1.5 shadow-md shadow-amber-950/40">
+              <span>🚀 1-Click Reminder Nudge</span>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Phase 7.4: Carrier Analytics & Hostility Intelligence Engine
     function renderCarrierAnalytics() {
       const tbody = document.getElementById("carrier-analytics-tbody");
       if (!tbody) return;
@@ -2527,6 +2844,8 @@ All discrepancies validated with deterministic proof against governing carrier r
           </td>
         </tr>
       `).join('');
+
+      renderDisputeNudges();
     }
 
     function renderAll() {
@@ -2541,6 +2860,7 @@ All discrepancies validated with deterministic proof against governing carrier r
       renderRecoveryReport();
       renderCommissionInvoices();
       renderCarrierAnalytics();
+      renderDisputeNudges();
     }
 
     // Initialize on load

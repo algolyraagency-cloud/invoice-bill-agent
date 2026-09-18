@@ -413,6 +413,8 @@ class CustomerDashboardResponse(BaseModel):
     checklist: OnboardingChecklist
     carrier_summary: dict[str, dict[str, Any]] = Field(default_factory=dict)
     recent_activity: list[dict[str, Any]] = Field(default_factory=list)
+    customer_type: str = "shipper"
+    is_broker: bool = False
 
 
 class ContractIntakeRequest(BaseModel):
