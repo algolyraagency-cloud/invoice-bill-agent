@@ -9,12 +9,15 @@ Supports explicit classification of email ingestion failure modes:
 """
 import base64
 import csv
+import email
+from email import policy
 import hashlib
 import io
 import os
 import re
 import zipfile
 from typing import Any
+
 
 
 def extract_slug_and_stream(email_address: str) -> tuple[str | None, bool]:
@@ -147,6 +150,84 @@ def parse_postmark_inbound_json(payload: dict[str, Any]) -> dict[str, Any]:
         "date": payload.get("Date", ""),
         "body_text": payload.get("TextBody", ""),
         "body_html": payload.get("HtmlBody", ""),
+        "pdf_attachments": extracted_pdfs,
+        "processed_status": processed_status,
+        "failure_reason": failure_reason,
+    }
+
+
+def parse_cloudflare_inbound_mime(payload: dict[str, Any]) -> dict[str, Any]:
+    """
+    Parses an inbound email payload forwarded by Cloudflare Email Routing & Workers.
+    Payload shape:
+    {
+      "to": "acme@in.lexaintake.com" or "disputes+acme@in.lexaintake.com",
+      "from": "carrier@freight.com",
+      "subject": "Freight Invoice ...",  # optional
+      "raw": "MIME RFC-2822 raw text string or base64"
+    }
+    """
+    to_addr = payload.get("to") or payload.get("To") or ""
+    from_addr = payload.get("from") or payload.get("From") or ""
+    raw_content = payload.get("raw") or ""
+
+    resolved_slug, is_dispute = extract_slug_and_stream(to_addr)
+
+    extracted_pdfs: list[dict[str, Any]] = []
+    processed_status = "processed"
+    failure_reason: str | None = None
+    subject = payload.get("subject") or ""
+    body_text = ""
+    body_html = ""
+
+    if raw_content:
+        if isinstance(raw_content, str):
+            raw_bytes = raw_content.encode("utf-8", errors="replace")
+        else:
+            raw_bytes = raw_content
+
+        try:
+            msg = email.message_from_bytes(raw_bytes, policy=policy.default)
+            if not subject:
+                subject = str(msg.get("Subject") or "")
+            if not from_addr:
+                from_addr = str(msg.get("From") or "")
+            if not to_addr:
+                to_addr = str(msg.get("To") or "")
+                resolved_slug, is_dispute = extract_slug_and_stream(to_addr)
+
+            for part in msg.walk():
+                content_type = part.get_content_type()
+                filename = part.get_filename() or ""
+                if content_type == "text/plain" and not body_text:
+                    body_text = part.get_content()
+                elif content_type == "text/html" and not body_html:
+                    body_html = part.get_content()
+                elif content_type == "application/pdf" or filename.lower().endswith(".pdf"):
+                    payload_bytes = part.get_payload(decode=True)
+                    if payload_bytes and is_pdf_magic_bytes(payload_bytes):
+                        extracted_pdfs.append({
+                            "filename": filename or "freight-invoice.pdf",
+                            "content_bytes": payload_bytes,
+                            "sha256": compute_sha256(payload_bytes),
+                            "size_bytes": len(payload_bytes)
+                        })
+        except Exception as e:
+            processed_status = "corrupt_email"
+            failure_reason = str(e)
+
+    if not extracted_pdfs and processed_status == "processed":
+        processed_status = "no_attachments"
+        failure_reason = "Inbound email contained zero valid PDF attachments."
+
+    return {
+        "slug": resolved_slug,
+        "is_dispute_stream": is_dispute,
+        "from_address": from_addr,
+        "to_address": to_addr,
+        "subject": subject,
+        "body_text": body_text,
+        "body_html": body_html,
         "pdf_attachments": extracted_pdfs,
         "processed_status": processed_status,
         "failure_reason": failure_reason,

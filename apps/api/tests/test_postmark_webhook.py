@@ -103,3 +103,41 @@ def test_postmark_webhook_live_audit_execution():
     assert audited["flag_detected"] is True
     assert audited["overcharge_amount"] > 0
 
+
+def test_cloudflare_email_inbound_parsing_and_webhook():
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.application import MIMEApplication
+    from email.mime.text import MIMEText
+    from fastapi.testclient import TestClient
+    from apps.api.server import app
+
+    client = TestClient(app)
+
+    # Build a sample MIME email with PDF attachment
+    msg = MIMEMultipart()
+    msg["To"] = "acme@in.lexaintake.com"
+    msg["From"] = "billing@abf.com"
+    msg["Subject"] = "Freight Invoice ABF-9901"
+    msg.attach(MIMEText("Please find your freight bill attached.", "plain"))
+
+    sample_pdf_bytes = b"%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF"
+    pdf_part = MIMEApplication(sample_pdf_bytes, _subtype="pdf")
+    pdf_part.add_header("Content-Disposition", "attachment", filename="ABF-9901.pdf")
+    msg.attach(pdf_part)
+
+    payload = {
+        "to": "acme@in.lexaintake.com",
+        "from": "billing@abf.com",
+        "subject": "Freight Invoice ABF-9901",
+        "raw": msg.as_string()
+    }
+
+    resp = client.post("/api/webhooks/cloudflare-email", json=payload)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "processed"
+    assert data["slug"] == "acme"
+    assert data["attachments_count"] == 1
+    assert len(data["invoices_audited"]) == 1
+
+

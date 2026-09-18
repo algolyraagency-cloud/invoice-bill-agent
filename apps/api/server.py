@@ -45,7 +45,11 @@ from orchestrator import audit_invoice
 from apps.worker.cost_guard import CircuitBreakerTrippedError, global_cost_guard
 from apps.worker.credit_memo_service import CreditMemoService
 from apps.worker.feedback_loop import FeedbackLoopService
-from apps.worker.ingestion import is_pdf_magic_bytes, parse_postmark_inbound_json
+from apps.worker.ingestion import (
+    is_pdf_magic_bytes,
+    parse_cloudflare_inbound_mime,
+    parse_postmark_inbound_json,
+)
 from apps.worker.invoice_parser import parse_invoice
 from apps.worker.onboarding_wizard import OnboardingWizardService
 from apps.worker.pipeline import global_dlq
@@ -628,6 +632,59 @@ def handle_postmark_webhook(
         "status": "processed",
         "from": payload.get("From"),
         "subject": payload.get("Subject"),
+        "slug": slug,
+        "customer_id": customer_id,
+        "is_dispute_stream": parsed_email.get("is_dispute_stream", False),
+        "attachments_count": len(pdf_attachments),
+        "invoices_audited": invoices_audited,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+
+
+@app.post("/api/webhooks/cloudflare-email")
+@app.post("/api/v1/webhooks/cloudflare-email")
+def handle_cloudflare_email_webhook(
+    payload: dict[str, Any]
+):
+    """
+    Inbound webhook for Cloudflare Email Routing & Email Workers.
+    Payload: { "to": "...", "from": "...", "subject": "...", "raw": "..." }
+    """
+    parsed_email = parse_cloudflare_inbound_mime(payload)
+
+    slug = parsed_email.get("slug")
+    customer_id = "cust_acme_01"
+    if slug:
+        for c in portal_service._customers.values():
+            if slug.lower() in c.get("slug", "").lower() or slug.lower() in c.get("name", "").lower():
+                customer_id = c["id"]
+                break
+
+    invoices_audited = []
+    pdf_attachments = parsed_email.get("pdf_attachments", [])
+
+    for att in pdf_attachments:
+        try:
+            res = process_invoice_bytes_and_audit(
+                file_bytes=att["content_bytes"],
+                filename=att["filename"],
+                customer_id=customer_id,
+                source="cloudflare_email"
+            )
+            invoices_audited.append(res)
+        except Exception as e:
+            invoices_audited.append({
+                "status": "error",
+                "filename": att.get("filename"),
+                "error": str(e)
+            })
+
+    return {
+        "status": parsed_email.get("processed_status", "processed"),
+        "failure_reason": parsed_email.get("failure_reason"),
+        "from": parsed_email.get("from_address"),
+        "to": parsed_email.get("to_address"),
+        "subject": parsed_email.get("subject"),
         "slug": slug,
         "customer_id": customer_id,
         "is_dispute_stream": parsed_email.get("is_dispute_stream", False),
