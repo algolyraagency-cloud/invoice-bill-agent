@@ -8,6 +8,7 @@ node_modules/
 .env*.local
 *.pem
 *.key
+cloudflared.exe
 
 # Python
 __pycache__/
