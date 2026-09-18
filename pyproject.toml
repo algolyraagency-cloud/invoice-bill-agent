@@ -31,7 +31,7 @@ dev = [
 ]
 
 [tool.vercel]
-entrypoint = "api/index.py:app"
+entrypoint = "main:app"
 
 [tool.pytest.ini_options]
 minversion = "8.0"
