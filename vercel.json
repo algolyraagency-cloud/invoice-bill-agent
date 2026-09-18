@@ -1,23 +1,14 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "main.py",
-      "use": "@vercel/python"
-    },
-    {
-      "src": "public/**",
-      "use": "@vercel/static"
-    }
-  ],
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "cleanUrls": true,
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/main.py"
+      "destination": "/api/index.py"
     },
     {
       "source": "/api",
-      "destination": "/main.py"
+      "destination": "/api/index.py"
     },
     {
       "source": "/login",
