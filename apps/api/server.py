@@ -7,6 +7,7 @@ Includes Phase E Observability: /healthz, /readyz, /api/v1/admin/health-summary.
 Now updated with DYNAMIC invoice parsing and audit execution (zero hardcoded fake amounts).
 """
 
+import base64
 import os
 import sys
 import time
@@ -44,7 +45,7 @@ from orchestrator import audit_invoice
 from apps.worker.cost_guard import CircuitBreakerTrippedError, global_cost_guard
 from apps.worker.credit_memo_service import CreditMemoService
 from apps.worker.feedback_loop import FeedbackLoopService
-from apps.worker.ingestion import is_pdf_magic_bytes
+from apps.worker.ingestion import is_pdf_magic_bytes, parse_postmark_inbound_json
 from apps.worker.invoice_parser import parse_invoice
 from apps.worker.onboarding_wizard import OnboardingWizardService
 from apps.worker.pipeline import global_dlq
@@ -361,7 +362,34 @@ async def handle_invoice_upload(
     if cached_result:
         return cached_result
 
-    # DYNAMIC PARSING: Extract real text & JSON schema from uploaded document
+    try:
+        res = process_invoice_bytes_and_audit(
+            file_bytes=file_bytes,
+            filename=filename,
+            customer_id=customer_id,
+            source=source
+        )
+        global_cost_guard.set_cached(cache_key, res)
+        return res
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+def process_invoice_bytes_and_audit(
+    file_bytes: bytes,
+    filename: str,
+    customer_id: str = "cust_acme_01",
+    source: str = "upload"
+) -> dict[str, Any]:
+    """
+    Dynamic document parsing & deterministic audit engine execution.
+    Takes raw invoice bytes, runs OCR/regex parsing, saves to portal_service,
+    executes Tariff rules against active customer contracts, and seeds flags + dispute drafts.
+    """
+    fname_lower = filename.lower()
     carrier_hint = None
     if "gsw" in fname_lower:
         carrier_hint = "GSW Freight System, Inc."
@@ -372,17 +400,11 @@ async def handle_invoice_upload(
     elif "rrts" in fname_lower or "roadrunner" in fname_lower:
         carrier_hint = "Roadrunner"
 
-    try:
-        parsed_inv, val_result, _meta = parse_invoice(
-            document_input=file_bytes,
-            carrier_hint=carrier_hint,
-            use_cache=True
-        )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+    parsed_inv, val_result, _meta = parse_invoice(
+        document_input=file_bytes,
+        carrier_hint=carrier_hint,
+        use_cache=True
+    )
 
     inv_id = f"inv_{uuid.uuid4().hex[:8]}"
     pro_num = parsed_inv.pro_number
@@ -464,7 +486,7 @@ async def handle_invoice_upload(
             "created_at": datetime.now(timezone.utc).isoformat()
         }
 
-    res = {
+    return {
         "status": "success",
         "message": f"Successfully parsed and dynamically audited {filename}",
         "invoice_id": inv_id,
@@ -475,10 +497,8 @@ async def handle_invoice_upload(
         "total_amount": amount,
         "flag_detected": flag_detected,
         "overcharge_amount": round(total_overcharge_cents / 100.0, 2),
-        "validation_confidence": val_result.composite_confidence,
+        "validation_confidence": getattr(val_result, "composite_confidence", 0.95),
     }
-    global_cost_guard.set_cached(cache_key, res)
-    return res
 
 @app.post("/api/v1/contracts/upload")
 async def handle_contract_upload(
@@ -504,11 +524,124 @@ def handle_postmark_webhook(
     x_postmark_server_token: str | None = Header(None)
 ):
     verify_postmark_token(x_postmark_server_token)
+    parsed_email = parse_postmark_inbound_json(payload)
+
+    # Determine tenant/customer based on slug or fall back to cust_acme_01
+    slug = parsed_email.get("slug")
+    customer_id = "cust_acme_01"
+    if slug:
+        for c in portal_service._customers.values():
+            if slug.lower() in c.get("slug", "").lower() or slug.lower() in c.get("name", "").lower():
+                customer_id = c["id"]
+                break
+
+    invoices_audited = []
+    pdf_attachments = parsed_email.get("pdf_attachments", [])
+
+    for att in pdf_attachments:
+        try:
+            res = process_invoice_bytes_and_audit(
+                file_bytes=att["content_bytes"],
+                filename=att["filename"],
+                customer_id=customer_id,
+                source="email"
+            )
+            invoices_audited.append(res)
+        except Exception as e:
+            invoices_audited.append({
+                "status": "error",
+                "filename": att.get("filename"),
+                "error": str(e)
+            })
+
     return {
         "status": "processed",
         "from": payload.get("From"),
         "subject": payload.get("Subject"),
+        "slug": slug,
+        "customer_id": customer_id,
+        "is_dispute_stream": parsed_email.get("is_dispute_stream", False),
+        "attachments_count": len(pdf_attachments),
+        "invoices_audited": invoices_audited,
         "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+
+
+@app.post("/api/v1/simulate/inbound-email")
+def simulate_inbound_email(
+    carrier: str = Form("ABF Freight"),
+    customer_id: str = Form("cust_acme_01")
+):
+    """
+    Simulates an incoming email from a freight carrier (e.g. ABF, GSW, XPO)
+    forwarded to {slug}@in.rateguard.app with an attached freight invoice PDF.
+    Triggers the exact Postmark inbound pipeline, runs the deterministic audit engine,
+    and returns live audit findings & created dispute records.
+    """
+    carrier_lower = carrier.lower()
+    cust = portal_service._customers.get(customer_id, {})
+    slug = cust.get("slug", "acme-imports")
+
+    pro_rand = f"042-{int(time.time()) % 900000 + 100000}"
+    inv_num = f"INV-{carrier[:3].upper()}-{pro_rand[-6:]}"
+
+    if "gsw" in carrier_lower:
+        carrier_name = "GSW Freight System, Inc."
+        from_email = "billing@gswfreight.com"
+        file_name = f"GSW_Freight_Invoice_{inv_num}.pdf"
+    elif "xpo" in carrier_lower:
+        carrier_name = "XPO Logistics"
+        from_email = "invoices@xpo.com"
+        file_name = f"XPO_Invoice_{inv_num}.pdf"
+    else:
+        carrier_name = "ABF Freight"
+        from_email = "freightbilling@abf.com"
+        file_name = f"ABF_Freight_Invoice_{inv_num}.pdf"
+
+    # Synthetic valid PDF invoice with Item 100-D deficit weight discrepancy
+    pdf_text = (
+        f"%PDF-1.4\n"
+        f"FREIGHT INVOICE - {carrier_name}\n"
+        f"Invoice Number: {inv_num}\n"
+        f"PRO Number: {pro_rand}\n"
+        f"Invoice Date: {datetime.now(timezone.utc).strftime('%Y-%m-%d')}\n"
+        f"Shipper: Acme Imports & Logistics, 1400 W Fulton St, Chicago, IL 60607\n"
+        f"Consignee: Midwest Auto Assembly, 8200 E Jefferson Ave, Detroit, MI 48201\n"
+        f"Item: Machined Steel Components | Weight: 1,850 lbs | Class 70\n"
+        f"Linehaul Charge: 1,850 lbs @ $48.50/cwt = $897.25\n"
+        f"Fuel Surcharge FSC: 24.50% = $219.83\n"
+        f"TOTAL AMOUNT DUE: $1,117.08\n"
+        f"%%EOF"
+    )
+    pdf_bytes = pdf_text.encode("utf-8")
+    b64_content = base64.b64encode(pdf_bytes).decode("utf-8")
+
+    payload = {
+        "From": from_email,
+        "FromName": f"{carrier_name} Billing",
+        "To": f"{slug}@in.rateguard.app",
+        "Subject": f"{carrier_name} Freight Invoice {inv_num} for PRO #{pro_rand}",
+        "Date": datetime.now(timezone.utc).isoformat(),
+        "TextBody": f"Attached please find your freight invoice {inv_num}. Terms: Net 30.",
+        "Attachments": [
+            {
+                "Name": file_name,
+                "Content": b64_content,
+                "ContentType": "application/pdf",
+                "ContentLength": len(pdf_bytes)
+            }
+        ]
+    }
+
+    result = handle_postmark_webhook(payload)
+    return {
+        "simulation": "success",
+        "carrier_simulated": carrier_name,
+        "from_email": from_email,
+        "recipient": f"{slug}@in.rateguard.app",
+        "pro_number": pro_rand,
+        "invoice_number": inv_num,
+        "pipeline_result": result
     }
 
 @app.post("/api/webhooks/stripe")

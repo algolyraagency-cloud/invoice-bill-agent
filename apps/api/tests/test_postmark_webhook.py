@@ -78,3 +78,28 @@ def test_postmark_dispute_cc_routing():
     result = parse_postmark_inbound_json(payload)
     assert result["slug"] == "acme-corp"
     assert result["is_dispute_stream"] is True
+
+
+def test_postmark_webhook_live_audit_execution():
+    from fastapi.testclient import TestClient
+    from apps.api.server import app
+
+    client = TestClient(app)
+
+    # 1. Test live simulate endpoint
+    resp = client.post("/api/v1/simulate/inbound-email", data={"carrier": "ABF Freight", "customer_id": "cust_acme_01"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["simulation"] == "success"
+    assert data["carrier_simulated"] == "ABF Freight"
+    assert "pipeline_result" in data
+    pipe = data["pipeline_result"]
+    assert pipe["status"] == "processed"
+    assert pipe["attachments_count"] == 1
+    assert len(pipe["invoices_audited"]) == 1
+    audited = pipe["invoices_audited"][0]
+    assert audited["status"] == "success"
+    assert audited["carrier"] == "ABF Freight"
+    assert audited["flag_detected"] is True
+    assert audited["overcharge_amount"] > 0
+

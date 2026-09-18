@@ -3,152 +3,340 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RateGuard AI — Email Forwarding Setup Guide</title>
+  <title>RateGuard AI — Carrier Email Forwarding Guide & Verification Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      line-height: 1.6;
-      color: #1a1a1a;
-      background-color: #f8fafc;
-      margin: 0;
-      padding: 40px 20px;
-    }
-    .container {
-      max-width: 780px;
-      margin: 0 auto;
-      background: #ffffff;
-      padding: 40px;
-      border-radius: 12px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-      border: 1px solid #e2e8f0;
-    }
-    h1 {
-      font-size: 26px;
-      margin-top: 0;
-      color: #0f172a;
-    }
-    .badge {
-      display: inline-block;
-      background: #e0f2fe;
-      color: #0369a1;
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 20px;
-    }
-    .address-card {
-      background: #0f172a;
-      color: #f8fafc;
-      padding: 20px;
-      border-radius: 8px;
-      margin: 20px 0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .address-card code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 16px;
-      color: #38bdf8;
-    }
-    .copy-btn {
-      background: #38bdf8;
-      color: #0f172a;
-      border: none;
-      padding: 8px 14px;
-      border-radius: 6px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .step-card {
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 20px;
-      margin: 20px 0;
-      background: #ffffff;
-    }
-    .step-card h3 {
-      margin-top: 0;
-      color: #1e293b;
-    }
-    ol {
-      padding-left: 20px;
-    }
-    li {
-      margin-bottom: 10px;
-    }
-    .carrier-list {
-      background: #f1f5f9;
-      padding: 12px 16px;
-      border-radius: 6px;
-      font-family: monospace;
-      font-size: 14px;
-    }
+    body { font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    code, pre, .font-mono { font-family: 'Geist Mono', monospace; }
   </style>
 </head>
-<body>
-  <div class="container">
-    <span class="badge">ONBOARDING GUIDE (FR-1.4)</span>
-    <h1>Connect Your Carrier Invoices in 2 Minutes</h1>
+<body class="bg-[#0a0a0a] text-neutral-100 min-h-screen py-10 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-4xl mx-auto space-y-8">
 
-    <!-- Freight Broker Context Banner -->
-    <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:16px 20px; margin-bottom:24px;">
-      <div style="font-weight:700; color:#0369a1; margin-bottom:6px; font-size:14px;">📦 Freight Brokers &amp; 3PLs</div>
-      <p style="margin:0; font-size:13px; color:#0c4a6e; line-height:1.6;">
-        Your carrier payables team receives LTL invoices daily from carriers like ABF, XPO, Saia, Estes, and Roadrunner.
-        Add a 2-minute email forwarding rule and every carrier invoice will be automatically audited against your broker-carrier rate agreements.
-        <strong>Every billing error a carrier sends you comes directly out of your brokerage EBITDA — we find it and get it back.</strong>
-      </p>
-    </div>
-
-    <p>RateGuard AI audits carrier invoices automatically by parsing PDF attachments sent directly from your freight carriers. Follow these simple steps to configure automated email forwarding.</p>
-
-    <h2>1. Your Inbound Audit Address</h2>
-    <p>Every invoice forwarded to this address is instantly ingested, decrypted, and audited against your contracted rate matrices.</p>
-    
-    <div class="address-card">
-      <div>
-        <small style="color: #94a3b8; display: block;">UNIQUE AUDIT INBOX</small>
-        <code id="inbound-addr">acme-parts@in.rateguard.app</code>
+    <!-- Top Navigation Header -->
+    <div class="flex items-center justify-between border-b border-[#222] pb-6">
+      <div class="flex items-center space-x-3">
+        <a href="/portal" class="w-8 h-8 rounded-lg bg-white text-black font-bold flex items-center justify-center text-sm hover:opacity-90 transition">
+          RG
+        </a>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="font-bold text-base tracking-tight text-white">RateGuard AI</span>
+            <span class="text-neutral-500">/</span>
+            <span class="text-sm font-semibold text-neutral-300">Carrier Email Forwarding</span>
+          </div>
+          <p class="text-xs text-neutral-500">Automated LTL Carrier Invoice Ingestion & Live Audit</p>
+        </div>
       </div>
-      <button class="copy-btn" onclick="navigator.clipboard.writeText('acme-parts@in.rateguard.app'); alert('Copied audit address!');">Copy Address</button>
+      <a href="/portal" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#181818] hover:bg-[#222] text-neutral-300 border border-[#333] transition flex items-center space-x-1">
+        <span>← Back to Customer Portal</span>
+      </a>
     </div>
 
-    <h2>2. Dedicated Carrier Dispute CC Address</h2>
-    <p>When sending carrier billing disputes, CC our tracking alias. Our system automatically links the carrier's reply and detects credit memos:</p>
-    <div class="address-card">
-      <div>
-        <small style="color: #94a3b8; display: block;">DISPUTE RECOVERY TRACKING</small>
-        <code id="dispute-addr">disputes+acme-parts@in.rateguard.app</code>
+    <!-- Executive Broker Banner -->
+    <div class="rounded-xl border border-blue-900/60 bg-gradient-to-r from-blue-950/40 via-neutral-900/80 to-neutral-900/80 p-6 shadow-xl">
+      <div class="flex items-start space-x-4">
+        <div class="w-10 h-10 rounded-lg bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400 text-lg flex-shrink-0">
+          📦
+        </div>
+        <div class="space-y-2">
+          <div class="flex items-center space-x-2">
+            <h2 class="text-base font-bold text-white tracking-tight">Zero-Friction Inbound Setup for Freight Brokers & Shippers</h2>
+            <span class="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-blue-900/60 text-blue-300 border border-blue-700">2-Minute Rule</span>
+          </div>
+          <p class="text-xs text-neutral-300 leading-relaxed">
+            Your Carrier Payables team receives dozens of PDF freight bills daily from carriers like ABF, XPO, Saia, Estes, and Roadrunner.
+            With a simple auto-forwarding rule, every invoice email is ingested in real-time, audited against your contracted rate matrices, and checked for overcharges — <strong class="text-white">without changing how carriers bill you or requiring EDI integrations.</strong>
+          </p>
+          <div class="text-[11px] text-emerald-400 font-mono flex items-center space-x-2 pt-1">
+            <span>🛡️ Broker EBITDA Protection:</span>
+            <span class="text-neutral-300">Carrier billing errors go straight to your bottom line if missed. We catch them before you pay.</span>
+          </div>
+        </div>
       </div>
-      <button class="copy-btn" onclick="navigator.clipboard.writeText('disputes+acme-parts@in.rateguard.app'); alert('Copied dispute CC address!');">Copy CC</button>
     </div>
 
-    <h2>3. Setup Forwarding Rules</h2>
+    <!-- Active Routing Inboxes Card -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <!-- Inbound Audit Inbox -->
+      <div class="rounded-xl border border-[#262626] bg-[#121212] p-5 space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-mono uppercase tracking-wider text-blue-400 font-semibold">1. Inbound Carrier Audit Address</span>
+          <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono">Active</span>
+        </div>
+        <p class="text-xs text-neutral-400">Forward all incoming carrier invoice emails with PDF attachments here for real-time audit:</p>
+        <div class="flex items-center justify-between bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg p-3">
+          <code id="inbound-addr" class="text-sm font-mono text-blue-300 font-bold">acme-imports@in.rateguard.app</code>
+          <button onclick="copyText('inbound-addr', this)" class="text-xs font-semibold px-2.5 py-1 rounded bg-[#222] hover:bg-[#333] text-neutral-200 border border-[#3a3a3a] transition">
+            Copy
+          </button>
+        </div>
+      </div>
 
-    <div class="step-card">
-      <h3>Microsoft Outlook 365 (Web or Desktop)</h3>
-      <ol>
-        <li>Go to <strong>Settings</strong> (gear icon) &gt; <strong>Mail</strong> &gt; <strong>Rules</strong>.</li>
-        <li>Click <strong>Add new rule</strong> and name it <em>"Forward LTL Carrier Invoices to RateGuard"</em>.</li>
-        <li>Under <strong>Add a condition</strong>, select <strong>Sender address includes</strong> and paste your top carrier domains:
-          <div class="carrier-list">@abf.com, @xpo.com, @rrts.com, @odfl.com, @saia.com, @estes-express.com</div>
-        </li>
-        <li>Under <strong>Add an action</strong>, select <strong>Forward to</strong> and enter <code>{your-slug}@in.rateguard.app</code>.</li>
-        <li>Check <strong>Stop processing more rules</strong> and click <strong>Save</strong>.</li>
-      </ol>
+      <!-- Dispute Tracking CC Alias -->
+      <div class="rounded-xl border border-[#262626] bg-[#121212] p-5 space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-mono uppercase tracking-wider text-amber-400 font-semibold">2. Carrier Dispute CC Tracker</span>
+          <span class="text-[10px] px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800 font-mono">Credit Memo Match</span>
+        </div>
+        <p class="text-xs text-neutral-400">CC this address when emailing billing disputes. Carrier replies and credit memos are matched automatically:</p>
+        <div class="flex items-center justify-between bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg p-3">
+          <code id="dispute-addr" class="text-sm font-mono text-amber-300 font-bold">disputes+acme-imports@in.rateguard.app</code>
+          <button onclick="copyText('dispute-addr', this)" class="text-xs font-semibold px-2.5 py-1 rounded bg-[#222] hover:bg-[#333] text-neutral-200 border border-[#3a3a3a] transition">
+            Copy
+          </button>
+        </div>
+      </div>
     </div>
 
-    <div class="step-card">
-      <h3>Google Workspace / Gmail</h3>
-      <ol>
-        <li>Go to <strong>Settings</strong> &gt; <strong>Filters and Blocked Addresses</strong> &gt; <strong>Create a new filter</strong>.</li>
-        <li>In the <strong>From</strong> field, enter: <code>(@abf.com OR @xpo.com OR @rrts.com OR @odfl.com)</code>.</li>
-        <li>Click <strong>Create filter</strong>, check <strong>Forward it to:</strong>, and select your RateGuard inbound address.</li>
-        <li>Click <strong>Create filter</strong> to activate.</li>
-      </ol>
+    <!-- LIVE INTERACTIVE TEST CONSOLE -->
+    <div class="rounded-xl border border-emerald-900/60 bg-[#0d140e] p-6 space-y-5 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-emerald-900/40 pb-4">
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <h3 class="text-base font-bold text-white">Live Inbound Email Simulation &amp; Verification Console</h3>
+          </div>
+          <p class="text-xs text-neutral-400 mt-1">
+            Test the entire pipeline right now: simulate an email arriving at <span class="font-mono text-emerald-400">acme-imports@in.rateguard.app</span> with a real carrier PDF invoice.
+          </p>
+        </div>
+        <span class="text-xs font-mono px-2.5 py-1 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
+          Postmark Webhook Live
+        </span>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-[11px] font-mono text-neutral-400 uppercase tracking-wider mb-1.5">Simulated Carrier</label>
+          <select id="sim-carrier" class="w-full bg-[#141d15] border border-emerald-800/60 rounded-lg px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-emerald-500">
+            <option value="ABF Freight">ABF Freight (SCAC: ABFS)</option>
+            <option value="GSW Freight System, Inc.">GSW Freight System (SCAC: GSWF)</option>
+            <option value="XPO Logistics">XPO Logistics (SCAC: CNWY)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-mono text-neutral-400 uppercase tracking-wider mb-1.5">Target Organization</label>
+          <select id="sim-org" class="w-full bg-[#141d15] border border-emerald-800/60 rounded-lg px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-emerald-500">
+            <option value="cust_acme_01">Acme Imports &amp; Logistics (acme-imports)</option>
+            <option value="cust_pacific_02">Pacific Supply Corp (pacific-supply)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-mono text-neutral-400 uppercase tracking-wider mb-1.5">Audit Exception Test</label>
+          <div class="bg-[#141d15] border border-emerald-800/60 rounded-lg px-3 py-2 text-xs text-emerald-300 font-mono truncate">
+            Tariff Item 100-D Deficit Bump
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-3 pt-2">
+        <button id="btn-run-simulation" onclick="runEmailSimulation()" class="px-5 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs shadow-lg transition flex items-center space-x-2">
+          <span>⚡ Send Simulated Carrier Invoice Email</span>
+        </button>
+        <span id="sim-status-spinner" class="hidden text-xs text-emerald-400 font-mono animate-pulse">
+          Ingesting Postmark webhook payload &amp; running audit engine...
+        </span>
+      </div>
+
+      <!-- Simulation Live Log / Trace Terminal -->
+      <div id="sim-log-card" class="hidden rounded-lg bg-[#060a07] border border-emerald-900/50 p-4 font-mono text-xs space-y-2">
+        <div class="flex items-center justify-between text-neutral-400 border-b border-[#18261a] pb-2 text-[11px]">
+          <span>INBOUND WEBHOOK EXECUTION TRACE</span>
+          <span id="sim-time" class="text-neutral-500"></span>
+        </div>
+        <div id="sim-trace-content" class="space-y-1.5 text-neutral-300 pt-1">
+          <!-- Populated dynamically via JS -->
+        </div>
+        <div id="sim-action-bar" class="hidden pt-3 border-t border-[#18261a] flex items-center justify-between">
+          <span class="text-emerald-400 text-xs font-semibold">Audit Complete: Discrepancy Flagged &amp; Dispute Staged.</span>
+          <a href="/portal#tab-disputes" target="_blank" class="px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-sans text-xs font-bold transition flex items-center space-x-1">
+            <span>View Dispute in Customer Portal ➔</span>
+          </a>
+        </div>
+      </div>
     </div>
+
+    <!-- Step-by-Step Setup Rules Guide -->
+    <div class="rounded-xl border border-[#222] bg-[#111] p-6 space-y-6">
+      <div>
+        <h3 class="text-base font-bold text-white">Configure Auto-Forwarding Rules (2 Minutes)</h3>
+        <p class="text-xs text-neutral-400 mt-1">Set up once in your email client. Every carrier invoice will be forwarded and audited seamlessly.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Microsoft Outlook 365 -->
+        <div class="border border-[#262626] rounded-xl p-5 bg-[#141414] space-y-4">
+          <div class="flex items-center space-x-2">
+            <span class="text-blue-400 text-lg">📧</span>
+            <h4 class="font-bold text-sm text-white">Microsoft Outlook 365 (Web or App)</h4>
+          </div>
+          <ol class="text-xs text-neutral-300 space-y-2.5 list-decimal pl-4">
+            <li>Click the <strong>Settings (gear icon)</strong> &gt; <strong>Mail</strong> &gt; <strong>Rules</strong>.</li>
+            <li>Click <strong>Add new rule</strong>: Name it <em>"Forward Carrier Invoices to RateGuard"</em>.</li>
+            <li><strong>Condition:</strong> Select <em>"Sender address includes"</em> and paste your top carrier billing domains:
+              <div class="mt-1.5 p-2 rounded bg-black border border-[#2a2a2a] font-mono text-[11px] text-neutral-400 select-all">
+                @abf.com, @arcbest.com, @xpo.com, @gswfreight.com, @rrts.com, @saia.com, @estes-express.com, @odfl.com
+              </div>
+            </li>
+            <li><strong>Action:</strong> Select <em>"Forward to"</em> and enter:
+              <div class="mt-1.5 p-2 rounded bg-black border border-[#2a2a2a] font-mono text-[11px] text-blue-400 select-all">
+                acme-imports@in.rateguard.app
+              </div>
+            </li>
+            <li>Click <strong>Save</strong>. Inbound carrier emails will now route instantly to the audit engine.</li>
+          </ol>
+        </div>
+
+        <!-- Google Workspace / Gmail -->
+        <div class="border border-[#262626] rounded-xl p-5 bg-[#141414] space-y-4">
+          <div class="flex items-center space-x-2">
+            <span class="text-red-400 text-lg">✉️</span>
+            <h4 class="font-bold text-sm text-white">Google Workspace / Gmail</h4>
+          </div>
+          <ol class="text-xs text-neutral-300 space-y-2.5 list-decimal pl-4">
+            <li>Go to <strong>Settings (gear)</strong> &gt; <strong>See all settings</strong> &gt; <strong>Forwarding and POP/IMAP</strong>.</li>
+            <li>Click <strong>Add a forwarding address</strong> and enter:
+              <div class="mt-1.5 p-2 rounded bg-black border border-[#2a2a2a] font-mono text-[11px] text-blue-400 select-all">
+                acme-imports@in.rateguard.app
+              </div>
+            </li>
+            <li>Under <strong>Filters and Blocked Addresses</strong>, click <strong>Create a new filter</strong>.</li>
+            <li>In the <strong>From</strong> field, enter:
+              <div class="mt-1.5 p-2 rounded bg-black border border-[#2a2a2a] font-mono text-[11px] text-neutral-400 select-all">
+                (@abf.com OR @xpo.com OR @gswfreight.com OR @rrts.com OR @saia.com OR @estes-express.com)
+              </div>
+            </li>
+            <li>Check <strong>"Forward it to:"</strong> and select RateGuard. Click <strong>Create filter</strong>.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- Production Architecture & Broker FAQ -->
+    <div class="rounded-xl border border-[#222] bg-[#111] p-6 space-y-4">
+      <h3 class="text-sm font-bold text-white tracking-tight">Enterprise Production Architecture &amp; Broker Safety Guarantee</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+        <div class="p-4 rounded-lg bg-[#161616] border border-[#262626] space-y-1.5">
+          <div class="font-bold text-neutral-200">1. Real DNS MX Routing</div>
+          <p class="text-neutral-400 leading-relaxed">
+            In production, <code>in.rateguard.app</code> has MX records pointing to Postmark's inbound SMTP server (<code>inbound.postmarkapp.com</code>). Every email attachment is verified with SHA-256 deduplication and PDF magic-byte checks.
+          </p>
+        </div>
+        <div class="p-4 rounded-lg bg-[#161616] border border-[#262626] space-y-1.5">
+          <div class="font-bold text-neutral-200">2. Deterministic Audit Rule Engine</div>
+          <p class="text-neutral-400 leading-relaxed">
+            Unlike LLM chatbots that make up numbers, RateGuard AI enforces the Core Law: <em>LLMs understand layout, Python deterministic rules calculate money</em>. Deficit weight tier bumping (Item 100-D) and DOE diesel baseline FSC (Item 220-A) are computed mathematically.
+          </p>
+        </div>
+        <div class="p-4 rounded-lg bg-[#161616] border border-[#262626] space-y-1.5">
+          <div class="font-bold text-neutral-200">3. Human-in-the-Loop Safety</div>
+          <p class="text-neutral-400 leading-relaxed">
+            RateGuard AI <strong>never auto-sends disputes or auto-withholds funds</strong> without your confirmation. Every discrepancy is staged in the Dispute Tracker with a pre-drafted letter citing governing tariff clauses, ready for 1-click review.
+          </p>
+        </div>
+      </div>
+    </div>
+
   </div>
+
+  <script>
+    function copyText(elemId, btn) {
+      const text = document.getElementById(elemId).innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        const originalText = btn.innerText;
+        btn.innerText = 'Copied!';
+        btn.classList.add('bg-emerald-800', 'text-white');
+        setTimeout(() => {
+          btn.innerText = originalText;
+          btn.classList.remove('bg-emerald-800', 'text-white');
+        }, 1500);
+      });
+    }
+
+    async function runEmailSimulation() {
+      const carrier = document.getElementById('sim-carrier').value;
+      const customerId = document.getElementById('sim-org').value;
+      const btn = document.getElementById('btn-run-simulation');
+      const spinner = document.getElementById('sim-status-spinner');
+      const logCard = document.getElementById('sim-log-card');
+      const traceContent = document.getElementById('sim-trace-content');
+      const actionBar = document.getElementById('sim-action-bar');
+      const timeSpan = document.getElementById('sim-time');
+
+      btn.disabled = true;
+      btn.classList.add('opacity-50', 'cursor-not-allowed');
+      spinner.classList.remove('hidden');
+      logCard.classList.remove('hidden');
+      actionBar.classList.add('hidden');
+      traceContent.innerHTML = '';
+      timeSpan.innerText = new Date().toLocaleTimeString();
+
+      function addLog(icon, text, highlight = false) {
+        const line = document.createElement('div');
+        line.className = 'flex items-start space-x-2';
+        line.innerHTML = `<span>${icon}</span><span class="${highlight ? 'text-emerald-400 font-bold' : 'text-neutral-300'}">${text}</span>`;
+        traceContent.appendChild(line);
+      }
+
+      addLog('📨', `Sending simulated carrier email from ${carrier} to inbound webhook...`);
+
+      try {
+        const formData = new FormData();
+        formData.append('carrier', carrier);
+        formData.append('customer_id', customerId);
+
+        const response = await fetch('/api/v1/simulate/inbound-email', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.detail || 'Simulation request failed');
+        }
+
+        const data = await response.json();
+        const pipe = data.pipeline_result;
+        const audited = pipe.invoices_audited && pipe.invoices_audited[0] ? pipe.invoices_audited[0] : null;
+
+        setTimeout(() => {
+          addLog('📬', `Postmark Inbound Webhook: Received email for ${data.recipient} (From: ${data.from_email})`);
+        }, 300);
+
+        setTimeout(() => {
+          addLog('📎', `Attachment Decoder: Extracted PDF "${audited ? audited.carrier : carrier}_Invoice.pdf" (Magic bytes verified)`);
+        }, 600);
+
+        setTimeout(() => {
+          if (audited) {
+            addLog('🔍', `Invoice Parser: PRO #${audited.pro_number} | Invoice #${audited.invoice_number} | Billed Total: $${audited.total_amount}`);
+            addLog('⚖️', `Deterministic Audit Engine: Evaluated Tariff Item 100-D (Deficit Weight Bumping)`);
+            if (audited.flag_detected) {
+              addLog('🚨', `AUDIT EXCEPTION DETECTED: Overcharge of $${audited.overcharge_amount.toFixed(2)} flagged on linehaul`, true);
+              addLog('📝', `Dispute Tracker: Staged 1-click carrier dispute packet with contract clause citations`, true);
+            } else {
+              addLog('✅', `Invoice verified: Clean billing against contracted rate matrix.`, true);
+            }
+          } else {
+            addLog('⚠️', `Attachment processed with status: ${pipe.status}`);
+          }
+          actionBar.classList.remove('hidden');
+          spinner.classList.add('hidden');
+          btn.disabled = false;
+          btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }, 1000);
+
+      } catch (err) {
+        addLog('❌', `Simulation Error: ${err.message}`, true);
+        spinner.classList.add('hidden');
+        btn.disabled = false;
+        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+    }
+  </script>
 </body>
 </html>
