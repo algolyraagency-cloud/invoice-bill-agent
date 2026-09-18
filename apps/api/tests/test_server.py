@@ -177,3 +177,42 @@ def test_static_routes():
     assert client.get("/portal").status_code == 200
     assert client.get("/onboarding").status_code == 200
     assert client.get("/setup-forwarding").status_code == 200
+    assert client.get("/login").status_code == 200
+
+def test_auth_register_and_login_flow():
+    # 1. Register new organization
+    reg_resp = client.post("/api/v1/auth/register", data={
+        "company_name": "Test Freight Brokers Inc",
+        "name": "Sarah Connor",
+        "email": "sarah@testfreight.com",
+        "password": "securepassword123",
+        "customer_type": "freight_broker"
+    })
+    assert reg_resp.status_code == 200
+    reg_data = reg_resp.json()
+    assert reg_data["status"] == "success"
+    assert "token" in reg_data
+    token = reg_data["token"]
+    cust_id = reg_data["customer_id"]
+
+    # 2. Check /auth/me with token
+    me_resp = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert me_resp.status_code == 200
+    assert me_resp.json()["email"] == "sarah@testfreight.com"
+    assert me_resp.json()["customer_name"] == "Test Freight Brokers Inc"
+
+    # 3. Authenticate with login
+    login_resp = client.post("/api/v1/auth/login", data={
+        "email": "sarah@testfreight.com",
+        "password": "securepassword123"
+    })
+    assert login_resp.status_code == 200
+    assert login_resp.json()["customer_id"] == cust_id
+
+    # 4. Verify clean dashboard for newly registered customer (ZERO fake data!)
+    dash_resp = client.get(f"/api/v1/portal/session?customer_id={cust_id}")
+    assert dash_resp.status_code == 200
+    dash = dash_resp.json()
+    assert dash["kpis"]["total_invoices_audited"] == 0
+    assert dash["kpis"]["total_recoverable_dollars"] == 0.0
+    assert dash["kpis"]["open_disputes_count"] == 0

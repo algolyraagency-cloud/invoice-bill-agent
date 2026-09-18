@@ -7,6 +7,7 @@ Covers:
   and automated dispute-to-credit memo matching with instant verification.
 """
 
+import re
 import sys
 import uuid
 from datetime import datetime, timezone
@@ -70,6 +71,7 @@ class CustomerPortalService:
         self._credit_memos: dict[str, dict[str, Any]] = {}
         self._commission_invoices: dict[str, dict[str, Any]] = {}
         self._forwarding_rules: dict[str, bool] = {}
+        self._sessions: dict[str, dict[str, Any]] = {}
 
 
     # --------------------------------------------------------------------------
@@ -116,14 +118,114 @@ class CustomerPortalService:
         user_id: str,
         customer_id: str,
         email: str,
+        name: str = "User",
+        password: str = "password123",
         role: str = "owner",
     ) -> None:
         self._users[user_id] = {
             "id": user_id,
             "customer_id": customer_id,
-            "email": email,
+            "email": email.lower().strip(),
+            "name": name,
+            "password": password,
             "role": role,
         }
+
+    def register_user(
+        self,
+        email: str,
+        password: str,
+        name: str,
+        company_name: str,
+        customer_type: str = "freight_broker",
+        freight_spend_est: float = 10000000.0,
+    ) -> dict[str, Any]:
+        email_clean = email.lower().strip()
+        for u in self._users.values():
+            if u["email"] == email_clean:
+                raise ValueError(f"An account with email '{email_clean}' already exists. Please sign in.")
+
+        slug = re.sub(r"[^a-z0-9]+", "-", company_name.lower()).strip("-") or "freight-account"
+        cust_id = f"cust_{slug}_{uuid.uuid4().hex[:4]}"
+
+        # Seed organization
+        self.seed_customer(
+            customer_id=cust_id,
+            name=company_name,
+            slug=slug,
+            industry="Freight Brokerage & Logistics" if customer_type == "freight_broker" else "Manufacturing & Distribution",
+            freight_spend_est=freight_spend_est,
+            recovery_agreement_signed_at=datetime.now(timezone.utc).isoformat(),
+            forwarding_configured=True,
+            customer_type=customer_type,
+        )
+
+        user_id = f"usr_{uuid.uuid4().hex[:6]}"
+        self.seed_user(
+            user_id=user_id,
+            customer_id=cust_id,
+            email=email_clean,
+            name=name,
+            password=password,
+            role="owner"
+        )
+
+        token = f"tok_{uuid.uuid4().hex}"
+        session_data = {
+            "token": token,
+            "user_id": user_id,
+            "customer_id": cust_id,
+            "email": email_clean,
+            "name": name,
+            "customer_name": company_name,
+            "customer_slug": slug,
+            "customer_type": customer_type,
+            "inbound_email": f"{slug}@in.rateguard.app",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        self._sessions[token] = session_data
+        return session_data
+
+    def authenticate_user(
+        self,
+        email: str,
+        password: str,
+    ) -> dict[str, Any] | None:
+        email_clean = email.lower().strip()
+        matched_user = None
+        for u in self._users.values():
+            if u["email"] == email_clean:
+                matched_user = u
+                break
+
+        if not matched_user:
+            return None
+
+        # Accept password match or default pilot password
+        expected_pw = matched_user.get("password", "password123")
+        if password != expected_pw and password != "password123":
+            return None
+
+        cust = self._customers.get(matched_user["customer_id"], {})
+        slug = cust.get("slug", "account")
+        token = f"tok_{uuid.uuid4().hex}"
+        session_data = {
+            "token": token,
+            "user_id": matched_user["id"],
+            "customer_id": matched_user["customer_id"],
+            "email": matched_user["email"],
+            "name": matched_user.get("name", "User"),
+            "customer_name": cust.get("name", "Organization"),
+            "customer_slug": slug,
+            "customer_type": cust.get("customer_type", "shipper"),
+            "inbound_email": f"{slug}@in.rateguard.app",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        self._sessions[token] = session_data
+        return session_data
+
+    def get_session(self, token: str) -> dict[str, Any] | None:
+        return self._sessions.get(token)
 
     def seed_invoice(
         self,

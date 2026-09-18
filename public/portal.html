@@ -56,22 +56,27 @@
         </a>
       </div>
 
-      <!-- Right: User Identity, Org Switcher & Review Queue link -->
-      <div class="flex items-center space-x-4 text-xs">
+      <!-- Right: User Identity, Org Switcher, Auth & Review Queue link -->
+      <div class="flex items-center space-x-3 text-xs">
         <div class="flex items-center space-x-2">
           <span class="text-neutral-400">Org:</span>
-          <select id="org-switcher" onchange="switchOrganization(this.value)" class="bg-[#111] border border-[#262626] rounded px-2 py-1 text-white font-mono text-xs focus:outline-none">
-            <option value="cust_vanguard_04" selected>Vanguard Freight Brokerage</option>
+          <select id="org-switcher" onchange="handleOrgSelect(this.value)" class="bg-[#111] border border-[#262626] rounded px-2 py-1 text-white font-mono text-xs focus:outline-none">
+            <option value="cust_vanguard_04">Vanguard Freight Brokerage</option>
             <option value="cust_acme_01">Acme Imports &amp; Logistics</option>
             <option value="cust_pacific_02">Pacific Supply Corp</option>
             <option value="cust_apex_03">Apex Global Distribution</option>
+            <option value="__create_new__">+ Create New Account...</option>
           </select>
         </div>
 
         <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded bg-[#111] border border-[#222]">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-          <span id="user-role-badge" class="font-mono text-[11px] text-neutral-300">Carrier Payables</span>
+          <span id="user-name-display" class="font-mono text-[11px] text-neutral-300">Carrier Payables</span>
         </div>
+
+        <a href="/login" id="auth-action-btn" onclick="handleAuthAction(event)" class="px-2.5 py-1 rounded bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 transition font-mono">
+          Sign In / Out
+        </a>
 
         <a href="/internal/review" class="px-2.5 py-1 rounded bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 transition font-mono">
           Review Queue ↗
@@ -1331,8 +1336,11 @@
           }
         }
 
-        // Baseline seed state for initial load / pure static Vercel resilience
-        if (state.invoices.length === 0) {
+        // Only seed demo baseline if this is explicitly the seeded demo pilot account and clean is not requested
+        const isSeededDemo = (orgId === "cust_acme_01" || orgId === "cust_vanguard_04");
+        const isCleanRequested = new URLSearchParams(window.location.search).get("clean") === "true";
+
+        if (state.invoices.length === 0 && isSeededDemo && !isCleanRequested) {
           state.invoices = [
             {
               id: "inv_gsw_pilot_01",
@@ -1349,9 +1357,7 @@
               dest: "Detroit, MI 48201"
             }
           ];
-        }
 
-        if (state.disputes.length === 0) {
           state.disputes = [
             {
               id: "disp_gsw_01",
@@ -1368,9 +1374,7 @@
               email: "billing@gswfreight.com"
             }
           ];
-        }
 
-        if (state.contracts.length === 0) {
           state.contracts = [
             {
               id: "cont_gsw_01",
@@ -1383,56 +1387,65 @@
               spot_checks: "5/5 Verified"
             }
           ];
-        }
 
-        if (!state.creditMemos || state.creditMemos.length === 0) {
-          state.creditMemos = [
-            {
-              id: "cm_gsw_01",
-              carrier: "GSW Freight System, Inc.",
-              memo_number: "CM-991823",
-              original_invoice_ref: "042-991823",
-              amount: 135.25,
-              matched_dispute: "disp_gsw_01",
-              status: "verified",
-              logged_at: "2026-08-28"
-            }
-          ];
-        }
+          if (!state.creditMemos || state.creditMemos.length === 0) {
+            state.creditMemos = [
+              {
+                id: "cm_gsw_01",
+                carrier: "GSW Freight System, Inc.",
+                memo_number: "CM-991823",
+                original_invoice_ref: "042-991823",
+                amount: 135.25,
+                matched_dispute: "disp_gsw_01",
+                status: "verified",
+                logged_at: "2026-08-28"
+              }
+            ];
+          }
 
-        if (!state.commissionInvoices || state.commissionInvoices.length === 0) {
-          state.commissionInvoices = [
-            {
-              id: "inv_rg_202609_01",
-              period: "Sept 2026",
-              verified_credits: 135.25,
-              rate_pct: 35.0,
-              fee_amount: 47.34,
-              due_date: "2026-09-29",
-              status: "sent"
-            }
-          ];
-        }
+          if (!state.commissionInvoices || state.commissionInvoices.length === 0) {
+            state.commissionInvoices = [
+              {
+                id: "inv_rg_202609_01",
+                period: "Sept 2026",
+                verified_credits: 135.25,
+                rate_pct: 35.0,
+                fee_amount: 47.34,
+                due_date: "2026-09-29",
+                status: "sent"
+              }
+            ];
+          }
 
-        if (!state.carrierSummary || Object.keys(state.carrierSummary).length === 0) {
-          state.carrierSummary = {
-            "GSW Freight System, Inc.": {
-              carrier: "GSW Freight System, Inc.",
-              invoices_count: 1,
-              flagged_count: 1,
-              overcharge_dollars: 135.25
-            }
-          };
-        }
+          if (!state.carrierSummary || Object.keys(state.carrierSummary).length === 0) {
+            state.carrierSummary = {
+              "GSW Freight System, Inc.": {
+                carrier: "GSW Freight System, Inc.",
+                invoices_count: 1,
+                flagged_count: 1,
+                overcharge_dollars: 135.25
+              }
+            };
+          }
 
-        if (!state.recentActivity || state.recentActivity.length === 0) {
-          state.recentActivity = [
-            {
-              title: "Audited Invoice #99182301 (GSW Freight System, Inc.)",
-              desc: "PRO #042-991823: Flagged $135.25 recoverable deficit weight overcharge under Item 100-D.",
-              time: "Active"
-            }
-          ];
+          if (!state.recentActivity || state.recentActivity.length === 0) {
+            state.recentActivity = [
+              {
+                title: "Audited Invoice #99182301 (GSW Freight System, Inc.)",
+                desc: "PRO #042-991823: Flagged $135.25 recoverable deficit weight overcharge under Item 100-D.",
+                time: "Active"
+              }
+            ];
+          }
+        } else if (!isSeededDemo) {
+          // Clean dynamic state for newly created/registered organizations: ZERO fake data!
+          if (!state.invoices) state.invoices = [];
+          if (!state.disputes) state.disputes = [];
+          if (!state.contracts) state.contracts = [];
+          if (!state.creditMemos) state.creditMemos = [];
+          if (!state.commissionInvoices) state.commissionInvoices = [];
+          if (!state.carrierSummary) state.carrierSummary = {};
+          if (!state.recentActivity) state.recentActivity = [];
         }
 
         updateDashboardKPIs();
@@ -1472,41 +1485,64 @@
     }
 
     // Switch Organization
-    function switchOrganization(orgId) {
+    function handleOrgSelect(val) {
+      if (val === '__create_new__') {
+        window.location.href = '/login';
+        return;
+      }
+      switchOrganization(val);
+    }
+
+    async function switchOrganization(orgId) {
       state.currentOrgId = orgId;
-      const names = {
-        cust_acme_01: "Acme Imports & Logistics",
-        cust_pacific_02: "Pacific Supply Corp",
-        cust_apex_03: "Apex Global Distribution",
-        cust_vanguard_04: "Vanguard Freight Brokerage"
-      };
-      const slugs = {
-        cust_acme_01: "acme-imports",
-        cust_pacific_02: "pacific-supply",
-        cust_apex_03: "apex-global",
-        cust_vanguard_04: "vanguard-freight"
-      };
-      // Org types — freight_broker | shipper
-      const orgTypes = {
-        cust_acme_01: "shipper",
-        cust_pacific_02: "shipper",
-        cust_apex_03: "shipper",
-        cust_vanguard_04: "freight_broker"
-      };
+      const select = document.getElementById("org-switcher");
+      if (select) select.value = orgId;
 
-      state.currentOrgName = names[orgId] || "Vanguard Freight Brokerage";
-      state.currentOrgType = orgTypes[orgId] || "shipper";
-      const name = state.currentOrgName;
-      const slug = slugs[orgId] || "vanguard-freight";
-      const isBroker = state.currentOrgType === "freight_broker";
+      // Update URL query string
+      const newUrl = new URL(window.location);
+      newUrl.searchParams.set("customer_id", orgId);
+      window.history.replaceState({}, "", newUrl);
 
-      // Apply branding immediately (before API fetch) for instant visual switch
-      applyOrgBranding(isBroker, name);
-
-      const emailEl = document.getElementById("header-inbound-email");
-      if (emailEl) emailEl.innerText = `${slug}@in.rateguard.app`;
+      // Fetch org details from API
+      try {
+        const res = await fetch("/api/v1/customers");
+        if (res.ok) {
+          const customers = await res.json();
+          const found = customers.find(c => c.id === orgId);
+          if (found) {
+            state.currentOrgName = found.name;
+            state.currentOrgType = found.customer_type || (found.is_broker ? "freight_broker" : "shipper");
+            applyOrgBranding(found.is_broker || found.customer_type === "freight_broker", found.name);
+            const emailEl = document.getElementById("header-inbound-email");
+            if (emailEl) emailEl.innerText = `${found.slug}@in.rateguard.app`;
+            localStorage.setItem("rateguard_org", JSON.stringify({
+              id: found.id,
+              name: found.name,
+              slug: found.slug,
+              type: state.currentOrgType
+            }));
+          }
+        }
+      } catch (e) {
+        console.warn("Could not fetch customer metadata:", e);
+      }
 
       loadLivePortalData();
+    }
+
+    function handleAuthAction(e) {
+      e.preventDefault();
+      const token = localStorage.getItem("rateguard_token");
+      if (token) {
+        if (confirm("Sign out of your account?")) {
+          localStorage.removeItem("rateguard_token");
+          localStorage.removeItem("rateguard_user");
+          localStorage.removeItem("rateguard_org");
+          window.location.href = "/login";
+        }
+      } else {
+        window.location.href = "/login";
+      }
     }
 
     // Copy Inbound Address
@@ -2867,7 +2903,69 @@ ${clientOrg}`;
     }
 
     // Initialize on load
-    document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener("DOMContentLoaded", async () => {
+      // 1. Check logged-in user & token
+      const token = localStorage.getItem("rateguard_token");
+      const userStr = localStorage.getItem("rateguard_user");
+      const orgStr = localStorage.getItem("rateguard_org");
+      const authBtn = document.getElementById("auth-action-btn");
+
+      if (token && authBtn) {
+        authBtn.innerText = "Log Out";
+      } else if (authBtn) {
+        authBtn.innerText = "Sign In";
+      }
+
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          const nameEl = document.getElementById("user-name-display");
+          if (nameEl) nameEl.innerText = user.name || user.email;
+        } catch(e) {}
+      }
+
+      // 2. Determine initial customer ID
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlCustId = urlParams.get("customer_id");
+
+      if (urlCustId) {
+        state.currentOrgId = urlCustId;
+      } else if (orgStr) {
+        try {
+          const org = JSON.parse(orgStr);
+          state.currentOrgId = org.id;
+          state.currentOrgName = org.name;
+          state.currentOrgType = org.type || "freight_broker";
+        } catch(e) {}
+      }
+
+      // 3. Populate org switcher dynamically from API
+      try {
+        const custRes = await fetch("/api/v1/customers");
+        if (custRes.ok) {
+          const customers = await custRes.json();
+          const switcher = document.getElementById("org-switcher");
+          if (switcher && Array.isArray(customers) && customers.length > 0) {
+            switcher.innerHTML = customers.map(c => `
+              <option value="${c.id}" ${c.id === state.currentOrgId ? 'selected' : ''}>
+                ${c.name} (${c.customer_type === 'freight_broker' ? 'Broker' : 'Shipper'})
+              </option>
+            `).join('') + `<option value="__create_new__">+ Create New Organization / Sign Up...</option>`;
+
+            const current = customers.find(c => c.id === state.currentOrgId);
+            if (current) {
+              state.currentOrgName = current.name;
+              state.currentOrgType = current.customer_type || (current.is_broker ? "freight_broker" : "shipper");
+              applyOrgBranding(current.is_broker || current.customer_type === "freight_broker", current.name);
+              const emailEl = document.getElementById("header-inbound-email");
+              if (emailEl) emailEl.innerText = `${current.slug}@in.rateguard.app`;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Could not load customer list:", err);
+      }
+
       loadLivePortalData();
     });
   </script>

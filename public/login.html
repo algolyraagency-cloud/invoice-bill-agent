@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RateGuard AI — Sign In / Create Organization Account</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    code, pre, .font-mono { font-family: 'Geist Mono', monospace; }
+  </style>
+</head>
+<body class="bg-[#070707] text-neutral-100 min-h-screen flex items-center justify-center p-4 sm:p-6 selection:bg-neutral-800">
+  <div class="max-w-md w-full space-y-6">
+
+    <!-- Header Logo & Branding -->
+    <div class="text-center space-y-2">
+      <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white text-black font-bold text-lg shadow-xl shadow-white/5 mb-1">
+        RG
+      </div>
+      <h1 class="text-2xl font-bold text-white tracking-tight">RateGuard AI</h1>
+      <p class="text-xs text-neutral-400">Autonomous Freight Billing Audit &amp; EBITDA Recovery Engine</p>
+    </div>
+
+    <!-- Auth Container Box -->
+    <div class="bg-[#111111] border border-[#222222] rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
+      
+      <!-- Mode Tabs -->
+      <div class="grid grid-cols-2 gap-1 p-1 bg-[#181818] rounded-xl border border-[#282828] text-xs font-semibold">
+        <button id="tab-btn-login" onclick="setAuthMode('login')" class="py-2 rounded-lg transition bg-[#242424] text-white shadow-sm">
+          Sign In
+        </button>
+        <button id="tab-btn-register" onclick="setAuthMode('register')" class="py-2 rounded-lg transition text-neutral-400 hover:text-white">
+          Create Account
+        </button>
+      </div>
+
+      <!-- ERROR / SUCCESS ALERT BANNER -->
+      <div id="auth-alert" class="hidden text-xs p-3 rounded-lg border font-mono"></div>
+
+      <!-- SIGN IN FORM -->
+      <form id="form-login" onsubmit="handleLoginSubmit(event)" class="space-y-4">
+        <div>
+          <label class="block text-[11px] font-mono uppercase tracking-wider text-neutral-400 mb-1.5">Work Email</label>
+          <input type="email" id="login-email" required placeholder="controller@acmeimports.com" class="w-full bg-[#161616] border border-[#2c2c2c] rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-neutral-600 focus:outline-none focus:border-neutral-400 font-mono">
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-mono uppercase tracking-wider text-neutral-400 mb-1.5">Password</label>
+          <input type="password" id="login-password" required placeholder="••••••••••••" value="password123" class="w-full bg-[#161616] border border-[#2c2c2c] rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-neutral-600 focus:outline-none focus:border-neutral-400 font-mono">
+        </div>
+
+        <button type="submit" id="btn-login" class="w-full py-2.5 rounded-lg bg-white hover:bg-neutral-200 text-black font-semibold text-xs transition shadow-lg flex items-center justify-center space-x-2">
+          <span>Sign In to Audit Portal</span>
+        </button>
+
+        <!-- Quick-Fill Demo Logins -->
+        <div class="pt-3 border-t border-[#1e1e1e] space-y-2">
+          <div class="text-[10px] font-mono uppercase tracking-wider text-neutral-500 text-center">Or Quick-Fill Seeded Demo Account</div>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" onclick="quickFill('brokerage-ap@vanguardfreight.com', 'password123')" class="px-2.5 py-1.5 rounded bg-[#181818] hover:bg-[#222] border border-[#2a2a2a] text-[11px] text-neutral-300 font-mono text-left transition truncate">
+              📦 Vanguard Broker
+            </button>
+            <button type="button" onclick="quickFill('controller@acmeimports.com', 'password123')" class="px-2.5 py-1.5 rounded bg-[#181818] hover:bg-[#222] border border-[#2a2a2a] text-[11px] text-neutral-300 font-mono text-left transition truncate">
+              🏭 Acme Shipper
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <!-- REGISTER / CREATE NEW ACCOUNT FORM -->
+      <form id="form-register" onsubmit="handleRegisterSubmit(event)" class="space-y-4 hidden">
+        <div>
+          <label class="block text-[11px] font-mono uppercase tracking-wider text-neutral-400 mb-1.5">Organization / Brokerage Name</label>
+          <input type="text" id="reg-company" required placeholder="KSW Freight Brokers LLC" class="w-full bg-[#161616] border border-[#2c2c2c] rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-neutral-600 focus:outline-none focus:border-neutral-400">
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-mono uppercase tracking-wider text-neutral-400 mb-1.5">Business Model</label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex items-center space-x-2 p-2 rounded-lg bg-[#161616] border border-[#2c2c2c] cursor-pointer text-xs">
+              <input type="radio" name="reg-type" value="freight_broker" checked class="text-blue-500">
+              <span class="text-neutral-200 font-medium">Freight Broker / 3PL</span>
+            </label>
+            <label class="flex items-center space-x-2 p-2 rounded-lg bg-[#161616] border border-[#2c2c2c] cursor-pointer text-xs">
+              <input type="radio" name="reg-type" value="shipper" class="text-blue-500">
+              <span class="text-neutral-200 font-medium">Direct Shipper</span>
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-mono uppercase tracking-wider text-neutral-400 mb-1.5">Your Full Name</label>
+          <input type="text" id="reg-name" required placeholder="Payables Operations Manager" class="w-full bg-[#161616] border border-[#2c2c2c] rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-neutral-600 focus:outline-none focus:border-neutral-400">
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-mono uppercase tracking-wider text-neutral-400 mb-1.5">Work Email</label>
+          <input type="email" id="reg-email" required placeholder="ap@kswbrokers.com" class="w-full bg-[#161616] border border-[#2c2c2c] rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-neutral-600 focus:outline-none focus:border-neutral-400 font-mono">
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-mono uppercase tracking-wider text-neutral-400 mb-1.5">Password</label>
+          <input type="password" id="reg-password" required placeholder="Create a secure password" class="w-full bg-[#161616] border border-[#2c2c2c] rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-neutral-600 focus:outline-none focus:border-neutral-400 font-mono">
+        </div>
+
+        <button type="submit" id="btn-register" class="w-full py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs transition shadow-lg flex items-center justify-center space-x-2">
+          <span>🚀 Create Organization &amp; Launch Clean Portal</span>
+        </button>
+
+        <p class="text-[11px] text-neutral-500 text-center leading-relaxed">
+          Your new organization starts with a <strong>100% clean dashboard</strong> ($0.00 invoices) and a dedicated inbound address: <span class="text-neutral-400 font-mono">{slug}@in.rateguard.app</span>.
+        </p>
+      </form>
+
+    </div>
+
+    <div class="text-center text-xs text-neutral-600">
+      RateGuard AI &middot; Enterprise B2B Freight Recovery &middot; Phase 7.5 Production
+    </div>
+
+  </div>
+
+  <script>
+    function setAuthMode(mode) {
+      const loginForm = document.getElementById("form-login");
+      const regForm = document.getElementById("form-register");
+      const tabLogin = document.getElementById("tab-btn-login");
+      const tabReg = document.getElementById("tab-btn-register");
+      const alertBox = document.getElementById("auth-alert");
+      alertBox.classList.add("hidden");
+
+      if (mode === "login") {
+        loginForm.classList.remove("hidden");
+        regForm.classList.add("hidden");
+        tabLogin.className = "py-2 rounded-lg transition bg-[#242424] text-white shadow-sm";
+        tabReg.className = "py-2 rounded-lg transition text-neutral-400 hover:text-white";
+      } else {
+        loginForm.classList.add("hidden");
+        regForm.classList.remove("hidden");
+        tabReg.className = "py-2 rounded-lg transition bg-[#242424] text-white shadow-sm";
+        tabLogin.className = "py-2 rounded-lg transition text-neutral-400 hover:text-white";
+      }
+    }
+
+    function showAlert(msg, isSuccess = false) {
+      const el = document.getElementById("auth-alert");
+      el.innerText = msg;
+      el.className = isSuccess 
+        ? "text-xs p-3 rounded-lg border font-mono bg-emerald-950/80 border-emerald-800 text-emerald-300"
+        : "text-xs p-3 rounded-lg border font-mono bg-rose-950/80 border-rose-800 text-rose-300";
+      el.classList.remove("hidden");
+    }
+
+    function quickFill(email, pw) {
+      document.getElementById("login-email").value = email;
+      document.getElementById("login-password").value = pw;
+    }
+
+    async function handleLoginSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById("login-email").value.trim();
+      const password = document.getElementById("login-password").value;
+      const btn = document.getElementById("btn-login");
+
+      btn.disabled = true;
+      btn.innerText = "Verifying...";
+
+      try {
+        const formData = new FormData();
+        formData.append("email", email);
+        formData.append("password", password);
+
+        const res = await fetch("/api/v1/auth/login", {
+          method: "POST",
+          body: formData
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.detail || "Authentication failed.");
+        }
+
+        localStorage.setItem("rateguard_token", data.token);
+        localStorage.setItem("rateguard_user", JSON.stringify({
+          id: data.user_id,
+          name: data.name,
+          email: data.email
+        }));
+        localStorage.setItem("rateguard_org", JSON.stringify({
+          id: data.customer_id,
+          name: data.customer_name,
+          slug: data.customer_slug,
+          type: data.customer_type
+        }));
+
+        showAlert(`✓ Signed in as ${data.name} (${data.customer_name})! Redirecting...`, true);
+        setTimeout(() => {
+          window.location.href = `/portal?customer_id=${data.customer_id}`;
+        }, 600);
+
+      } catch (err) {
+        showAlert(err.message, false);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "Sign In to Audit Portal";
+      }
+    }
+
+    async function handleRegisterSubmit(e) {
+      e.preventDefault();
+      const company = document.getElementById("reg-company").value.trim();
+      const name = document.getElementById("reg-name").value.trim();
+      const email = document.getElementById("reg-email").value.trim();
+      const password = document.getElementById("reg-password").value;
+      const typeEl = document.querySelector('input[name="reg-type"]:checked');
+      const custType = typeEl ? typeEl.value : "freight_broker";
+      const btn = document.getElementById("btn-register");
+
+      btn.disabled = true;
+      btn.innerText = "Setting Up Organization...";
+
+      try {
+        const formData = new FormData();
+        formData.append("company_name", company);
+        formData.append("name", name);
+        formData.append("email", email);
+        formData.append("password", password);
+        formData.append("customer_type", custType);
+
+        const res = await fetch("/api/v1/auth/register", {
+          method: "POST",
+          body: formData
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.detail || "Failed to create organization.");
+        }
+
+        localStorage.setItem("rateguard_token", data.token);
+        localStorage.setItem("rateguard_user", JSON.stringify({
+          id: data.user_id,
+          name: data.name,
+          email: data.email
+        }));
+        localStorage.setItem("rateguard_org", JSON.stringify({
+          id: data.customer_id,
+          name: data.customer_name,
+          slug: data.customer_slug,
+          type: data.customer_type
+        }));
+
+        showAlert(`✓ Organization created! Inbound address: ${data.inbound_email}. Launching portal...`, true);
+        setTimeout(() => {
+          window.location.href = `/portal?customer_id=${data.customer_id}`;
+        }, 800);
+
+      } catch (err) {
+        showAlert(err.message, false);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "🚀 Create Organization & Launch Clean Portal";
+      }
+    }
+  </script>
+</body>
+</html>

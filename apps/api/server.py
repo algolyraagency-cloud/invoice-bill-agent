@@ -277,7 +277,7 @@ def create_customer_org(
         customer_type=customer_type,
     )
     user_id = f"usr_{uuid.uuid4().hex[:6]}"
-    portal_service.seed_user(user_id, cust_id, owner_email, role="owner")
+    portal_service.seed_user(user_id, cust_id, owner_email, name=name, role="owner")
     return {
         "status": "success",
         "customer_id": cust_id,
@@ -286,6 +286,76 @@ def create_customer_org(
         "customer_type": customer_type,
         "inbound_email": f"{slug}@in.rateguard.app"
     }
+
+# ------------------------------------------------------------------------------
+# User Authentication & Account Creation
+# ------------------------------------------------------------------------------
+
+@app.post("/api/v1/auth/register")
+def auth_register(
+    email: str = Form(...),
+    password: str = Form(...),
+    name: str = Form("Operations Admin"),
+    company_name: str = Form(...),
+    customer_type: str = Form("freight_broker"),
+    freight_spend_est: float = Form(10000000.0),
+):
+    try:
+        session_data = portal_service.register_user(
+            email=email,
+            password=password,
+            name=name,
+            company_name=company_name,
+            customer_type=customer_type,
+            freight_spend_est=freight_spend_est,
+        )
+        return {
+            "status": "success",
+            "message": "Account created successfully",
+            **session_data
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/v1/auth/login")
+def auth_login(
+    email: str = Form(...),
+    password: str = Form(...),
+):
+    session_data = portal_service.authenticate_user(email=email, password=password)
+    if not session_data:
+        raise HTTPException(status_code=401, detail="Invalid email or password. For demo accounts use password123.")
+    return {
+        "status": "success",
+        "message": "Authenticated successfully",
+        **session_data
+    }
+
+@app.get("/api/v1/auth/me")
+def auth_me(
+    authorization: str | None = Header(None),
+    token: str | None = Query(None),
+):
+    tok = token
+    if not tok and authorization:
+        if authorization.startswith("Bearer "):
+            tok = authorization[7:].strip()
+        else:
+            tok = authorization.strip()
+
+    if not tok:
+        raise HTTPException(status_code=401, detail="Missing authorization token")
+
+    session = portal_service.get_session(tok)
+    if not session:
+        raise HTTPException(status_code=401, detail="Invalid or expired session token")
+    return session
+
+@app.post("/api/v1/auth/logout")
+def auth_logout(token: str = Form(...)):
+    if token in portal_service._sessions:
+        del portal_service._sessions[token]
+    return {"status": "success", "message": "Logged out successfully"}
 
 @app.get("/api/v1/portal/session")
 @app.get("/v1/portal/session")
@@ -934,6 +1004,13 @@ def serve_setup_forwarding():
     if forwarding_file.exists():
         return forwarding_file.read_text(encoding="utf-8")
     return "<h1>RateGuard AI — Inbound Forwarding Setup</h1>"
+
+@app.get("/login", response_class=HTMLResponse)
+def serve_login():
+    login_file = PUBLIC_DIR / "login.html"
+    if login_file.exists():
+        return login_file.read_text(encoding="utf-8")
+    return "<h1>RateGuard AI — Login</h1>"
 
 if PUBLIC_DIR.exists():
     app.mount("/public", StaticFiles(directory=str(PUBLIC_DIR)), name="public")
