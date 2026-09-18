@@ -1141,6 +1141,10 @@
   <!-- APPLICATION LOGIC & MOCK STATE                                       -->
   <!-- ==================================================================== -->
   <script>
+    const API_BASE = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.hostname.endsWith(".vercel.app"))
+      ? ""
+      : "https://invoice-bill-agent-lq8w-seven.vercel.app";
+
     // State Store (Dynamic API Synced - Zero Hardcoded Data)
     const state = {
       currentOrgId: "cust_vanguard_04", // Vanguard Freight Brokerage (default: primary target market)
@@ -1225,7 +1229,7 @@
         const orgId = state.currentOrgId || "cust_vanguard_04";
 
         // 1. Session and KPIs — includes customer_type / is_broker
-        const sessionRes = await fetch(`/api/v1/portal/session?customer_id=${orgId}`).catch(() => null);
+        const sessionRes = await fetch(`${API_BASE}/api/v1/portal/session?customer_id=${orgId}`).catch(() => null);
         if (sessionRes && sessionRes.ok) {
           const data = await sessionRes.json();
           if (data.carrier_summary) state.carrierSummary = data.carrier_summary;
@@ -1246,7 +1250,7 @@
         }
 
         // 2. Invoices
-        const invRes = await fetch(`/api/v1/invoices?customer_id=${orgId}`).catch(() => null);
+        const invRes = await fetch(`${API_BASE}/api/v1/invoices?customer_id=${orgId}`).catch(() => null);
         if (invRes && invRes.ok) {
           const invData = await invRes.json();
           if (invData && Array.isArray(invData.invoices)) {
@@ -1268,7 +1272,7 @@
         }
 
         // 3. Disputes
-        const dispRes = await fetch(`/api/v1/disputes?customer_id=${orgId}`).catch(() => null);
+        const dispRes = await fetch(`${API_BASE}/api/v1/disputes?customer_id=${orgId}`).catch(() => null);
         if (dispRes && dispRes.ok) {
           const dispData = await dispRes.json();
           if (Array.isArray(dispData)) {
@@ -1301,7 +1305,7 @@
         }
 
         // 4. Contracts
-        const contRes = await fetch(`/api/v1/contracts?customer_id=${orgId}`).catch(() => null);
+        const contRes = await fetch(`${API_BASE}/api/v1/contracts?customer_id=${orgId}`).catch(() => null);
         if (contRes && contRes.ok) {
           const contData = await contRes.json();
           if (Array.isArray(contData) && contData.length > 0) {
@@ -1319,7 +1323,7 @@
         }
 
         // 5. Credit Memos
-        const memoRes = await fetch(`/api/v1/credit-memos?customer_id=${orgId}`).catch(() => null);
+        const memoRes = await fetch(`${API_BASE}/api/v1/credit-memos?customer_id=${orgId}`).catch(() => null);
         if (memoRes && memoRes.ok) {
           const memoData = await memoRes.json();
           if (Array.isArray(memoData) && memoData.length > 0) {
@@ -1505,7 +1509,7 @@
 
       // Fetch org details from API
       try {
-        const res = await fetch("/api/v1/customers");
+        const res = await fetch(`${API_BASE}/api/v1/customers`);
         if (res.ok) {
           const customers = await res.json();
           const found = customers.find(c => c.id === orgId);
@@ -1814,13 +1818,13 @@
         if (msgEl) msgEl.innerText = "Running deterministic audit engine (8 tariff & rate checks)...";
 
         // Try primary and fallback API endpoints
-        let res = await fetch("/api/v1/upload", {
+        let res = await fetch(`${API_BASE}/api/v1/upload`, {
           method: "POST",
           body: formData
         }).catch(() => null);
 
         if (!res || !res.ok) {
-          res = await fetch("/api/upload", {
+          res = await fetch(`${API_BASE}/api/upload`, {
             method: "POST",
             body: formData
           }).catch(() => null);
@@ -1999,7 +2003,7 @@
         formData.append("rung", rung);
 
         try {
-          const res = await fetch("/api/v1/contracts/upload", {
+          const res = await fetch(`${API_BASE}/api/v1/contracts/upload`, {
             method: "POST",
             body: formData
           });
@@ -2941,7 +2945,7 @@ ${clientOrg}`;
 
       // 3. Populate org switcher dynamically from API
       try {
-        const custRes = await fetch("/api/v1/customers");
+        const custRes = await fetch(`${API_BASE}/api/v1/customers`);
         if (custRes.ok) {
           const customers = await custRes.json();
           const switcher = document.getElementById("org-switcher");

@@ -160,6 +160,10 @@
       document.getElementById("login-password").value = pw;
     }
 
+    const API_BASE = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.hostname.endsWith(".vercel.app"))
+      ? ""
+      : "https://invoice-bill-agent-lq8w-seven.vercel.app";
+
     async function handleLoginSubmit(e) {
       e.preventDefault();
       const email = document.getElementById("login-email").value.trim();
@@ -174,12 +178,20 @@
         formData.append("email", email);
         formData.append("password", password);
 
-        const res = await fetch("/api/v1/auth/login", {
+        const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
           method: "POST",
           body: formData
         });
 
-        const data = await res.json();
+        const contentType = res.headers.get("content-type") || "";
+        let data;
+        if (contentType.includes("application/json")) {
+          data = await res.json();
+        } else {
+          const errText = await res.text();
+          throw new Error(`Server returned HTTP ${res.status}: ${errText.slice(0, 120)}`);
+        }
+
         if (!res.ok) {
           throw new Error(data.detail || "Authentication failed.");
         }
@@ -231,12 +243,20 @@
         formData.append("password", password);
         formData.append("customer_type", custType);
 
-        const res = await fetch("/api/v1/auth/register", {
+        const res = await fetch(`${API_BASE}/api/v1/auth/register`, {
           method: "POST",
           body: formData
         });
 
-        const data = await res.json();
+        const contentType = res.headers.get("content-type") || "";
+        let data;
+        if (contentType.includes("application/json")) {
+          data = await res.json();
+        } else {
+          const errText = await res.text();
+          throw new Error(`Server returned HTTP ${res.status}: ${errText.slice(0, 120)}`);
+        }
+
         if (!res.ok) {
           throw new Error(data.detail || "Failed to create organization.");
         }
