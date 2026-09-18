@@ -3,14 +3,6 @@
   "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/index.py"
-    },
-    {
-      "source": "/api",
-      "destination": "/api/index.py"
-    },
-    {
       "source": "/login",
       "destination": "/login.html"
     },
