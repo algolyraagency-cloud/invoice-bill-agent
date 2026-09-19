@@ -1,14 +1,17 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "cleanUrls": true,
+  "env": {
+    "PYTHONPATH": "."
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/main.py"
+      "destination": "/api"
     },
     {
       "source": "/api",
-      "destination": "/main.py"
+      "destination": "/api"
     },
     {
       "source": "/login",
