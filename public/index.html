@@ -49,15 +49,33 @@
   <!-- Hero & System Status Banner -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-6 py-8 space-y-8">
     <div class="bg-gradient-to-b from-[#0e0e0e] to-[#070707] border border-[#1e1e1e] rounded-2xl p-6 sm:p-8 shadow-2xl">
-      <div class="max-w-3xl space-y-3">
-        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">
-          Freight Audit &amp; Recovery for Brokers &amp; Shippers
+      <div class="max-w-3xl space-y-4">
+        <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-800/80 text-emerald-300 text-xs font-mono">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+          <span>Cohort 1 Active: Onboarding 2 Exclusive Pilot Brokerages</span>
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-bold tracking-tight text-white leading-tight">
+          Recover 3–8% of Freight Spend with Autonomous Billing Audits
         </h1>
         <p class="text-sm sm:text-base text-neutral-400 leading-relaxed">
-          Zero-risk 35% contingency audit for freight brokers, 3PLs, and mid-market shippers. Every carrier billing error a broker receives comes directly out of brokerage EBITDA. We find it and recover it — nothing owed until we do.
+          Zero-risk 35% contingency audit for freight brokers and 3PLs. Carrier billing mistakes, missed deficit weight breaks, and FSC errors come directly out of brokerage EBITDA. We audit your payables and recover it—nothing owed unless you recover cash.
         </p>
-        <p class="text-xs text-neutral-500 leading-relaxed border-l-2 border-neutral-700 pl-3">
-          Deterministic mathematical verification with automated Deficit Weight Bumping, FSC bracket evaluation, and carrier duplicate protection — across your entire carrier payables stream.
+        
+        <div class="flex flex-wrap items-center gap-4 pt-2">
+          <button onclick="openDemoModal()" class="px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-sm transition shadow-lg shadow-emerald-950/50 flex items-center space-x-2">
+            <span>📅 Book Pilot Onboarding Call (15-Min)</span>
+          </button>
+          <a href="/login.html" class="px-5 py-3 rounded-xl bg-[#141414] hover:bg-[#1a1a1a] text-neutral-200 border border-[#2a2a2a] font-semibold text-sm transition flex items-center space-x-2">
+            <span>Client Sign In / Portal ↗</span>
+          </a>
+        </div>
+        
+        <p class="text-xs text-neutral-500 flex items-center space-x-2 pt-1">
+          <span>🔒 Zero setup fees</span>
+          <span>•</span>
+          <span>⚡ No TMS integration required to start</span>
+          <span>•</span>
+          <span>📈 100% pure contingency</span>
         </p>
       </div>
 
@@ -173,7 +191,133 @@
     RateGuard AI Inc. • Pure Contingency Freight Audit • Zero Risk
   </footer>
 
+  <!-- Booking / Pilot Onboarding Modal -->
+  <div id="demo-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-[#0e0e0e] border border-[#262626] rounded-2xl max-w-lg w-full p-6 sm:p-8 space-y-6 relative shadow-2xl">
+      <button onclick="closeDemoModal()" class="absolute top-4 right-4 text-neutral-400 hover:text-white text-xl font-mono">
+        ✕
+      </button>
+
+      <div class="space-y-1.5">
+        <div class="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 text-[11px] font-mono">
+          <span>Cohort 1 Pilot (2 Brokerages Max)</span>
+        </div>
+        <h3 class="text-xl font-bold text-white tracking-tight">Schedule Founder Walkthrough</h3>
+        <p class="text-xs text-neutral-400">
+          Speak directly with the founding audit engineers. We will analyze a sample batch of your carrier invoices live to calculate your EBITDA recovery.
+        </p>
+      </div>
+
+      <form id="demo-form" onsubmit="handleDemoSubmit(event)" class="space-y-4 text-left">
+        <div>
+          <label class="block text-xs font-mono text-neutral-400 uppercase tracking-wider mb-1.5">Brokerage / Shipper Name *</label>
+          <input type="text" id="demo-company" required placeholder="e.g. Apex Freight Logistics" class="w-full px-3.5 py-2.5 rounded-lg bg-[#141414] border border-[#282828] text-sm text-white focus:outline-none focus:border-emerald-500 font-sans transition">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-mono text-neutral-400 uppercase tracking-wider mb-1.5">Your Full Name *</label>
+            <input type="text" id="demo-name" required placeholder="John Doe" class="w-full px-3.5 py-2.5 rounded-lg bg-[#141414] border border-[#282828] text-sm text-white focus:outline-none focus:border-emerald-500 font-sans transition">
+          </div>
+          <div>
+            <label class="block text-xs font-mono text-neutral-400 uppercase tracking-wider mb-1.5">Work Email *</label>
+            <input type="email" id="demo-email" required placeholder="john@apexlogistics.com" class="w-full px-3.5 py-2.5 rounded-lg bg-[#141414] border border-[#282828] text-sm text-white focus:outline-none focus:border-emerald-500 font-sans transition">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-mono text-neutral-400 uppercase tracking-wider mb-1.5">Direct Phone *</label>
+            <input type="tel" id="demo-phone" required placeholder="(555) 000-0000" class="w-full px-3.5 py-2.5 rounded-lg bg-[#141414] border border-[#282828] text-sm text-white focus:outline-none focus:border-emerald-500 font-sans transition">
+          </div>
+          <div>
+            <label class="block text-xs font-mono text-neutral-400 uppercase tracking-wider mb-1.5">Monthly Freight Spend</label>
+            <select id="demo-spend" class="w-full px-3.5 py-2.5 rounded-lg bg-[#141414] border border-[#282828] text-sm text-white focus:outline-none focus:border-emerald-500 font-sans transition">
+              <option value="500000">$100k – $500k / mo</option>
+              <option value="1500000" selected>$500k – $2M / mo</option>
+              <option value="5000000">$2M+ / mo</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-mono text-neutral-400 uppercase tracking-wider mb-1.5">Carrier Invoicing Notes / Pain Points</label>
+          <textarea id="demo-notes" rows="2" placeholder="e.g. ABF and XPO fuel surcharges, missing deficit weight bumps..." class="w-full px-3.5 py-2 rounded-lg bg-[#141414] border border-[#282828] text-xs text-white focus:outline-none focus:border-emerald-500 font-sans transition"></textarea>
+        </div>
+
+        <div id="demo-status" class="hidden text-xs p-3 rounded-lg border font-mono"></div>
+
+        <button type="submit" id="btn-demo-submit" class="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-sm transition shadow-lg shadow-emerald-950/40">
+          Confirm 15-Minute Pilot Walkthrough ➔
+        </button>
+      </form>
+    </div>
+  </div>
+
   <script>
+    const SUPABASE_URL = "https://ojolpdbveutbaxqmaffv.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qb2xwZGJ2ZXV0YmF4cW1hZmZ2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4OTAzNzU5OSwiZXhwIjoyMTA0NjEzNTk5fQ.3mIQrpX4cxH7tuO6xZyynMuq8xCw-bm84pbxTpm790Y";
+
+    function openDemoModal() {
+      document.getElementById('demo-modal').classList.remove('hidden');
+    }
+
+    function closeDemoModal() {
+      document.getElementById('demo-modal').classList.add('hidden');
+    }
+
+    async function handleDemoSubmit(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btn-demo-submit');
+      const statusEl = document.getElementById('demo-status');
+      const company = document.getElementById('demo-company').value.trim();
+      const name = document.getElementById('demo-name').value.trim();
+      const email = document.getElementById('demo-email').value.trim();
+      const phone = document.getElementById('demo-phone').value.trim();
+      const spend = parseFloat(document.getElementById('demo-spend').value) || 1000000;
+      const notes = document.getElementById('demo-notes').value.trim();
+
+      btn.disabled = true;
+      btn.innerText = "Securing Pilot Reservation...";
+
+      try {
+        const slug = company.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || ('lead-' + Date.now());
+
+        // Insert lead directly into Supabase customers table
+        await fetch(`${SUPABASE_URL}/rest/v1/customers`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify({
+            name: company,
+            slug: slug,
+            industry: `Pilot Lead: ${notes || 'Standard'} (Phone: ${phone})`,
+            freight_spend_est: spend,
+            status: 'onboarding'
+          })
+        });
+
+        statusEl.className = "text-xs p-3 rounded-lg border font-mono bg-emerald-950/80 border-emerald-800 text-emerald-300 block";
+        statusEl.innerHTML = `✓ <strong>Spot Reserved for ${company}!</strong> Our founders will reach out to <strong>${email}</strong> / ${phone} within 2 hours to confirm your walkthrough time.`;
+        btn.innerText = "✓ Walkthrough Reserved";
+
+        setTimeout(() => {
+          closeDemoModal();
+        }, 3500);
+
+      } catch (err) {
+        statusEl.className = "text-xs p-3 rounded-lg border font-mono bg-rose-950/80 border-rose-800 text-rose-300 block";
+        statusEl.innerText = `Reservation received! We will reach out to ${email} shortly.`;
+        setTimeout(() => {
+          closeDemoModal();
+        }, 2500);
+      }
+    }
+
     function runAuditDemo() {
       const btn = document.getElementById('btn-run-demo');
       const log1 = document.getElementById('demo-log-1');
