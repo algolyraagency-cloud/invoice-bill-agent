@@ -4,11 +4,11 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/index.py"
+      "destination": "/main.py"
     },
     {
       "source": "/api",
-      "destination": "/api/index.py"
+      "destination": "/main.py"
     },
     {
       "source": "/login",
