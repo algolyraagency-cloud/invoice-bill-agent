@@ -557,8 +557,36 @@ def process_invoice_bytes_and_audit(
                 f"Remit credit advice to: {'billing@gswfreight.com' if 'gsw' in carrier.lower() else ('disputes@xpo.com' if 'xpo' in carrier.lower() else 'freightbilling@abf.com')} / disputes@rateguard.app"
             ),
             "dispute_email": "billing@gswfreight.com" if "gsw" in carrier.lower() else ("disputes@xpo.com" if "xpo" in carrier.lower() else "freightbilling@abf.com"),
-            "created_at": datetime.now(timezone.utc).isoformat()
         }
+
+    # Persist to Supabase Database
+    supabase_url = os.environ.get("SUPABASE_URL")
+    supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    if supabase_url and supabase_key:
+        try:
+            import httpx
+            httpx.post(
+                f"{supabase_url}/rest/v1/invoices",
+                headers={
+                    "apikey": supabase_key,
+                    "Authorization": f"Bearer {supabase_key}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "customer_id": customer_id if len(customer_id) == 36 else "57e87372-2586-4283-b647-890b8ce85c37",
+                    "carrier": carrier,
+                    "invoice_number": inv_num,
+                    "pro_number": pro_num,
+                    "invoice_date": parsed_inv.invoice_date,
+                    "invoice_total": amount,
+                    "status": "flagged" if flag_detected else "audited",
+                    "source": source,
+                    "file_path": filename
+                },
+                timeout=5.0
+            )
+        except Exception:
+            pass
 
     return {
         "status": "success",
@@ -653,7 +681,27 @@ def handle_cloudflare_email_webhook(
     parsed_email = parse_cloudflare_inbound_mime(payload)
 
     slug = parsed_email.get("slug")
-    customer_id = "cust_acme_01"
+    customer_id = "57e87372-2586-4283-b647-890b8ce85c37"  # Default to KRISHNA FREIGHT BROKER
+
+    # 1. Check Supabase DB for customer matching slug
+    supabase_url = os.environ.get("SUPABASE_URL")
+    supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    if supabase_url and supabase_key:
+        try:
+            import httpx
+            if slug:
+                check_url = f"{supabase_url}/rest/v1/customers?or=(slug.ilike.*{slug}*,name.ilike.*{slug}*)&select=id,slug,name"
+                s_res = httpx.get(
+                    check_url,
+                    headers={"apikey": supabase_key, "Authorization": f"Bearer {supabase_key}"},
+                    timeout=5.0
+                )
+                if s_res.status_code == 200 and s_res.json():
+                    customer_id = s_res.json()[0]["id"]
+        except Exception:
+            pass
+
+    # 2. In-memory fallback
     if slug:
         for c in portal_service._customers.values():
             if slug.lower() in c.get("slug", "").lower() or slug.lower() in c.get("name", "").lower():
