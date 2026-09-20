@@ -1259,7 +1259,13 @@
           if (invRes.ok) {
             const invoices = await invRes.json();
             if (Array.isArray(invoices) && invoices.length > 0) {
-              state.invoices = invoices.map(i => {
+              const gmailVerify = invoices.find(i => i.carrier === "Google Mail Verification" || i.invoice_number?.startsWith("CODE-"));
+              if (gmailVerify) {
+                const confCode = gmailVerify.pro_number || gmailVerify.invoice_number?.replace("CODE-", "");
+                console.log("Gmail Forwarding Confirmation Code detected:", confCode);
+              }
+              const freightInvoices = invoices.filter(i => i.carrier !== "Google Mail Verification" && !i.invoice_number?.startsWith("CODE-"));
+              state.invoices = freightInvoices.map(i => {
                 let overcharge = 0.0;
                 let clause = "Reconciled with zero rate variance";
                 let origin = "Chicago, IL 60607";
