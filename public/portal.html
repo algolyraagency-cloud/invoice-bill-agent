@@ -499,7 +499,7 @@
             </p>
           </div>
 
-          <a href="mailto:disputes+acme-imports@in.rateguard.app?subject=Fwd:%20Carrier%20Credit%20Memo" class="px-4 py-2 rounded-xl bg-purple-950 hover:bg-purple-900 border border-purple-800 text-purple-200 font-semibold text-xs transition flex items-center space-x-1.5">
+          <a id="credit-memo-forward-btn" href="mailto:disputes+krishna-freight-broker@lexaintake.com?subject=Fwd:%20Carrier%20Credit%20Memo" class="px-4 py-2 rounded-xl bg-purple-950 hover:bg-purple-900 border border-purple-800 text-purple-200 font-semibold text-xs transition flex items-center space-x-1.5">
             <span>✉️</span>
             <span>Forward Email</span>
           </a>
@@ -507,7 +507,7 @@
 
         <div class="p-3 bg-[#111] border border-[#222] rounded-xl flex items-center justify-between text-xs font-mono">
           <span class="text-neutral-400">Your Tracking Address:</span>
-          <span class="text-purple-300 font-bold">disputes+acme-imports@in.rateguard.app</span>
+          <span id="credit-memo-tracking-address" class="text-purple-300 font-bold">disputes+krishna-freight-broker@lexaintake.com</span>
         </div>
       </div>
 
@@ -1149,6 +1149,7 @@
     const state = {
       currentOrgId: "cust_vanguard_04", // Vanguard Freight Brokerage (default: primary target market)
       currentOrgName: "Vanguard Freight Brokerage",
+      currentOrgSlug: "krishna-freight-broker",
       currentOrgType: "freight_broker",  // "freight_broker" | "shipper"
       currentTab: "dashboard",
       activeDisputeLetter: "",
@@ -1241,10 +1242,15 @@
             if (Array.isArray(custs) && custs.length > 0) {
               const c = custs[0];
               state.currentOrgName = c.name;
+              state.currentOrgSlug = c.slug || "krishna-freight-broker";
               state.currentOrgType = c.industry?.includes("Broker") ? "freight_broker" : "shipper";
               applyOrgBranding(state.currentOrgType === "freight_broker", c.name);
               const emailEl = document.getElementById("header-inbound-email");
               if (emailEl) emailEl.innerText = `${c.slug}@lexaintake.com`;
+              const cmAddrEl = document.getElementById("credit-memo-tracking-address");
+              if (cmAddrEl) cmAddrEl.innerText = `disputes+${c.slug}@lexaintake.com`;
+              const cmBtnEl = document.getElementById("credit-memo-forward-btn");
+              if (cmBtnEl) cmBtnEl.href = `mailto:disputes+${c.slug}@lexaintake.com?subject=Fwd:%20Carrier%20Credit%20Memo`;
             }
           }
         } catch (e) {
@@ -2332,8 +2338,8 @@ Accounts Payable, ${clientOrg}
       const d = state.disputes.find(x => x.id === disputeId);
       if (!d) return;
 
-      const clientOrg = state.currentOrgName || "Acme Imports & Logistics";
-      const cc = `disputes+${state.currentOrgId || 'cust_acme_01'}@in.rateguard.app`;
+      const clientOrg = state.currentOrgName || "KRISHNA FREIGHT BROKER";
+      const cc = `disputes+${state.currentOrgSlug || 'krishna-freight-broker'}@lexaintake.com`;
 
       const carrierEl = document.getElementById("send-modal-carrier");
       const emailEl = document.getElementById("send-modal-email");
@@ -2362,8 +2368,8 @@ Accounts Payable, ${clientOrg}
       const d = state.disputes.find(x => x.id === pendingDisputeId);
       if (!d) return;
 
-      const clientOrg = state.currentOrgName || "Acme Imports & Logistics";
-      const cc = `disputes+${state.currentOrgId || 'cust_acme_01'}@in.rateguard.app`;
+      const clientOrg = state.currentOrgName || "KRISHNA FREIGHT BROKER";
+      const cc = `disputes+${state.currentOrgSlug || 'krishna-freight-broker'}@lexaintake.com`;
       const subject = `Billing Dispute: Invoice #${d.invoice_number} / PRO #${d.pro_number} — ${clientOrg}`;
       const body = `To: ${d.carrier} Billing & Claims Department (${d.email})
 From: Accounts Payable, ${clientOrg}
@@ -2413,8 +2419,8 @@ ${clientOrg}`;
       if (!d) return;
 
       state.activeDisputeId = disputeId;
-      const clientOrg = state.currentOrgName || "Acme Imports & Logistics";
-      const cc = `disputes+${state.currentOrgId || 'cust_acme_01'}@in.rateguard.app`;
+      const clientOrg = state.currentOrgName || "KRISHNA FREIGHT BROKER";
+      const cc = `disputes+${state.currentOrgSlug || 'krishna-freight-broker'}@lexaintake.com`;
       const subject = `Billing Dispute: Invoice #${d.invoice_number} / PRO #${d.pro_number} — ${clientOrg}`;
       const body = `To: ${d.carrier} Billing & Claims Department (${d.email})
 From: Accounts Payable, ${clientOrg}
@@ -2462,7 +2468,7 @@ ${clientOrg}`;
       }
       const d = state.disputes.find(x => x.id === state.activeDisputeId);
       const recipient = d ? d.email : "billing@gswfreight.com";
-      const cc = `disputes+${state.currentOrgId || 'cust_acme_01'}@in.rateguard.app`;
+      const cc = `disputes+${state.currentOrgSlug || 'krishna-freight-broker'}@lexaintake.com`;
       const subject = d ? `Billing Dispute: Invoice #${d.invoice_number} / PRO #${d.pro_number}` : "Billing Dispute Notice";
       const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(recipient)}&cc=${encodeURIComponent(cc)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(state.activeDisputeLetter)}`;
       window.open(gmailUrl, '_blank');
@@ -2497,8 +2503,8 @@ ${clientOrg}`;
         return;
       }
 
-      const clientOrg = state.currentOrgName || "Acme Imports & Logistics";
-      const cc = `disputes+${state.currentOrgId || 'cust_acme_01'}@in.rateguard.app`;
+      const clientOrg = state.currentOrgName || "KRISHNA FREIGHT BROKER";
+      const cc = `disputes+${state.currentOrgSlug || 'krishna-freight-broker'}@lexaintake.com`;
       const totalOvercharge = carrierDisputes.reduce((sum, d) => sum + (d.overcharge || 0), 0);
       const targetEmail = carrierDisputes[0].email || (carrier.toLowerCase().includes("gsw") ? "billing@gswfreight.com" : "freightbilling@abf.com");
 
