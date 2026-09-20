@@ -216,3 +216,31 @@ def test_auth_register_and_login_flow():
     assert dash["kpis"]["total_invoices_audited"] == 0
     assert dash["kpis"]["total_recoverable_dollars"] == 0.0
     assert dash["kpis"]["open_disputes_count"] == 0
+
+
+def test_zip_batch_upload():
+    import io
+    import zipfile
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as z:
+        pdf_1 = b"%PDF-1.4\nPRO: 042-881122 \n Total: $500.00 \n%%EOF"
+        pdf_2 = b"%PDF-1.4\nPRO: 042-881133 \n Total: $750.00 \n%%EOF"
+        z.writestr("invoice_1.pdf", pdf_1)
+        z.writestr("invoice_2.pdf", pdf_2)
+        z.writestr("manifest.csv", "file_name,carrier,invoice_number,pro_number,invoice_total,invoice_date\ninvoice_1.pdf,ABF Freight,INV-881122,042-881122,500.00,2026-08-15\n")
+
+    zip_bytes = zip_buffer.getvalue()
+    response = client.post(
+        "/api/v1/upload",
+        files={"file": ("batch_invoices.zip", zip_bytes, "application/zip")},
+        data={"customer_id": "cust_acme_01", "source": "upload"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["batch"] is True
+    assert data["total_files"] == 2
+    assert data["audited_count"] == 2
+    assert "invoices" in data
+

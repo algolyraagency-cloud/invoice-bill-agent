@@ -26,6 +26,7 @@ from apps.worker.agreement_generator import (
 from apps.worker.dispute_generator import (
     DEFAULT_CARRIER_CONTACTS,
     generate_dispute_letter,
+    get_carrier_contact,
     transition_dispute_status,
 )
 from apps.worker.dispute_tracker_automation import (
@@ -72,6 +73,50 @@ class CustomerPortalService:
         self._commission_invoices: dict[str, dict[str, Any]] = {}
         self._forwarding_rules: dict[str, bool] = {}
         self._sessions: dict[str, dict[str, Any]] = {}
+        self._carrier_contacts: dict[str, dict[str, Any]] = {
+            "ABF Freight": {
+                "carrier": "ABF Freight",
+                "dispute_email": "freightbilling@abf.com",
+                "billing_phone": "800-610-5544",
+                "notes": "Requires PRO# in subject line",
+            },
+            "XPO Logistics": {
+                "carrier": "XPO Logistics",
+                "dispute_email": "ltlclaims@xpo.com",
+                "billing_phone": "800-755-2728",
+                "notes": "Credit memos issued within 10 business days",
+            },
+            "Roadrunner": {
+                "carrier": "Roadrunner",
+                "dispute_email": "billingdisputes@rrts.com",
+                "billing_phone": "800-435-0777",
+                "notes": "Prefers invoice PDF attached with dispute",
+            },
+            "GSW Freight System, Inc.": {
+                "carrier": "GSW Freight System, Inc.",
+                "dispute_email": "billing@gswfreight.com",
+                "billing_phone": "800-555-0142",
+                "notes": "Standard LTL deficit weight dispute desk",
+            },
+            "SwiftPath Logistics LLC": {
+                "carrier": "SwiftPath Logistics LLC",
+                "dispute_email": "claims@swiftpath.com",
+                "billing_phone": "800-555-0184",
+                "notes": "Dedicated LTL dispute & detention desk",
+            },
+            "Vanguard Logistics": {
+                "carrier": "Vanguard Logistics",
+                "dispute_email": "accounts@vanguard-logistics.com",
+                "billing_phone": "800-555-0122",
+                "notes": "Accessorial & detention disputes",
+            },
+            "Zenith Logistics": {
+                "carrier": "Zenith Logistics",
+                "dispute_email": "billing@zenith-logistics.com",
+                "billing_phone": "800-555-0133",
+                "notes": "Re-classification and W&R inspection disputes",
+            },
+        }
 
 
     # --------------------------------------------------------------------------
@@ -784,15 +829,80 @@ class CustomerPortalService:
     # Phase 5.5.3: Disputes, 1-Click Mailto & Credit Memo Intake
     # --------------------------------------------------------------------------
 
-    def list_disputes(
+    # --------------------------------------------------------------------------
+    # Carrier Contacts Directory & Rep Overrides (Phase 5.2 / Issue 2)
+    # --------------------------------------------------------------------------
+
+    def get_carrier_contacts(self, customer_id: str | None = None) -> list[dict[str, Any]]:
+        """Returns all registered carrier contacts and dispute email addresses."""
+        contacts = list(self._carrier_contacts.values())
+        return sorted(contacts, key=lambda c: c.get("carrier", "").lower())
+
+    def upsert_carrier_contact(
+        self,
+        carrier: str,
+        dispute_email: str,
+        billing_phone: str | None = None,
+        notes: str | None = None,
+        customer_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Upserts a carrier dispute contact record into memory and updates defaults."""
+        carrier_clean = carrier.strip()
+        record = {
+            "id": str(uuid.uuid4()),
+            "carrier": carrier_clean,
+            "dispute_email": dispute_email.strip().lower(),
+            "billing_phone": billing_phone.strip() if billing_phone else "",
+            "notes": notes.strip() if notes else "",
+            "customer_id": customer_id,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        self._carrier_contacts[carrier_clean] = record
+        DEFAULT_CARRIER_CONTACTS[carrier_clean] = {
+            "dispute_email": record["dispute_email"],
+            "billing_phone": record["billing_phone"],
+            "notes": record["notes"],
+        }
+        return record
+
+    def resolve_carrier_contact(self, carrier: str, customer_id: str | None = None) -> dict[str, str]:
+        """Resolves dispute contact info for a carrier using directory with fuzzy fallback."""
+        if not carrier:
+            return {
+                "dispute_email": "billing@carrier.com",
+                "billing_phone": "800-555-0199",
+                "notes": "Standard dispute intake",
+            }
+        c_low = carrier.strip().lower()
+        # 1. Exact match in _carrier_contacts
+        for name, contact in self._carrier_contacts.items():
+            if name.lower() == c_low:
+                return {
+                    "dispute_email": contact["dispute_email"],
+                    "billing_phone": contact.get("billing_phone", "800-555-0199"),
+                    "notes": contact.get("notes", ""),
+                }
+        # 2. Substring match in _carrier_contacts
+        for name, contact in self._carrier_contacts.items():
+            if name.lower() in c_low or c_low in name.lower():
+                return {
+                    "dispute_email": contact["dispute_email"],
+                    "billing_phone": contact.get("billing_phone", "800-555-0199"),
+                    "notes": contact.get("notes", ""),
+                }
+        # 3. Fallback to dispute_generator get_carrier_contact
+        return get_carrier_contact(carrier)
+
+    def get_disputes(
         self,
         customer_id: str,
         carrier: str | None = None,
         status: str | None = None,
-        enforce_gate: bool = False,
+        enforce_gate: bool = True,
     ) -> list[DisputeLetterItem]:
         """
-        Compiles dispute items ready for shipper export:
+        Retrieves dispute items for customer with:
+        - Exact contract audit findings & mathematical variance
         - Carrier contacts
         - 1-click RFC 2368 pre-encoded mailto: links
         - Formatted plain-text & HTML dispute letters
@@ -836,10 +946,7 @@ class CustomerPortalService:
 
             # Build formal dispute notice
             carrier_name = inv["carrier"]
-            contact_info = DEFAULT_CARRIER_CONTACTS.get(carrier_name, {
-                "dispute_email": f"billing@{carrier_name.lower().replace(' ', '')}.com",
-                "billing_phone": "800-555-0199",
-            })
+            contact_info = self.resolve_carrier_contact(carrier_name, customer_id=customer_id)
 
             flag_dict = {
                 "id": flag["id"],
@@ -866,6 +973,15 @@ class CustomerPortalService:
 
         dispute_items.sort(key=lambda x: x.created_at, reverse=True)
         return dispute_items
+
+    def list_disputes(
+        self,
+        customer_id: str,
+        carrier: str | None = None,
+        status: str | None = None,
+        enforce_gate: bool = False,
+    ) -> list[DisputeLetterItem]:
+        return self.get_disputes(customer_id, carrier=carrier, status=status, enforce_gate=enforce_gate)
 
     def update_dispute_status(
         self,

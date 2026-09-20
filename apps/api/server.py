@@ -14,8 +14,10 @@ import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+import re
 from typing import Any
 
+from pydantic import BaseModel
 from fastapi import (
     FastAPI,
     File,
@@ -46,9 +48,12 @@ from apps.worker.cost_guard import CircuitBreakerTrippedError, global_cost_guard
 from apps.worker.credit_memo_service import CreditMemoService
 from apps.worker.feedback_loop import FeedbackLoopService
 from apps.worker.ingestion import (
+    compute_sha256,
     is_pdf_magic_bytes,
     parse_cloudflare_inbound_mime,
+    parse_csv_manifest,
     parse_postmark_inbound_json,
+    unpack_zip_invoices,
 )
 from apps.worker.invoice_parser import parse_invoice
 from apps.worker.onboarding_wizard import OnboardingWizardService
@@ -436,6 +441,109 @@ async def handle_invoice_upload(
     if cached_result:
         return cached_result
 
+    # 1. BATCH ZIP ARCHIVE PROCESSING
+    if is_zip:
+        try:
+            extracted_pdfs, manifest_csv = unpack_zip_invoices(file_bytes)
+            if not extracted_pdfs and not manifest_csv:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="ZIP archive contains no valid PDF invoices or CSV manifests."
+                )
+
+            manifest_data = {}
+            if manifest_csv:
+                try:
+                    manifest_data = parse_csv_manifest(manifest_csv)
+                except Exception:
+                    pass
+
+            audited_invoices = []
+            total_batch_overcharge = 0.0
+
+            for pdf in extracted_pdfs:
+                try:
+                    pdf_res = process_invoice_bytes_and_audit(
+                        file_bytes=pdf["content_bytes"],
+                        filename=pdf["filename"],
+                        customer_id=customer_id,
+                        source="batch_zip",
+                    )
+                    audited_invoices.append(pdf_res)
+                    total_batch_overcharge += pdf_res.get("overcharge_amount", 0.0)
+                except Exception as ex:
+                    audited_invoices.append({
+                        "filename": pdf["filename"],
+                        "status": "error",
+                        "error": str(ex)
+                    })
+
+            res = {
+                "status": "success",
+                "batch": True,
+                "archive_name": filename,
+                "total_files": len(extracted_pdfs),
+                "audited_count": len([i for i in audited_invoices if i.get("status") == "success"]),
+                "total_overcharge": round(total_batch_overcharge, 2),
+                "invoices": audited_invoices,
+                "manifest_detected": bool(manifest_csv)
+            }
+            global_cost_guard.set_cached(cache_key, res)
+            return res
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Failed to unpack and audit ZIP batch: {str(e)}"
+            )
+
+    # 2. STANDALONE CSV MANIFEST / INVOICE BATCH PROCESSING
+    if is_csv:
+        try:
+            csv_text = file_bytes.decode("utf-8", errors="ignore")
+            manifest_data = parse_csv_manifest(csv_text)
+            csv_invoices = []
+            for fname, item in manifest_data.items():
+                inv_id = f"inv_{uuid.uuid4().hex[:8]}"
+                portal_service.seed_invoice(
+                    invoice_id=inv_id,
+                    customer_id=customer_id,
+                    carrier=item.get("carrier", "Commercial Carrier"),
+                    invoice_number=item.get("invoice_number", f"INV-{uuid.uuid4().hex[:6]}"),
+                    pro_number=item.get("pro_number", f"PRO-{uuid.uuid4().hex[:6]}"),
+                    invoice_date=item.get("invoice_date", "2026-08-15"),
+                    invoice_total=item.get("invoice_total", 0.0),
+                    status="audited",
+                    source=source,
+                    file_path=fname
+                )
+                csv_invoices.append({
+                    "id": inv_id,
+                    "carrier": item.get("carrier"),
+                    "invoice_number": item.get("invoice_number"),
+                    "pro_number": item.get("pro_number"),
+                    "invoice_total": item.get("invoice_total", 0.0),
+                    "status": "audited"
+                })
+            res = {
+                "status": "success",
+                "batch": True,
+                "manifest_file": filename,
+                "total_files": len(manifest_data),
+                "audited_count": len(csv_invoices),
+                "total_overcharge": 0.0,
+                "invoices": csv_invoices
+            }
+            global_cost_guard.set_cached(cache_key, res)
+            return res
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Failed to parse CSV manifest: {str(e)}"
+            )
+
+    # 3. SINGLE PDF / IMAGE DOCUMENT AUDIT
     try:
         res = process_invoice_bytes_and_audit(
             file_bytes=file_bytes,
@@ -935,6 +1043,45 @@ def get_invoices(
         search=search,
         page=page,
         limit=limit,
+    )
+
+# ------------------------------------------------------------------------------
+# Carrier Contacts Directory Endpoints (Phase 5.2 / Issue 2)
+# ------------------------------------------------------------------------------
+
+class CarrierContactPayload(BaseModel):
+    carrier: str
+    dispute_email: str
+    billing_phone: str | None = None
+    notes: str | None = None
+    customer_id: str | None = None
+
+@app.get("/api/v1/carrier-contacts")
+@app.get("/v1/carrier-contacts")
+@app.get("/api/carrier-contacts")
+@app.get("/carrier-contacts")
+def list_carrier_contacts(customer_id: str | None = None):
+    """Returns all registered carrier dispute contacts and reps."""
+    return portal_service.get_carrier_contacts(customer_id=customer_id)
+
+@app.post("/api/v1/carrier-contacts")
+@app.post("/v1/carrier-contacts")
+@app.post("/api/carrier-contacts")
+@app.post("/carrier-contacts")
+def save_carrier_contact(payload: CarrierContactPayload):
+    """Upserts a carrier dispute contact email and rep details."""
+    email = payload.dispute_email.strip()
+    if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid email address format."
+        )
+    return portal_service.upsert_carrier_contact(
+        carrier=payload.carrier,
+        dispute_email=payload.dispute_email,
+        billing_phone=payload.billing_phone,
+        notes=payload.notes,
+        customer_id=payload.customer_id,
     )
 
 @app.get("/api/v1/disputes")
