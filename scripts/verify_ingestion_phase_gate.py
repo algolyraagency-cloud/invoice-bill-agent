@@ -51,7 +51,7 @@ def run_phase_gate():
     success, customer_id, slug, err = onboard_pilot_customer(
         conn=conn,
         name=test_pilot_name,
-        contact_email="cfo@apexdynamics.com",
+        contact_email=f"cfo_{uuid.uuid4().hex[:6]}@apexdynamics.com",
         industry="Machinery & Heavy Equipment",
         freight_spend_est=7500000.00
     )
